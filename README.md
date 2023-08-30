@@ -24,8 +24,9 @@
 2. Update constants in `script/TokenDeploy.s.sol` if necessary.
 
 3. Deploy
-Base Testnet: `source .env && forge script script/TokenDeploy.s.sol:TokenDeployScript --force --rpc-url $BASE_GOERLI_RPC_URL --broadcast --verify --delay 5 --verifier-url $VERIFIER_URL -vvvv`
-Base Mainnet: `source .env && forge script script/TokenDeploy.s.sol:TokenDeployScript --force --rpc-url $BASE_RPC_URL --broadcast --verify --delay 5 --verifier-url $VERIFIER_URL -vvvv`
+Base Testnet: `source .env && forge script script/TokenDeploy.s.sol:TokenDeployScript --force --rpc-url $BASE_GOERLI_RPC_URL --slow --broadcast --verify --delay 5 --verifier-url $VERIFIER_URL -vvvv`
+Base Mainnet: `source .env && forge script script/TokenDeploy.s.sol:TokenDeployScript --force --rpc-url $BASE_RPC_URL --slow --broadcast --verify --delay 5 --verifier-url $VERIFIER_URL -vvvv`
+Base Tenderly Fork: `source .env && forge script script/TokenDeploy.s.sol:TokenDeployScript --force --rpc-url $TENDERLY_FORK_RPC_URL --slow --broadcast -vvvv`
 
 ## Deployment Addresses
 
