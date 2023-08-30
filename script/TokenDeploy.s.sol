@@ -11,7 +11,7 @@ contract TokenDeployScript is Script {
     uint256 constant MINT_AMOUNT = 15_000_000;
     address constant MINT_DESTINATION = address(0);
     address constant TRANSFER_ROLES_TO = address(0);
-    bool constant REVOKE_DEPLOYER_PERM = true;
+    bool constant REVOKE_DEPLOYER_PERM = false;
 
     function getChainId() public view returns (uint256) {
         uint256 chainId;

@@ -33,3 +33,7 @@ Base Tenderly Fork: `source .env && forge script script/TokenDeploy.s.sol:TokenD
 ### Base Testnet
 proxy: `0x603b3d3851020559d0e684e7e77d4d978a317d9b`
 implementation: `0x0768b63c1e80082D7B8310470f6a1e6FcB08408F`
+
+### Base Mainnet
+proxy: `0x5607718c64334eb5174CB2226af891a6ED82c7C6`
+implementation: `0x0E09f59754b4F3695553e2f37F08CC987361fd5c`
