@@ -24,16 +24,16 @@
 2. Update constants in `script/TokenDeploy.s.sol` if necessary.
 
 3. Deploy
-Base Testnet: `source .env && forge script script/SeamTokenDeploy.s.sol:SeamTokenDeployScript --force --rpc-url $BASE_GOERLI_RPC_URL --slow --broadcast --verify --delay 5 --verifier-url $VERIFIER_URL -vvvv`
-Base Mainnet: `source .env && forge script script/SeamTokenDeploy.s.sol:SeamTokenDeployScript --force --rpc-url $BASE_RPC_URL --slow --broadcast --verify --delay 5 --verifier-url $VERIFIER_URL -vvvv`
-Base Tenderly Fork: `source .env && forge script script/SeamTokenDeploy.s.sol:SeamTokenDeployScript --force --rpc-url $TENDERLY_FORK_RPC_URL --slow --broadcast -vvvv`
+Base Testnet: `source .env && forge script script/SeamDeploy.s.sol:SeamDeployScript --force --rpc-url $BASE_GOERLI_RPC_URL --slow --broadcast --verify --delay 5 --verifier-url $VERIFIER_URL -vvvv`
+Base Mainnet: `source .env && forge script script/SeamDeploy.s.sol:SeamDeployScript --force --rpc-url $BASE_RPC_URL --slow --broadcast --verify --delay 5 --verifier-url $VERIFIER_URL -vvvv`
+Base Tenderly Fork: `source .env && forge script script/SeamDeploy.s.sol:SeamDeployScript --force --rpc-url $TENDERLY_FORK_RPC_URL --slow --broadcast -vvvv`
 
 ## Deployment Addresses
 
 ### Base Testnet
-proxy: `0xB2204C80d9570F29586d0648575b2689B1e9d9C5`
-implementation: `0x91F2E020fa28ca2955Eb01C5d6316E014394336C`
+proxy: `0xEA5DBa451b16521cdAedCf8FA307506A05329B05`
+implementation: `0xC7565962158D54beCDBE07FC89aE223eeF41f35F`
 
 ### Base Mainnet
-proxy: `0xA6D3fce31854049398EB47cF9a995ee871450F98`
-implementation: `0x4311dC38e44F225EdC38eD5A081715f7B7189134`
+proxy: `0x07DFE9525A5D274D6f3e906e6A4efA7F066C4926`
+implementation: `0x0661DfF721b459510c81C4c737Fa5Ac115E4950D`

@@ -9,19 +9,12 @@ import {Initializable} from "openzeppelin-contracts-upgradeable/proxy/utils/Init
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
- * @title SeamToken
+ * @title Seam
  * @author Seamless Protocol
  * @notice An ERC-20 token that is upgradeable.
  */
-contract SeamToken is
-    Initializable,
-    ERC20Upgradeable,
-    ERC20PermitUpgradeable,
-    AccessControlUpgradeable,
-    UUPSUpgradeable
-{
+contract Seam is Initializable, ERC20Upgradeable, ERC20PermitUpgradeable, AccessControlUpgradeable, UUPSUpgradeable {
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     constructor() {
         _disableInitializers();
@@ -32,7 +25,7 @@ contract SeamToken is
      * @param name Token name
      * @param symbol Token symbol
      */
-    function initialize(string memory name, string memory symbol) external virtual initializer {
+    function initialize(string memory name, string memory symbol, uint256 intialSupply) external virtual initializer {
         __ERC20_init(name, symbol);
         __ERC20Permit_init(name);
         __AccessControl_init();
@@ -40,20 +33,8 @@ contract SeamToken is
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(UPGRADER_ROLE, msg.sender);
-    }
 
-    /**
-     * @dev See {ERC20Upgradeable-_mint}.
-     */
-    function mint(address account, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _mint(account, amount);
-    }
-
-    /**
-     * @dev See {ERC20Upgradeable-_burn}.
-     */
-    function burn(address account, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _burn(account, amount);
+        _mint(msg.sender, intialSupply);
     }
 
     /// @inheritdoc UUPSUpgradeable
