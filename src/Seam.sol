@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.20;
 
 import {ERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {ERC20PermitUpgradeable} from
@@ -25,7 +25,7 @@ contract Seam is Initializable, ERC20Upgradeable, ERC20PermitUpgradeable, Access
      * @param name Token name
      * @param symbol Token symbol
      */
-    function initialize(string memory name, string memory symbol, uint256 intialSupply) external virtual initializer {
+    function initialize(string calldata name, string calldata symbol, uint256 intialSupply) external initializer {
         __ERC20_init(name, symbol);
         __ERC20Permit_init(name);
         __AccessControl_init();

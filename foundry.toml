@@ -2,7 +2,10 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-solc = "0.8.17"
+solc = "0.8.20"
+
+# Must set evm version to paris since solc > 0.8.20 uses op code PUSH0
+evm_version = "paris"
 via_ir = false
 
 [rpc_endpoints]

@@ -1,4 +1,4 @@
-# Token
+# Governance
 
 [![Foundry][foundry-badge]][foundry]
 
@@ -7,15 +7,15 @@
 
 ## How to Compile
 
-`forge build`
+`make build`
 
 ## How to Lint
 
-`forge fmt`
+`make fmt`
 
 ## How to Test
 
-`forge test`
+`make test`
 
 ## How to Deploy
 
@@ -24,16 +24,16 @@
 2. Update constants in `script/TokenDeploy.s.sol` if necessary.
 
 3. Deploy
-Base Testnet: `source .env && forge script script/SeamDeploy.s.sol:SeamDeployScript --force --rpc-url $BASE_GOERLI_RPC_URL --slow --broadcast --verify --delay 5 --verifier-url $VERIFIER_URL -vvvv`
-Base Mainnet: `source .env && forge script script/SeamDeploy.s.sol:SeamDeployScript --force --rpc-url $BASE_RPC_URL --slow --broadcast --verify --delay 5 --verifier-url $VERIFIER_URL -vvvv`
-Base Tenderly Fork: `source .env && forge script script/SeamDeploy.s.sol:SeamDeployScript --force --rpc-url $TENDERLY_FORK_RPC_URL --slow --broadcast -vvvv`
+Base Testnet: `make deploy-base-testnet`
+Base Mainnet: `make deploy-base-mainnet`
+Base Tenderly Fork: `make deploy-base-tenderly`
 
 ## Deployment Addresses
 
 ### Base Testnet
-proxy: `0xEA5DBa451b16521cdAedCf8FA307506A05329B05`
-implementation: `0xC7565962158D54beCDBE07FC89aE223eeF41f35F`
+proxy: `0xF452087775c75149260948bDa26253297F6B40a8`
+implementation: `0x5BdB2d6671E28D3B84910a0c394250F7285F5815`
 
 ### Base Mainnet
-proxy: `0x07DFE9525A5D274D6f3e906e6A4efA7F066C4926`
-implementation: `0x0661DfF721b459510c81C4c737Fa5Ac115E4950D`
+proxy: `0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85`
+implementation: `0x213fB4BBE3BfB56d967459BdB2749b4597513d24`
