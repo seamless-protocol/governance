@@ -12,6 +12,11 @@ import "openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
 import "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
+/**
+ * @title SeamGovernor
+ * @author Seamless Protocol
+ * @notice Governor contract of the Seamless Protocol used for both short and long governors
+ */
 contract SeamGovernor is
     Initializable,
     GovernorUpgradeable,
@@ -30,16 +35,25 @@ contract SeamGovernor is
     }
 
     function initialize(
+        string memory _name,
+        uint48 _initialVotingDelay,
+        uint32 _initialVotingPeriod,
+        uint256 _initialProposalThreshold,
+        uint256 _quorumNumeratorValue,
         IVotes _token,
         TimelockControllerUpgradeable _timelock,
         address initialOwner
-    ) public initializer {
-        __Governor_init("SeamGovernor");
-        __GovernorSettings_init(7200 /* 1 day */, 50400 /* 1 week */, 0);
+    ) external initializer {
+        __Governor_init(_name);
+        __GovernorSettings_init(
+            _initialVotingDelay,
+            _initialVotingPeriod,
+            _initialProposalThreshold
+        );
         __GovernorCountingSimple_init();
         __GovernorStorage_init();
         __GovernorVotes_init(_token);
-        __GovernorVotesQuorumFraction_init(4);
+        __GovernorVotesQuorumFraction_init(_quorumNumeratorValue);
         __GovernorTimelockControl_init(_timelock);
         __Ownable_init(initialOwner);
         __UUPSUpgradeable_init();
