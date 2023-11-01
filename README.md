@@ -24,8 +24,11 @@
 2. Update constants in `script/TokenDeploy.s.sol` if necessary.
 
 3. Deploy
+
 Base Testnet: `make deploy-base-testnet`
+
 Base Mainnet: `make deploy-base-mainnet`
+
 Base Tenderly Fork: `make deploy-base-tenderly`
 
 ## Deployment Addresses
