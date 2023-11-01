@@ -34,8 +34,15 @@ contract SeamDeployScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         Seam tokenImplementation = new Seam();
-        ERC1967Proxy proxy =
-        new ERC1967Proxy(address(tokenImplementation), abi.encodeWithSelector(Seam.initialize.selector, TOKEN_NAME, TOKEN_SYMBOL, MINT_AMOUNT * (10 ** tokenImplementation.decimals())));
+        ERC1967Proxy proxy = new ERC1967Proxy(
+            address(tokenImplementation),
+            abi.encodeWithSelector(
+                Seam.initialize.selector,
+                TOKEN_NAME,
+                TOKEN_SYMBOL,
+                MINT_AMOUNT * (10 ** tokenImplementation.decimals())
+            )
+        );
 
         console.log("Deployed token proxy to: ", address(proxy), " implementation: ", address(tokenImplementation));
 
