@@ -10,11 +10,7 @@ import "openzeppelin-contracts-upgradeable/governance/TimelockControllerUpgradea
  * @author Seamless Protocol
  * @notice TimelockController contract for the Seamless Protocol used for both short and long timelock controllers
  */
-contract SeamTimelockController is
-    Initializable,
-    TimelockControllerUpgradeable,
-    UUPSUpgradeable
-{
+contract SeamTimelockController is Initializable, TimelockControllerUpgradeable, UUPSUpgradeable {
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -29,19 +25,15 @@ contract SeamTimelockController is
      * @param executors Addresses that can execute operations
      * @param admin Address that can modify timelock controller and upgrade this contract
      */
-    function initialize(
-        uint256 minDelay,
-        address[] memory proposers,
-        address[] memory executors,
-        address admin
-    ) external initializer {
+    function initialize(uint256 minDelay, address[] memory proposers, address[] memory executors, address admin)
+        external
+        initializer
+    {
         __TimelockController_init(minDelay, proposers, executors, admin);
         __UUPSUpgradeable_init();
         _grantRole(UPGRADER_ROLE, admin);
     }
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal override onlyRole(UPGRADER_ROLE) {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {}
 }

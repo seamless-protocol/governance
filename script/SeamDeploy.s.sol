@@ -39,25 +39,14 @@ contract SeamDeployScript is Script {
             )
         );
 
-        console.log(
-            "Deployed token proxy to: ",
-            address(proxy),
-            " implementation: ",
-            address(tokenImplementation)
-        );
+        console.log("Deployed token proxy to: ", address(proxy), " implementation: ", address(tokenImplementation));
 
         Seam tokenProxy = Seam(address(proxy));
 
         address TRANSFER_ROLES_TO = Constants.TRANSFER_ROLES_TO;
         if (TRANSFER_ROLES_TO != address(0)) {
-            tokenProxy.grantRole(
-                tokenProxy.DEFAULT_ADMIN_ROLE(),
-                TRANSFER_ROLES_TO
-            );
-            console.log(
-                "Role: DEFAULT_ADMIN_ROLE granted to: ",
-                TRANSFER_ROLES_TO
-            );
+            tokenProxy.grantRole(tokenProxy.DEFAULT_ADMIN_ROLE(), TRANSFER_ROLES_TO);
+            console.log("Role: DEFAULT_ADMIN_ROLE granted to: ", TRANSFER_ROLES_TO);
             tokenProxy.grantRole(tokenProxy.UPGRADER_ROLE(), TRANSFER_ROLES_TO);
             console.log("Role: UPGRADER_ROLE granted to: ", TRANSFER_ROLES_TO);
         }
@@ -65,14 +54,8 @@ contract SeamDeployScript is Script {
         if (Constants.REVOKE_DEPLOYER_PERM) {
             tokenProxy.revokeRole(tokenProxy.UPGRADER_ROLE(), deployerAddress);
             console.log("Role: UPGRADER_ROLE revoked from: ", deployerAddress);
-            tokenProxy.revokeRole(
-                tokenProxy.DEFAULT_ADMIN_ROLE(),
-                deployerAddress
-            );
-            console.log(
-                "Role: DEFAULT_ADMIN_ROLE revoked from: ",
-                deployerAddress
-            );
+            tokenProxy.revokeRole(tokenProxy.DEFAULT_ADMIN_ROLE(), deployerAddress);
+            console.log("Role: DEFAULT_ADMIN_ROLE revoked from: ", deployerAddress);
         }
 
         vm.stopBroadcast();

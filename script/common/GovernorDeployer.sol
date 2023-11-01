@@ -20,9 +20,10 @@ contract GovernorDeployer {
         address deployer;
     }
 
-    function deployGovernorAndTimelock(
-        GovernorParams memory params
-    ) public returns (SeamGovernor, SeamTimelockController) {
+    function deployGovernorAndTimelock(GovernorParams memory params)
+        public
+        returns (SeamGovernor, SeamTimelockController)
+    {
         SeamTimelockController timelockControllerImplementation = new SeamTimelockController();
         ERC1967Proxy timelockControllerProxy = new ERC1967Proxy(
             address(timelockControllerImplementation),
@@ -57,42 +58,30 @@ contract GovernorDeployer {
             )
         );
         console.log(
-            "GovernorProxy deployed to: ",
-            address(governorProxy),
-            " implementation: ",
-            address(governorImplementation)
+            "GovernorProxy deployed to: ", address(governorProxy), " implementation: ", address(governorImplementation)
         );
 
-        SeamTimelockController timelockControllerProxyWrapped = SeamTimelockController(
-                payable(timelockControllerProxy)
-            );
+        SeamTimelockController timelockControllerProxyWrapped = SeamTimelockController(payable(timelockControllerProxy));
         timelockControllerProxyWrapped.grantRole(
-            timelockControllerImplementation.PROPOSER_ROLE(),
-            address(governorProxy)
+            timelockControllerImplementation.PROPOSER_ROLE(), address(governorProxy)
         );
         console.log("PROPOSER_ROLE granted to governor");
 
         timelockControllerProxyWrapped.grantRole(
-            timelockControllerImplementation.EXECUTOR_ROLE(),
-            address(governorProxy)
+            timelockControllerImplementation.EXECUTOR_ROLE(), address(governorProxy)
         );
         console.log("EXECUTOR_ROLE granted to governor");
 
         timelockControllerProxyWrapped.grantRole(
-            timelockControllerImplementation.CANCELLER_ROLE(),
-            address(governorProxy)
+            timelockControllerImplementation.CANCELLER_ROLE(), address(governorProxy)
         );
         console.log("CANCELLER_ROLE granted to governor");
 
         timelockControllerProxyWrapped.grantRole(
-            timelockControllerImplementation.CANCELLER_ROLE(),
-            params.guardianWallet
+            timelockControllerImplementation.CANCELLER_ROLE(), params.guardianWallet
         );
         console.log("CANCELLER_ROLE granted to guardian wallet\n");
 
-        return (
-            SeamGovernor(payable(governorProxy)),
-            timelockControllerProxyWrapped
-        );
+        return (SeamGovernor(payable(governorProxy)), timelockControllerProxyWrapped);
     }
 }
