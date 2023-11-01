@@ -36,7 +36,7 @@ contract SeamGovernor is
 
     /**
      * @notice Initializes governor contract and inherited contracts.
-     * @param name Name of governor contract
+     * @param _name Name of governor contract
      * @param _initialVotingDelay Initial voting delay
      * @param _initialVotingPeriod Initial voting period
      * @param _initialProposalThreshold Initial proposal threshold
@@ -56,7 +56,11 @@ contract SeamGovernor is
         address initialOwner
     ) external initializer {
         __Governor_init(_name);
-        __GovernorSettings_init(_initialVotingDelay, _initialVotingPeriod, _initialProposalThreshold);
+        __GovernorSettings_init(
+            _initialVotingDelay,
+            _initialVotingPeriod,
+            _initialProposalThreshold
+        );
         __GovernorCountingSimple_init();
         __GovernorStorage_init();
         __GovernorVotes_init(_token);
@@ -67,19 +71,33 @@ contract SeamGovernor is
     }
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 
     // The following functions are overrides required by Solidity.
 
-    function votingDelay() public view override(GovernorUpgradeable, GovernorSettingsUpgradeable) returns (uint256) {
+    function votingDelay()
+        public
+        view
+        override(GovernorUpgradeable, GovernorSettingsUpgradeable)
+        returns (uint256)
+    {
         return super.votingDelay();
     }
 
-    function votingPeriod() public view override(GovernorUpgradeable, GovernorSettingsUpgradeable) returns (uint256) {
+    function votingPeriod()
+        public
+        view
+        override(GovernorUpgradeable, GovernorSettingsUpgradeable)
+        returns (uint256)
+    {
         return super.votingPeriod();
     }
 
-    function quorum(uint256 blockNumber)
+    function quorum(
+        uint256 blockNumber
+    )
         public
         view
         override(GovernorUpgradeable, GovernorVotesQuorumFractionUpgradeable)
@@ -88,7 +106,9 @@ contract SeamGovernor is
         return super.quorum(blockNumber);
     }
 
-    function state(uint256 proposalId)
+    function state(
+        uint256 proposalId
+    )
         public
         view
         override(GovernorUpgradeable, GovernorTimelockControlUpgradeable)
@@ -97,7 +117,9 @@ contract SeamGovernor is
         return super.state(proposalId);
     }
 
-    function proposalNeedsQueuing(uint256 proposalId)
+    function proposalNeedsQueuing(
+        uint256 proposalId
+    )
         public
         view
         override(GovernorUpgradeable, GovernorTimelockControlUpgradeable)
@@ -121,8 +143,13 @@ contract SeamGovernor is
         bytes[] memory calldatas,
         string memory description,
         address proposer
-    ) internal override(GovernorUpgradeable, GovernorStorageUpgradeable) returns (uint256) {
-        return super._propose(targets, values, calldatas, description, proposer);
+    )
+        internal
+        override(GovernorUpgradeable, GovernorStorageUpgradeable)
+        returns (uint256)
+    {
+        return
+            super._propose(targets, values, calldatas, description, proposer);
     }
 
     function _queueOperations(
@@ -131,8 +158,19 @@ contract SeamGovernor is
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
-    ) internal override(GovernorUpgradeable, GovernorTimelockControlUpgradeable) returns (uint48) {
-        return super._queueOperations(proposalId, targets, values, calldatas, descriptionHash);
+    )
+        internal
+        override(GovernorUpgradeable, GovernorTimelockControlUpgradeable)
+        returns (uint48)
+    {
+        return
+            super._queueOperations(
+                proposalId,
+                targets,
+                values,
+                calldatas,
+                descriptionHash
+            );
     }
 
     function _executeOperations(
@@ -141,8 +179,17 @@ contract SeamGovernor is
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
-    ) internal override(GovernorUpgradeable, GovernorTimelockControlUpgradeable) {
-        super._executeOperations(proposalId, targets, values, calldatas, descriptionHash);
+    )
+        internal
+        override(GovernorUpgradeable, GovernorTimelockControlUpgradeable)
+    {
+        super._executeOperations(
+            proposalId,
+            targets,
+            values,
+            calldatas,
+            descriptionHash
+        );
     }
 
     function _cancel(
@@ -150,7 +197,11 @@ contract SeamGovernor is
         uint256[] memory values,
         bytes[] memory calldatas,
         bytes32 descriptionHash
-    ) internal override(GovernorUpgradeable, GovernorTimelockControlUpgradeable) returns (uint256) {
+    )
+        internal
+        override(GovernorUpgradeable, GovernorTimelockControlUpgradeable)
+        returns (uint256)
+    {
         return super._cancel(targets, values, calldatas, descriptionHash);
     }
 
