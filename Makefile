@@ -2,6 +2,8 @@
 # (-include to ignore error if it does not exist)
 -include .env
 
+.PHONY: test clean
+
 # Build & test
 build                   :; forge build
 coverage                :; forge coverage
