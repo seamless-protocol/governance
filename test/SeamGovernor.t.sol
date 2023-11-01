@@ -13,9 +13,6 @@ import {Seam} from "../src/Seam.sol";
 import {SeamGovernor} from "../src/SeamGovernor.sol";
 
 contract SeamGovernorTest is Test {
-    SeamGovernor public governorImplementation;
-    SeamGovernor public governorProxy;
-
     string public constant NAME = "Governor name";
     uint48 public constant VOTING_DELAY = 1234;
     uint32 public constant VOTING_PERIOD = 5678;
@@ -25,6 +22,9 @@ contract SeamGovernorTest is Test {
     address immutable _veSEAM = makeAddr("veSEAM");
     address immutable _timelockController = makeAddr("timelockController");
     address immutable _initialOwner = makeAddr("initialOwner");
+
+    SeamGovernor public governorImplementation;
+    SeamGovernor public governorProxy;
 
     function setUp() public {
         vm.mockCall(_veSEAM, abi.encodeWithSelector(Votes.clock.selector), abi.encode(block.timestamp));
