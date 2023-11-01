@@ -34,6 +34,17 @@ contract SeamGovernor is
         _disableInitializers();
     }
 
+    /**
+     * @notice Initializes governor contract and inherited contracts.
+     * @param name Name of governor contract
+     * @param _initialVotingDelay Initial voting delay
+     * @param _initialVotingPeriod Initial voting period
+     * @param _initialProposalThreshold Initial proposal threshold
+     * @param _quorumNumeratorValue Initial quorum numerator value
+     * @param _token Token used for voting
+     * @param _timelock Timelock controller used for execution
+     * @param initialOwner Initial owner of governor contract, should be timelock controller
+     */
     function initialize(
         string memory _name,
         uint48 _initialVotingDelay,
@@ -55,6 +66,7 @@ contract SeamGovernor is
         __UUPSUpgradeable_init();
     }
 
+    /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     // The following functions are overrides required by Solidity.

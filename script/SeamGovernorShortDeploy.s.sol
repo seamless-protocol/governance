@@ -7,7 +7,8 @@ import {SeamGovernor} from "../src/SeamGovernor.sol";
 import {SeamTimelockController} from "../src/SeamTimelockController.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
 
-contract SeamDeployScript is Script {
+contract SeamGovernorShortDeployScript is Script {
+    //TODO: change these values
     string public constant GOVERNOR_NAME = "SeamGovernorShort";
     uint48 public constant GOVERNOR_VOTING_DELAY = 2 * 7200; // 2 days
     uint32 public constant GOVERNOR_VOTING_PERIOD = 17280; // 3 days
@@ -80,14 +81,20 @@ contract SeamDeployScript is Script {
         timelockControllerProxyWrapped.grantRole(
             timelockControllerImplementation.PROPOSER_ROLE(), address(governorProxy)
         );
+        console.log("PROPOSER_ROLE granted to governor");
+
         timelockControllerProxyWrapped.grantRole(
             timelockControllerImplementation.EXECUTOR_ROLE(), address(governorProxy)
         );
+        console.log("EXECUTOR_ROLE granted to governor");
+
         timelockControllerProxyWrapped.grantRole(
             timelockControllerImplementation.CANCELLER_ROLE(), address(governorProxy)
         );
+        console.log("CANCELLER_ROLE granted to governor");
+
         timelockControllerProxyWrapped.grantRole(timelockControllerImplementation.CANCELLER_ROLE(), GUARDIAN_WALLET);
-        console.log("Roles granted");
+        console.log("CANCELLER_ROLE granted to guardian wallet");
 
         timelockControllerProxyWrapped.revokeRole(
             timelockControllerImplementation.DEFAULT_ADMIN_ROLE(), deployerAddress
