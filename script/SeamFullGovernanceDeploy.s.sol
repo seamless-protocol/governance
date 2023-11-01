@@ -44,23 +44,22 @@ contract SeamFullGovernanceDeploy is GovernorDeployer, Script {
             Constants.GUARDIAN_WALLET,
             deployerAddress
         );
-        (SeamGovernor governorShort, SeamTimelockController timelockShort) =
-            deployGovernorAndTimelock(shortGovernorParams);
+        (, SeamTimelockController timelockShort) = deployGovernorAndTimelock(shortGovernorParams);
 
         console.log("Deploying long governor and timelock controller...");
 
         GovernorParams memory longGovernorParams = GovernorParams(
-            Constants.GOVERNOR_LONGNAME,
-            Constants.GOVERNOR_LONGVOTING_DELAY,
-            Constants.GOVERNOR_LONGVOTING_PERIOD,
-            Constants.GOVERNOR_LONGPROPOSAL_THRESHOLD,
-            Constants.GOVERNOR_LONGNUMERATOR,
+            Constants.GOVERNOR_LONG_NAME,
+            Constants.GOVERNOR_LONG_VOTING_DELAY,
+            Constants.GOVERNOR_LONG_VOTING_PERIOD,
+            Constants.GOVERNOR_LONG_PROPOSAL_THRESHOLD,
+            Constants.GOVERNOR_LONG_NUMERATOR,
             Constants.VOTING_TOKEN,
             Constants.TIMELOCK_CONTROLLER_LONG_MIN_DELAY,
             Constants.GUARDIAN_WALLET,
             deployerAddress
         );
-        (SeamGovernor governorLong, SeamTimelockController timelockLong) = deployGovernorAndTimelock(longGovernorParams);
+        (, SeamTimelockController timelockLong) = deployGovernorAndTimelock(longGovernorParams);
 
         timelockShort.grantRole(timelockShort.DEFAULT_ADMIN_ROLE(), address(timelockLong));
         console.log("DEFAULT_ADMIN_ROLE on short timelock controller granted to long timelock controller");
