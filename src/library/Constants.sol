@@ -2,11 +2,11 @@
 pragma solidity ^0.8.20;
 
 library Constants {
-    string constant TOKEN_NAME = "Seamless";
-    string constant TOKEN_SYMBOL = "SEAM";
-    uint256 constant MINT_AMOUNT = 100_000_000;
-    address constant TRANSFER_ROLES_TO = 0xA1b5f2cc9B407177CD8a4ACF1699fa0b99955A22;
-    bool constant REVOKE_DEPLOYER_PERM = true;
+    string public constant TOKEN_NAME = "Seamless";
+    string public constant TOKEN_SYMBOL = "SEAM";
+    uint256 public constant MINT_AMOUNT = 100_000_000;
+    address public constant TRANSFER_ROLES_TO = 0xA1b5f2cc9B407177CD8a4ACF1699fa0b99955A22;
+    bool public constant REVOKE_DEPLOYER_PERM = true;
 
     string public constant GOVERNOR_SHORT_NAME = "SeamGovernorShort";
     uint48 public constant GOVERNOR_SHORT_VOTING_DELAY = 2 days;

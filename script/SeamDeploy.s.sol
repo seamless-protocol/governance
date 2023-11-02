@@ -43,12 +43,12 @@ contract SeamDeployScript is Script {
 
         Seam tokenProxy = Seam(address(proxy));
 
-        address TRANSFER_ROLES_TO = Constants.TRANSFER_ROLES_TO;
-        if (TRANSFER_ROLES_TO != address(0)) {
-            tokenProxy.grantRole(tokenProxy.DEFAULT_ADMIN_ROLE(), TRANSFER_ROLES_TO);
-            console.log("Role: DEFAULT_ADMIN_ROLE granted to: ", TRANSFER_ROLES_TO);
-            tokenProxy.grantRole(tokenProxy.UPGRADER_ROLE(), TRANSFER_ROLES_TO);
-            console.log("Role: UPGRADER_ROLE granted to: ", TRANSFER_ROLES_TO);
+        address transferRolesTo = Constants.TRANSFER_ROLES_TO;
+        if (transferRolesTo != address(0)) {
+            tokenProxy.grantRole(tokenProxy.DEFAULT_ADMIN_ROLE(), transferRolesTo);
+            console.log("Role: DEFAULT_ADMIN_ROLE granted to: ", transferRolesTo);
+            tokenProxy.grantRole(tokenProxy.UPGRADER_ROLE(), transferRolesTo);
+            console.log("Role: UPGRADER_ROLE granted to: ", transferRolesTo);
         }
 
         if (Constants.REVOKE_DEPLOYER_PERM) {
