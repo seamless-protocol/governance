@@ -22,6 +22,7 @@ import {TimelockControllerUpgradeable} from
 import {Address} from "openzeppelin-contracts/utils/Address.sol";
 import {IGovernor} from "openzeppelin-contracts/governance/IGovernor.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
+import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title SeamGovernor
@@ -129,7 +130,7 @@ contract SeamGovernor is
         override(GovernorUpgradeable, GovernorSettingsUpgradeable)
         returns (uint256)
     {
-        return (token().getPastTotalSupply(clock()) * proposalNumerator()) / proposalDenominator();
+        return (IERC20(address(token())).totalSupply() * proposalNumerator()) / proposalDenominator();
     }
 
     function proposalNumerator() public view virtual returns (uint256) {
