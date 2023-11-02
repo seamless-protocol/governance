@@ -19,7 +19,7 @@ import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/access/Owna
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {TimelockControllerUpgradeable} from
     "openzeppelin-contracts-upgradeable/governance/TimelockControllerUpgradeable.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {Address} from "openzeppelin-contracts/utils/Address.sol";
 import {IGovernor} from "openzeppelin-contracts/governance/IGovernor.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
 
