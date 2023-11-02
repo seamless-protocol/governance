@@ -20,7 +20,6 @@ import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UU
 import {TimelockControllerUpgradeable} from
     "openzeppelin-contracts-upgradeable/governance/TimelockControllerUpgradeable.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
-import "forge-std/console.sol";
 
 /**
  * @title SeamGovernor
@@ -39,21 +38,6 @@ contract SeamGovernor is
     OwnableUpgradeable,
     UUPSUpgradeable
 {
-    struct SeamGovernorStorage {
-        uint256 proposalNumerator;
-    }
-
-    bytes32 private constant SeamGovernorStorageLocation =
-        0xa1eac494560f7591e4da38ed031587f09556afdfc4399dd2e205b935fdfa3900;
-
-    function _getSeamGovernorStorage() private pure returns (SeamGovernorStorage storage $) {
-        assembly {
-            $.slot := SeamGovernorStorageLocation
-        }
-    }
-
-    event ProposalNumeratorSet(uint256 oldProposalNumerator, uint256 newProposalNumerator);
-
     error ProposalNumeratorTooLarge();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -82,7 +66,7 @@ contract SeamGovernor is
         address initialOwner
     ) external initializer {
         __Governor_init(_name);
-        __GovernorSettings_init(_initialVotingDelay, _initialVotingPeriod, 0);
+        __GovernorSettings_init(_initialVotingDelay, _initialVotingPeriod, _proposalNumeratorValue);
         __GovernorCountingSimple_init();
         __GovernorStorage_init();
         __GovernorVotes_init(_token);
@@ -90,7 +74,6 @@ contract SeamGovernor is
         __GovernorTimelockControl_init(_timelock);
         __Ownable_init(initialOwner);
         __UUPSUpgradeable_init();
-        _setProposalNumerator(_proposalNumeratorValue);
     }
 
     /// @inheritdoc UUPSUpgradeable
@@ -105,10 +88,14 @@ contract SeamGovernor is
     }
 
     function setProposalNumerator(uint256 newProposalNumerator) external onlyOwner {
-        _setProposalNumerator(newProposalNumerator);
+        setProposalThreshold(newProposalNumerator);
     }
 
     function setProposalThreshold(uint256 newProposalThreshold) public override onlyOwner {
+        if (newProposalThreshold > proposalDenominator()) {
+            revert ProposalNumeratorTooLarge();
+        }
+
         _setProposalThreshold(newProposalThreshold);
     }
 
@@ -135,7 +122,7 @@ contract SeamGovernor is
     }
 
     function proposalNumerator() public view virtual returns (uint256) {
-        return _getSeamGovernorStorage().proposalNumerator;
+        return super.proposalThreshold();
     }
 
     function proposalDenominator() public view virtual returns (uint256) {
@@ -175,16 +162,6 @@ contract SeamGovernor is
         returns (bool)
     {
         return super.proposalNeedsQueuing(proposalId);
-    }
-
-    function _setProposalNumerator(uint256 newProposalNumerator) private {
-        if (newProposalNumerator > proposalDenominator()) {
-            revert ProposalNumeratorTooLarge();
-        }
-
-        SeamGovernorStorage storage $ = _getSeamGovernorStorage();
-        emit ProposalNumeratorSet($.proposalNumerator, newProposalNumerator);
-        $.proposalNumerator = newProposalNumerator;
     }
 
     function _propose(
