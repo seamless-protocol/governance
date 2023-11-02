@@ -15,6 +15,7 @@ contract Proposer is Test {
         seam = Seam(seam_);
         governor = SeamGovernor(governor_);
         seam.approve(msg.sender, type(uint256).max);
+        seam.delegate(address(this));
     }
 
     function propose(
@@ -23,7 +24,6 @@ contract Proposer is Test {
         bytes[] memory calldatas,
         string memory description
     ) public returns (uint256) {
-        seam.delegate(address(this));
         vm.warp(block.timestamp + 1000);
         return governor.propose(targets, values, calldatas, description);
     }

@@ -17,9 +17,9 @@ import {SeamGovernor} from "src/SeamGovernor.sol";
 contract SeamTimelockControllerTest is Test {
     uint256 public constant TIMELOCK_CONTROLLER_MIN_DELAY = 4;
 
-    address public immutable _admin = makeAddr("admin");
-
     SeamTimelockController public timelockControllerProxy;
+
+    address immutable _admin = makeAddr("admin");
 
     function setUp() public {
         SeamTimelockController timelockControllerImplementation = new SeamTimelockController();
@@ -36,12 +36,12 @@ contract SeamTimelockControllerTest is Test {
         timelockControllerProxy = SeamTimelockController(payable(proxy));
     }
 
-    function test_Deployed() public {
+    function testDeployed() public {
         assertEq(timelockControllerProxy.getMinDelay(), TIMELOCK_CONTROLLER_MIN_DELAY);
         assertTrue(timelockControllerProxy.hasRole(timelockControllerProxy.DEFAULT_ADMIN_ROLE(), _admin));
     }
 
-    function test_Upgrade() public {
+    function testUpgrade() public {
         vm.startPrank(_admin);
 
         address newImplementation = address(new SeamTimelockController());
@@ -59,7 +59,7 @@ contract SeamTimelockControllerTest is Test {
         timelockControllerProxy.upgradeToAndCall(newImplementation, abi.encodePacked());
     }
 
-    function testFuzz_UpdateMinDelay(uint256 minDelay) public {
+    function testFuzzUpdateMinDelay(uint256 minDelay) public {
         vm.startPrank(_admin);
         timelockControllerProxy.updateDelay(minDelay);
         vm.stopPrank();

@@ -12,6 +12,22 @@ import {TimelockControllerUpgradeable} from
  * @notice TimelockController contract for the Seamless Protocol used for both short and long timelock controllers
  */
 contract SeamTimelockController is Initializable, TimelockControllerUpgradeable, UUPSUpgradeable {
+    /// @custom:storage-location erc7201:seamless.contracts.storage.SeamTimelockController
+    struct SeamTimelockControllerStorage {
+        uint256 _minDelay;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.SeamTimelockController")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant _SEAM_TIMELOCK_STORAGE_LOCATION =
+        0x263ed6143c54408ffb31ea73e81969b42f560e7b9104812b019a9e78ab9b3c00;
+
+    // solhint-disable-next-line var-name-mixedcase
+    function _getSeamTimelockControllerStorage() private pure returns (SeamTimelockControllerStorage storage $) {
+        assembly {
+            $.slot := _SEAM_TIMELOCK_STORAGE_LOCATION
+        }
+    }
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -30,16 +46,27 @@ contract SeamTimelockController is Initializable, TimelockControllerUpgradeable,
     {
         __TimelockController_init(minDelay, proposers, executors, admin);
         __UUPSUpgradeable_init();
+
+        // solhint-disable-next-line var-name-mixedcase
+        SeamTimelockControllerStorage storage $ = _getSeamTimelockControllerStorage();
+
+        $._minDelay = minDelay;
     }
 
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
+    /// @inheritdoc TimelockControllerUpgradeable
+    function getMinDelay() public view virtual override returns (uint256 duration) {
+        // solhint-disable-next-line var-name-mixedcase
+        SeamTimelockControllerStorage storage $ = _getSeamTimelockControllerStorage();
+        return $._minDelay;
+    }
+
+    /// @inheritdoc TimelockControllerUpgradeable
     function updateDelay(uint256 newDelay) external override onlyRole(DEFAULT_ADMIN_ROLE) {
-        TimelockControllerStorage storage $;
-        assembly {
-            $.slot := 0x9a37c2aa9d186a0969ff8a8267bf4e07e864c2f2768f5040949e28a624fb3600
-        }
+        // solhint-disable-next-line var-name-mixedcase
+        SeamTimelockControllerStorage storage $ = _getSeamTimelockControllerStorage();
 
         emit MinDelayChange($._minDelay, newDelay);
         $._minDelay = newDelay;

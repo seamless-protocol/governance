@@ -12,6 +12,7 @@ contract GovernorDeployer {
         string name;
         uint48 votingDelay;
         uint32 votingPeriod;
+        uint256 voteNumerator;
         uint256 proposalNumerator;
         uint256 quorumNumerator;
         address votingToken;
@@ -49,8 +50,9 @@ contract GovernorDeployer {
                 SeamGovernor.initialize.selector,
                 params.name,
                 params.votingDelay,
-                params.votingPeriod,
+                params.votingPeriod,                
                 params.proposalNumerator,
+                params.voteNumerator,
                 params.quorumNumerator,
                 IVotes(params.votingToken),
                 timelockControllerProxy,
