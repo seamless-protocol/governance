@@ -118,7 +118,7 @@ contract SeamGovernorTest is Test {
 
     function testProposalThreshold() public {
         uint256 totalSupply = 10 ether;
-        vm.mockCall(_seam, abi.encodeWithSelector(Votes.getPastTotalSupply.selector, 1), abi.encode(totalSupply));
+        vm.mockCall(_seam, abi.encodeWithSelector(Votes.getPastTotalSupply.selector, 0), abi.encode(totalSupply));
         governorProxy.setProposalNumerator(100); // 10%
         assertEq(governorProxy.proposalThreshold(), totalSupply / 10);
     }
@@ -127,7 +127,7 @@ contract SeamGovernorTest is Test {
         totalSupply = bound(totalSupply, 0, type(uint256).max / 1000);
         proposalThreshold = bound(proposalThreshold, 0, 1000);
 
-        vm.mockCall(_seam, abi.encodeWithSelector(Votes.getPastTotalSupply.selector, 1), abi.encode(totalSupply));
+        vm.mockCall(_seam, abi.encodeWithSelector(Votes.getPastTotalSupply.selector, 0), abi.encode(totalSupply));
         governorProxy.setProposalNumerator(proposalThreshold);
         assertEq(governorProxy.proposalThreshold(), (totalSupply * proposalThreshold) / 1000);
     }

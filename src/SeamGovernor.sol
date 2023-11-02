@@ -74,10 +74,10 @@ contract SeamGovernor is
         address initialOwner
     ) external initializer {
         __Governor_init(_name);
-        __GovernorSettings_init(_initialVotingDelay, _initialVotingPeriod, _proposalNumeratorValue);
-        _governorCountingFractionInit(_voteNumeratorValue);
-        __GovernorStorage_init();
         __GovernorVotes_init(_token);
+        __GovernorStorage_init();
+        __GovernorSettings_init(_initialVotingDelay, _initialVotingPeriod, _proposalNumeratorValue);
+        __GovernorCountingFraction_init(_voteNumeratorValue);
         __GovernorVotesQuorumFraction_init(_quorumNumeratorValue);
         __GovernorTimelockControl_init(_timelock);
         __Ownable_init(initialOwner);

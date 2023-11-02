@@ -31,12 +31,12 @@ abstract contract GovernorCountingFractionUpgradeable is Initializable, Governor
      */
     error GovernorInvalidVoteFraction(uint256 voteNumerator, uint256 voteDenominator);
 
-    function _governorCountingFractionInit(uint256 voteNumeratorValue) internal onlyInitializing {
+    function __GovernorCountingFraction_init(uint256 voteNumeratorValue) internal onlyInitializing {
         __GovernorCountingSimple_init();
-        _governorCountingFractionInitUnchained(voteNumeratorValue);
+        __GovernorCountingFraction_init_unchained(voteNumeratorValue);
     }
 
-    function _governorCountingFractionInitUnchained(uint256 voteNumeratorValue) internal onlyInitializing {
+    function __GovernorCountingFraction_init_unchained(uint256 voteNumeratorValue) internal onlyInitializing {
         _updateVoteCountNumerator(voteNumeratorValue);
     }
 
