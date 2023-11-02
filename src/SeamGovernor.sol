@@ -19,6 +19,7 @@ import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/access/Owna
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {TimelockControllerUpgradeable} from
     "openzeppelin-contracts-upgradeable/governance/TimelockControllerUpgradeable.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IGovernor} from "openzeppelin-contracts/governance/IGovernor.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
 
@@ -40,6 +41,11 @@ contract SeamGovernor is
     UUPSUpgradeable
 {
     error ProposalNumeratorTooLarge();
+
+    modifier onlyExecutor() {
+        super._checkGovernance();
+        _;
+    }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -80,7 +86,7 @@ contract SeamGovernor is
     function _checkGovernance() internal override onlyOwner {}
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyGovernance {}
 
     function COUNTING_MODE()
         public
@@ -91,11 +97,11 @@ contract SeamGovernor is
         return "support=bravo&quorum=for,abstain,no";
     }
 
-    function setProposalNumerator(uint256 newProposalNumerator) external onlyOwner {
+    function setProposalNumerator(uint256 newProposalNumerator) external {
         setProposalThreshold(newProposalNumerator);
     }
 
-    function setProposalThreshold(uint256 newProposalThreshold) public override onlyOwner {
+    function setProposalThreshold(uint256 newProposalThreshold) public override onlyGovernance {
         if (newProposalThreshold > proposalDenominator()) {
             revert ProposalNumeratorTooLarge();
         }
@@ -103,13 +109,18 @@ contract SeamGovernor is
         _setProposalThreshold(newProposalThreshold);
     }
 
-    function updateTimelock(TimelockControllerUpgradeable newTimelock) external override onlyOwner {
+    function updateTimelock(TimelockControllerUpgradeable newTimelock) external override onlyGovernance {
         GovernorTimelockControlStorage storage $;
         assembly {
             $.slot := 0x0d5829787b8befdbc6044ef7457d8a95c2a04bc99235349f1a212c063e59d400
         }
         emit TimelockChange(address($._timelock), address(newTimelock));
         $._timelock = newTimelock;
+    }
+
+    function relay(address target, uint256 value, bytes calldata data) external payable override onlyExecutor {
+        (bool success, bytes memory returndata) = target.call{value: value}(data);
+        Address.verifyCallResult(success, returndata);
     }
 
     function proposalThreshold()
