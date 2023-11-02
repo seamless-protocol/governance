@@ -19,7 +19,7 @@ contract SeamGovernorTest is Test {
     uint32 public constant VOTING_PERIOD = 5678;
     uint256 public constant PROPOSAL_NUMERATOR = 10;
     uint256 public constant QUORUM_NUMERATOR = 34;
-    uint256 public constant VOTE_NUMERATOR = 66;
+    uint256 public constant VOTE_NUMERATOR = 666;
 
     address immutable _seam = makeAddr("SEAM");
     address immutable _timelockController = makeAddr("timelockController");
