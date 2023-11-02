@@ -19,6 +19,7 @@ import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/access/Owna
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {TimelockControllerUpgradeable} from
     "openzeppelin-contracts-upgradeable/governance/TimelockControllerUpgradeable.sol";
+import {IGovernor} from "openzeppelin-contracts/governance/IGovernor.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
 
 /**
@@ -76,15 +77,18 @@ contract SeamGovernor is
         __UUPSUpgradeable_init();
     }
 
+    function _checkGovernance() internal override onlyOwner {}
+
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    function setVotingDelay(uint48 newVotingDelay) public override onlyOwner {
-        _setVotingDelay(newVotingDelay);
-    }
-
-    function setVotingPeriod(uint32 newVotingPeriod) public override onlyOwner {
-        _setVotingPeriod(newVotingPeriod);
+    function COUNTING_MODE()
+        public
+        pure
+        override(IGovernor, GovernorCountingSimpleUpgradeable)
+        returns (string memory)
+    {
+        return "support=bravo&quorum=for,abstain,no";
     }
 
     function setProposalNumerator(uint256 newProposalNumerator) external onlyOwner {
@@ -97,10 +101,6 @@ contract SeamGovernor is
         }
 
         _setProposalThreshold(newProposalThreshold);
-    }
-
-    function updateQuorumNumerator(uint256 newQuorumNumerator) external override onlyOwner {
-        _updateQuorumNumerator(newQuorumNumerator);
     }
 
     function updateTimelock(TimelockControllerUpgradeable newTimelock) external override onlyOwner {
