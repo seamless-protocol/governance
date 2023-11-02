@@ -30,7 +30,7 @@ contract SeamGovernorTest is Test {
     function setUp() public {
         governorImplementation = new SeamGovernor();
 
-        // 
+        //
         vm.etch(_seam, abi.encodePacked("some bytes"));
         vm.mockCall(_seam, abi.encodeWithSelector(Votes.clock.selector), abi.encode(uint48(block.timestamp)));
 
