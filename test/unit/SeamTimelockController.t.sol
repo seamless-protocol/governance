@@ -9,10 +9,10 @@ import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Votes} from "openzeppelin-contracts/governance/utils/Votes.sol";
 import {TimelockController} from "openzeppelin-contracts/governance/TimelockController.sol";
-import {Seam} from "../src/Seam.sol";
-import {Seam} from "../src/Seam.sol";
-import {SeamTimelockController} from "../src/SeamTimelockController.sol";
-import {SeamGovernor} from "../src/SeamGovernor.sol";
+import {Seam} from "src/Seam.sol";
+import {Seam} from "src/Seam.sol";
+import {SeamTimelockController} from "src/SeamTimelockController.sol";
+import {SeamGovernor} from "src/SeamGovernor.sol";
 
 contract SeamTimelockControllerTest is Test {
     uint256 public constant TIMELOCK_CONTROLLER_MIN_DELAY = 4;

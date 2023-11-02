@@ -3,14 +3,15 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
+import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Votes} from "openzeppelin-contracts/governance/utils/Votes.sol";
 import {TimelockControllerUpgradeable} from
     "openzeppelin-contracts-upgradeable/governance/TimelockControllerUpgradeable.sol";
-import {Seam} from "../src/Seam.sol";
-import {SeamGovernor} from "../src/SeamGovernor.sol";
+import {Seam} from "src/Seam.sol";
+import {SeamGovernor} from "src/SeamGovernor.sol";
 
 contract SeamGovernorTest is Test {
     string public constant NAME = "Governor name";
@@ -112,7 +113,7 @@ contract SeamGovernorTest is Test {
 
     function test_ProposalThreshold() public {
         uint256 totalSupply = 10 ether;
-        vm.mockCall(_veSEAM, abi.encodeWithSelector(Votes.getPastTotalSupply.selector, 1), abi.encode(totalSupply));
+        vm.mockCall(_veSEAM, abi.encodeWithSelector(IERC20.totalSupply.selector), abi.encode(totalSupply));
         governorProxy.setProposalNumerator(100); // 10%
         assertEq(governorProxy.proposalThreshold(), totalSupply / 10);
     }
@@ -121,7 +122,7 @@ contract SeamGovernorTest is Test {
         totalSupply = bound(totalSupply, 0, type(uint256).max / 1000);
         proposalThreshold = bound(proposalThreshold, 0, 1000);
 
-        vm.mockCall(_veSEAM, abi.encodeWithSelector(Votes.getPastTotalSupply.selector, 1), abi.encode(totalSupply));
+        vm.mockCall(_veSEAM, abi.encodeWithSelector(IERC20.totalSupply.selector), abi.encode(totalSupply));
         governorProxy.setProposalNumerator(proposalThreshold);
         assertEq(governorProxy.proposalThreshold(), (totalSupply * proposalThreshold) / 1000);
     }

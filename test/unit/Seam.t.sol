@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {Seam, Initializable} from "../src/Seam.sol";
+import {Seam, Initializable} from "src/Seam.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {Strings} from "openzeppelin-contracts/utils/Strings.sol";
@@ -18,8 +18,15 @@ contract SeamTest is Test {
         (_alice, _alicePk) = makeAddrAndKey("alice");
 
         tokenImplementation = new Seam();
-        ERC1967Proxy proxy =
-        new ERC1967Proxy(address(tokenImplementation), abi.encodeWithSelector(Seam.initialize.selector, "test token name", "test token symbol", 100));
+        ERC1967Proxy proxy = new ERC1967Proxy(
+            address(tokenImplementation),
+            abi.encodeWithSelector(
+                Seam.initialize.selector,
+                "test token name",
+                "test token symbol",
+                100
+            )
+        );
         tokenProxy = Seam(address(proxy));
     }
 
