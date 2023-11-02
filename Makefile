@@ -12,7 +12,7 @@ gas-check               :; forge snapshot --check --tolerance 1
 snapshot                :; forge snapshot
 clean                   :; forge clean
 fmt                     :; forge fmt
-test                    :; forge test -vvv
+test                    :; forge test -vvvv --gas-report
 
 # Deploy
 deploy-base-testnet		:; forge script script/SeamDeploy.s.sol:SeamDeployScript --force --rpc-url ${BASE_GOERLI_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv

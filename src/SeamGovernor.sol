@@ -1,11 +1,9 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
 import {GovernorUpgradeable} from "openzeppelin-contracts-upgradeable/governance/GovernorUpgradeable.sol";
 import {GovernorSettingsUpgradeable} from
     "openzeppelin-contracts-upgradeable/governance/extensions/GovernorSettingsUpgradeable.sol";
-import {GovernorCountingSimpleUpgradeable} from
-    "openzeppelin-contracts-upgradeable/governance/extensions/GovernorCountingSimpleUpgradeable.sol";
 import {GovernorStorageUpgradeable} from
     "openzeppelin-contracts-upgradeable/governance/extensions/GovernorStorageUpgradeable.sol";
 import {GovernorVotesUpgradeable} from
@@ -22,7 +20,7 @@ import {TimelockControllerUpgradeable} from
 import {Address} from "openzeppelin-contracts/utils/Address.sol";
 import {IGovernor} from "openzeppelin-contracts/governance/IGovernor.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
-import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {GovernorCountingFractionUpgradeable} from "./GovernorCountingFractionUpgradeable.sol";
 
 /**
  * @title SeamGovernor
@@ -33,7 +31,7 @@ contract SeamGovernor is
     Initializable,
     GovernorUpgradeable,
     GovernorSettingsUpgradeable,
-    GovernorCountingSimpleUpgradeable,
+    GovernorCountingFractionUpgradeable,
     GovernorStorageUpgradeable,
     GovernorVotesUpgradeable,
     GovernorVotesQuorumFractionUpgradeable,
@@ -71,21 +69,22 @@ contract SeamGovernor is
      * @param _quorumNumeratorValue Initial quorum numerator value
      * @param _token Token used for voting
      * @param _timelock Timelock controller used for execution
-     * @param initialOwner Initial owner of governor contract, should be timelock controller
+     * @param initialOwner Initial owner of governor contract
      */
     function initialize(
         string memory _name,
         uint48 _initialVotingDelay,
         uint32 _initialVotingPeriod,
         uint256 _proposalNumeratorValue,
+        uint256 _voteNumeratorValue,
         uint256 _quorumNumeratorValue,
         IVotes _token,
         TimelockControllerUpgradeable _timelock,
         address initialOwner
     ) external initializer {
         __Governor_init(_name);
-        __GovernorSettings_init(_initialVotingDelay, _initialVotingPeriod, 0);
-        __GovernorCountingSimple_init();
+        __GovernorSettings_init(_initialVotingDelay, _initialVotingPeriod, _proposalNumeratorValue);
+        _governorCountingFractionInit(_voteNumeratorValue);
         __GovernorStorage_init();
         __GovernorVotes_init(_token);
         __GovernorVotesQuorumFraction_init(_quorumNumeratorValue);
@@ -97,42 +96,47 @@ contract SeamGovernor is
 
     function _checkGovernance() internal override onlyOwner {}
 
-    function setVotingDelay(uint48 newVotingDelay) public override onlyOwner {
-        _setVotingDelay(newVotingDelay);
+    /// @inheritdoc UUPSUpgradeable
+    function _authorizeUpgrade(address newImplementation) internal override onlyGovernance {}
+
+    /**
+     * @dev Changes the proposal numerator.
+     *
+     * Emits a {ProposalThresholdSet} event.
+     *
+     * Requirements:
+     *
+     * - New numerator must be smaller or equal to the denominator.
+     */
+    function setProposalNumerator(uint256 newProposalNumerator) external {
+        setProposalThreshold(newProposalNumerator);
     }
 
-    function setVotingPeriod(uint32 newVotingPeriod) public override onlyOwner {
-        _setVotingPeriod(newVotingPeriod);
-    }
+    /// @inheritdoc GovernorSettingsUpgradeable
+    function setProposalThreshold(uint256 newProposalThreshold) public override onlyGovernance {
+        if (newProposalThreshold > proposalDenominator()) {
+            revert ProposalNumeratorTooLarge();
+        }
 
-    function setProposalNumerator(uint256 newProposalNumerator) external onlyOwner {
-        _setProposalNumerator(newProposalNumerator);
-    }
-
-    function setProposalThreshold(uint256 newProposalThreshold) public override onlyOwner {
         _setProposalThreshold(newProposalThreshold);
     }
 
-    function updateQuorumNumerator(uint256 newQuorumNumerator) external override onlyOwner {
-        _updateQuorumNumerator(newQuorumNumerator);
+    /// @inheritdoc GovernorUpgradeable
+    function relay(address target, uint256 value, bytes calldata data) external payable override onlyExecutor {
+        (bool success, bytes memory returndata) = target.call{value: value}(data);
+        Address.verifyCallResult(success, returndata);
     }
 
-    function updateTimelock(TimelockControllerUpgradeable newTimelock) external override onlyOwner {
-        GovernorTimelockControlStorage storage $;
-        assembly {
-            $.slot := 0x0d5829787b8befdbc6044ef7457d8a95c2a04bc99235349f1a212c063e59d400
-        }
-        emit TimelockChange(address($._timelock), address(newTimelock));
-        $._timelock = newTimelock;
-    }
-
+    /**
+     * @dev See {IGovernor-proposalThreshold}.
+     */
     function proposalThreshold()
         public
         view
         override(GovernorUpgradeable, GovernorSettingsUpgradeable)
         returns (uint256)
     {
-        return (IERC20(address(token())).totalSupply() * proposalNumerator()) / proposalDenominator();
+        return (token().getPastTotalSupply(clock() - 1) * proposalNumerator()) / proposalDenominator();
     }
 
     function proposalNumerator() public view virtual returns (uint256) {
