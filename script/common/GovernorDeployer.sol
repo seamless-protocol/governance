@@ -12,7 +12,7 @@ contract GovernorDeployer {
         string name;
         uint48 votingDelay;
         uint32 votingPeriod;
-        uint256 proposalThreshold;
+        uint256 proposalNumerator;
         uint256 quorumNumerator;
         address votingToken;
         uint256 timelockControllerMinDelay;
@@ -50,11 +50,11 @@ contract GovernorDeployer {
                 params.name,
                 params.votingDelay,
                 params.votingPeriod,
-                params.proposalThreshold,
+                params.proposalNumerator,
                 params.quorumNumerator,
                 IVotes(params.votingToken),
                 timelockControllerProxy,
-                timelockControllerProxy
+                params.deployer
             )
         );
         console.log(

@@ -16,12 +16,11 @@ contract SeamGovernorTest is Test {
     string public constant NAME = "Governor name";
     uint48 public constant VOTING_DELAY = 1234;
     uint32 public constant VOTING_PERIOD = 5678;
-    uint256 public constant PROPOSAL_THRESHOLD = 9012;
-    uint256 public constant NUMERATOR = 34;
+    uint256 public constant PROPOSAL_NUMERATOR = 10;
+    uint256 public constant QUORUM_NUMERATOR = 34;
 
     address immutable _veSEAM = makeAddr("veSEAM");
     address immutable _timelockController = makeAddr("timelockController");
-    address immutable _initialOwner = makeAddr("initialOwner");
 
     SeamGovernor public governorImplementation;
     SeamGovernor public governorProxy;
@@ -36,11 +35,11 @@ contract SeamGovernorTest is Test {
                 NAME,
                 VOTING_DELAY,
                 VOTING_PERIOD,
-                PROPOSAL_THRESHOLD,
-                NUMERATOR,
+                PROPOSAL_NUMERATOR,
+                QUORUM_NUMERATOR,
                 IVotes(_veSEAM),
                 TimelockControllerUpgradeable(payable(_timelockController)),
-                _initialOwner
+                address(this)
             )
         );
         governorProxy = SeamGovernor(payable(proxy));
@@ -50,22 +49,80 @@ contract SeamGovernorTest is Test {
         assertEq(governorProxy.name(), NAME);
         assertEq(governorProxy.votingDelay(), VOTING_DELAY);
         assertEq(governorProxy.votingPeriod(), VOTING_PERIOD);
-        assertEq(governorProxy.proposalThreshold(), PROPOSAL_THRESHOLD);
-        assertEq(governorProxy.quorumNumerator(), NUMERATOR);
+        assertEq(governorProxy.proposalNumerator(), PROPOSAL_NUMERATOR);
+        assertEq(governorProxy.quorumNumerator(), QUORUM_NUMERATOR);
         assertEq(address(governorProxy.token()), _veSEAM);
         assertEq(address(governorProxy.timelock()), _timelockController);
-        assertEq(governorProxy.owner(), _initialOwner);
+        assertEq(governorProxy.owner(), address(this));
     }
 
     function test_Upgrade() public {
-        vm.startPrank(_initialOwner);
-
         address newImplementation = address(new SeamGovernor());
         governorProxy.upgradeToAndCall(address(newImplementation), abi.encodePacked());
 
-        vm.stopPrank();
-
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, address(this)));
+        address nonOwner = makeAddr("nonOwner");
+        vm.startPrank(nonOwner);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner));
         governorProxy.upgradeToAndCall(address(newImplementation), abi.encodePacked());
+
+        vm.stopPrank();
+    }
+
+    function testFuzz_SetVotingDelay(uint48 votingDelay) public {
+        governorProxy.setVotingDelay(votingDelay);
+        assertEq(governorProxy.votingDelay(), votingDelay);
+    }
+
+    function testFuzz_SetVotingDelay_Revert_NotOwner(address caller) public {
+        vm.assume(caller != address(this));
+        vm.startPrank(caller);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, caller));
+        governorProxy.setVotingDelay(1);
+        vm.stopPrank();
+    }
+
+    function testFuzz_SetVotingPeriod(uint32 votingPeriod) public {
+        vm.assume(votingPeriod > 0);
+        governorProxy.setVotingPeriod(votingPeriod);
+        assertEq(governorProxy.votingPeriod(), votingPeriod);
+    }
+
+    function testFuzz_SetProposalNumerator(uint256 proposalNumerator) public {
+        proposalNumerator = bound(proposalNumerator, 0, 1000);
+        governorProxy.setProposalNumerator(proposalNumerator);
+        assertEq(governorProxy.proposalNumerator(), proposalNumerator);
+    }
+
+    function testFuzz_SetProposalNumerator_Revert_ProposalNumeratorTooLarge(uint256 proposalNumerator) public {
+        proposalNumerator = bound(proposalNumerator, 1001, type(uint256).max);
+        vm.expectRevert(SeamGovernor.ProposalNumeratorTooLarge.selector);
+        governorProxy.setProposalNumerator(proposalNumerator);
+    }
+
+    function testFuzz_UpdateQuorumNumerator(uint256 quorumNumerator) public {
+        quorumNumerator = bound(quorumNumerator, 0, 100);
+        governorProxy.updateQuorumNumerator(quorumNumerator);
+        assertEq(governorProxy.quorumNumerator(), quorumNumerator);
+    }
+
+    function testFuzz_UpdateTimelock(TimelockControllerUpgradeable timelock) public {
+        governorProxy.updateTimelock(timelock);
+        assertEq(governorProxy.timelock(), address(timelock));
+    }
+
+    function test_ProposalThreshold() public {
+        uint256 totalSupply = 10 ether;
+        vm.mockCall(_veSEAM, abi.encodeWithSelector(Votes.getPastTotalSupply.selector, 1), abi.encode(totalSupply));
+        governorProxy.setProposalNumerator(100); // 10%
+        assertEq(governorProxy.proposalThreshold(), totalSupply / 10);
+    }
+
+    function testFuzz_ProposalThreshold(uint256 totalSupply, uint256 proposalThreshold) public {
+        totalSupply = bound(totalSupply, 0, type(uint256).max / 1000);
+        proposalThreshold = bound(proposalThreshold, 0, 1000);
+
+        vm.mockCall(_veSEAM, abi.encodeWithSelector(Votes.getPastTotalSupply.selector, 1), abi.encode(totalSupply));
+        governorProxy.setProposalNumerator(proposalThreshold);
+        assertEq(governorProxy.proposalThreshold(), (totalSupply * proposalThreshold) / 1000);
     }
 }

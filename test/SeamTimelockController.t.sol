@@ -53,9 +53,16 @@ contract SeamTimelockControllerTest is Test {
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
                 address(this),
-                timelockControllerProxy.UPGRADER_ROLE()
+                timelockControllerProxy.DEFAULT_ADMIN_ROLE()
             )
         );
         timelockControllerProxy.upgradeToAndCall(newImplementation, abi.encodePacked());
+    }
+
+    function testFuzz_UpdateMinDelay(uint256 minDelay) public {
+        vm.startPrank(_admin);
+        timelockControllerProxy.updateDelay(minDelay);
+        vm.stopPrank();
+        assertEq(timelockControllerProxy.getMinDelay(), minDelay);
     }
 }

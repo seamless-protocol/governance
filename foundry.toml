@@ -12,8 +12,5 @@ via_ir = false
 base = "${BASE_RPC_URL}"
 base-goerli = "${BASE_GOERLI_RPC_URL}"
 
-[etherscan]
-base = { key = "${ETHERSCAN_API_KEY}", url = "${BASE_VERIFIER_URL}" }
-base-goerli = { key = "${ETHERSCAN_API_KEY}", url = "${BASE_GOERLI_VERIFIER_URL}" }
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
