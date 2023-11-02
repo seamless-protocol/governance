@@ -124,6 +124,7 @@ abstract contract GovernorCountingFractionUpgradeable is Initializable, Governor
     function _voteSucceeded(uint256 proposalId) internal view override returns (bool) {
         (uint256 againstVotes, uint256 forVotes,) = proposalVotes(proposalId);
 
-        return (forVotes * voteCountNumerator(proposalSnapshot(proposalId)) / voteCountDenominator()) > againstVotes;
+        return (forVotes / (forVotes + againstVotes))
+            > (voteCountNumerator(proposalSnapshot(proposalId)) / voteCountDenominator());
     }
 }

@@ -13,6 +13,8 @@ import {Votes} from "openzeppelin-contracts/governance/utils/Votes.sol";
 import {TimelockControllerUpgradeable} from
     "openzeppelin-contracts-upgradeable/governance/TimelockControllerUpgradeable.sol";
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {GovernorTimelockControlUpgradeable} from
+    "openzeppelin-contracts-upgradeable/governance/extensions/GovernorTimelockControlUpgradeable.sol";
 import {Seam} from "src/Seam.sol";
 import {SeamGovernor} from "src/SeamGovernor.sol";
 import {SeamTimelockController} from "src/SeamTimelockController.sol";
@@ -154,7 +156,8 @@ contract GovernanceTest is Test, GovernorDeployer {
         values[0] = 0;
 
         bytes[] memory calldatas = new bytes[](1);
-        calldatas[0] = abi.encodeWithSelector(SeamGovernor.updateTimelock.selector, newShortTimelock);
+        calldatas[0] =
+            abi.encodeWithSelector(GovernorTimelockControlUpgradeable.updateTimelock.selector, newShortTimelock);
 
         uint256 proposalId = longGovernorProposer.propose(targets, values, calldatas, "Change short timelock contract");
 
@@ -177,7 +180,8 @@ contract GovernanceTest is Test, GovernorDeployer {
         values[0] = 0;
 
         bytes[] memory calldatas = new bytes[](1);
-        calldatas[0] = abi.encodeWithSelector(SeamGovernor.updateTimelock.selector, newShortTimelock);
+        calldatas[0] =
+            abi.encodeWithSelector(GovernorTimelockControlUpgradeable.updateTimelock.selector, newShortTimelock);
 
         uint256 proposalId = shortGovernorProposer.propose(targets, values, calldatas, "Change short timelock contract");
 
