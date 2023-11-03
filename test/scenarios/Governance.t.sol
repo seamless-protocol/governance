@@ -272,6 +272,21 @@ contract GovernanceTest is Test, GovernorDeployer {
         shortGovernorProposer.queue(proposalId);
     }
 
+    function test_Queue_Revert_NotEnoughVotesLong() public {
+        address[] memory targets = new address[](1);
+        uint256[] memory values = new uint256[](1);
+        bytes[] memory calldatas = new bytes[](1);
+
+        uint256 proposalId = longGovernorProposer.propose(targets, values, calldatas, "Grant SEAM tokens");
+
+        seam.transfer(address(longGovernorVoter1), 1 ether);
+        longGovernorVoter1.vote(proposalId, 1);
+        longGovernorVoter2.vote(proposalId, 0);
+
+        vm.expectRevert();
+        longGovernorProposer.queue(proposalId);
+    }
+
     function _hashOperationBatch(
         address[] memory targets,
         uint256[] memory values,

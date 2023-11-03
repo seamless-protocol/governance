@@ -111,6 +111,12 @@ contract SeamGovernorTest is Test {
         assertEq(governorProxy.quorumNumerator(), quorumNumerator);
     }
 
+    function testFuzzupdateVoteCountNumerator(uint256 voteCountNumerator) public {
+        voteCountNumerator = bound(voteCountNumerator, 0, 100);
+        governorProxy.updateVoteCountNumerator(voteCountNumerator);
+        assertEq(governorProxy.voteCountNumerator(), voteCountNumerator);
+    }
+
     function testFuzzUpdateTimelock(TimelockControllerUpgradeable timelock) public {
         governorProxy.updateTimelock(timelock);
         assertEq(governorProxy.timelock(), address(timelock));
