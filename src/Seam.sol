@@ -56,6 +56,7 @@ contract Seam is
     }
 
     /// @inheritdoc VotesUpgradeable
+    // solhint-disable-next-line func-name-mixedcase
     function CLOCK_MODE() public pure override returns (string memory) {
         return "mode=timestamp";
     }

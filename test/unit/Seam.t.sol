@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {Seam, Initializable} from "../src/Seam.sol";
+import {Seam, Initializable} from "src/Seam.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {Strings} from "openzeppelin-contracts/utils/Strings.sol";
@@ -18,12 +18,19 @@ contract SeamTest is Test {
         (_alice, _alicePk) = makeAddrAndKey("alice");
 
         tokenImplementation = new Seam();
-        ERC1967Proxy proxy =
-        new ERC1967Proxy(address(tokenImplementation), abi.encodeWithSelector(Seam.initialize.selector, "test token name", "test token symbol", 100));
+        ERC1967Proxy proxy = new ERC1967Proxy(
+            address(tokenImplementation),
+            abi.encodeWithSelector(
+                Seam.initialize.selector,
+                "test token name",
+                "test token symbol",
+                100
+            )
+        );
         tokenProxy = Seam(address(proxy));
     }
 
-    function test_Deployed() public {
+    function testDeployed() public {
         assertEq(tokenProxy.name(), "test token name");
         assertEq(tokenProxy.symbol(), "test token symbol");
         assertEq(tokenProxy.decimals(), 18);
@@ -34,7 +41,7 @@ contract SeamTest is Test {
         assertEq(tokenProxy.CLOCK_MODE(), "mode=timestamp");
     }
 
-    function test_Transfer() public {
+    function testTransfer() public {
         tokenProxy.delegate(_alice);
         tokenProxy.transfer(_alice, 100);
 
@@ -42,12 +49,12 @@ contract SeamTest is Test {
         assertEq(tokenProxy.balanceOf(_alice), 100);
     }
 
-    function test_Delegate() public {
+    function testDelegate() public {
         tokenProxy.delegate(address(this));
         assertEq(tokenProxy.getVotes(address(this)), tokenProxy.totalSupply());
     }
 
-    function test_Permit() public {
+    function testPermit() public {
         tokenProxy.transfer(_alice, 100);
 
         bytes32 permitMessageHash = keccak256(
@@ -76,7 +83,7 @@ contract SeamTest is Test {
         assertEq(tokenProxy.balanceOf(address(this)), 10);
     }
 
-    function test_Upgrade() public {
+    function testUpgrade() public {
         address newImplementation = address(new Seam());
 
         tokenProxy.upgradeToAndCall(address(newImplementation), abi.encodePacked());

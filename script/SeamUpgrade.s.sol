@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Seam} from "../src/Seam.sol";
 
-contract SeamDeployScript is Script {
+contract SeamUpgradeScript is Script {
     address constant PROXY_ADDRESS = address(0);
     bool constant UPGRADE_PROXY = false; // false if upgrade must be performed from a multisig or governance
 
