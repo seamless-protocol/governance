@@ -58,24 +58,14 @@ contract EscrowSeamTest is Test {
         uint256 depositAmount = 1000 ether;
         user.deposit(depositAmount);
 
-        (
-            uint256 claimableAmount,
-            ,
-            uint256 vestingEndsAt,
-            uint256 lastUpdatedTimestamp
-        ) = esSEAM.vestingInfo(address(user));
+        (uint256 claimableAmount,, uint256 vestingEndsAt, uint256 lastUpdatedTimestamp) =
+            esSEAM.vestingInfo(address(user));
         assertEq(claimableAmount, 0);
         assertEq(vestingEndsAt, block.timestamp + VESTING_DURATION);
         assertEq(lastUpdatedTimestamp, block.timestamp);
         assertEq(esSEAM.balanceOf(address(user)), depositAmount);
-        assertEq(
-            seam.balanceOf(address(user)),
-            depositorBalanceBefore - depositAmount
-        );
-        assertEq(
-            seam.balanceOf(address(esSEAM)),
-            esSEAMBalanceBefore + depositAmount
-        );
+        assertEq(seam.balanceOf(address(user)), depositorBalanceBefore - depositAmount);
+        assertEq(seam.balanceOf(address(esSEAM)), esSEAMBalanceBefore + depositAmount);
     }
 
     function testMultipleDeposits() public {
@@ -91,28 +81,13 @@ contract EscrowSeamTest is Test {
         //Now user should have 2000 tokens vested on 10,5 months
         uint256 correctUnvestedAmount = depositAmount1 / 2;
         uint256 correctNewVestingPeriod = (VESTING_DURATION * 21) / 24;
-        (
-            uint256 claimableAmount,
-            ,
-            uint256 vestingEndsAt,
-            uint256 lastUpdatedTimestamp
-        ) = esSEAM.vestingInfo(address(user));
+        (uint256 claimableAmount,, uint256 vestingEndsAt, uint256 lastUpdatedTimestamp) =
+            esSEAM.vestingInfo(address(user));
 
-        assertApproxEqAbs(
-            claimableAmount,
-            depositAmount1 / 2,
-            ROUNDING_TOLERANCE
-        );
-        assertApproxEqAbs(
-            vestingEndsAt,
-            block.timestamp + correctNewVestingPeriod,
-            ROUNDING_TOLERANCE
-        );
+        assertApproxEqAbs(claimableAmount, depositAmount1 / 2, ROUNDING_TOLERANCE);
+        assertApproxEqAbs(vestingEndsAt, block.timestamp + correctNewVestingPeriod, ROUNDING_TOLERANCE);
         assertEq(lastUpdatedTimestamp, block.timestamp);
-        assertEq(
-            esSEAM.balanceOf(address(user)),
-            depositAmount1 + depositAmount2
-        );
+        assertEq(esSEAM.balanceOf(address(user)), depositAmount1 + depositAmount2);
 
         vm.warp(block.timestamp + correctNewVestingPeriod / 5); // Increase for 2,1 months
         //Now 20% of 2000 tokens should be unvested
@@ -123,28 +98,14 @@ contract EscrowSeamTest is Test {
         //After this deposit user should have 3200 tokens vested
         //Vesting period should be (12 + 8,4) / 2 = 10,2 months
 
-        correctUnvestedAmount +=
-            (depositAmount1 + depositAmount2 - correctUnvestedAmount) /
-            5;
+        correctUnvestedAmount += (depositAmount1 + depositAmount2 - correctUnvestedAmount) / 5;
         correctNewVestingPeriod = (VESTING_DURATION * 102) / 120;
-        (claimableAmount, , vestingEndsAt, lastUpdatedTimestamp) = esSEAM
-            .vestingInfo(address(user));
+        (claimableAmount,, vestingEndsAt, lastUpdatedTimestamp) = esSEAM.vestingInfo(address(user));
 
-        assertApproxEqAbs(
-            claimableAmount,
-            correctUnvestedAmount,
-            ROUNDING_TOLERANCE
-        );
-        assertApproxEqAbs(
-            vestingEndsAt,
-            block.timestamp + correctNewVestingPeriod,
-            ROUNDING_TOLERANCE
-        );
+        assertApproxEqAbs(claimableAmount, correctUnvestedAmount, ROUNDING_TOLERANCE);
+        assertApproxEqAbs(vestingEndsAt, block.timestamp + correctNewVestingPeriod, ROUNDING_TOLERANCE);
         assertEq(lastUpdatedTimestamp, block.timestamp);
-        assertEq(
-            esSEAM.balanceOf(address(user)),
-            depositAmount1 + depositAmount2 + depositAmount3
-        );
+        assertEq(esSEAM.balanceOf(address(user)), depositAmount1 + depositAmount2 + depositAmount3);
 
         //Increase time by 12 months
         //User should now have 3200 tokens unvester and 0 tokens unvested
@@ -154,14 +115,9 @@ contract EscrowSeamTest is Test {
         user.deposit(depositAmount4);
 
         correctUnvestedAmount += 3200 ether;
-        (claimableAmount, , vestingEndsAt, lastUpdatedTimestamp) = esSEAM
-            .vestingInfo(address(user));
+        (claimableAmount,, vestingEndsAt, lastUpdatedTimestamp) = esSEAM.vestingInfo(address(user));
 
-        assertApproxEqAbs(
-            claimableAmount,
-            correctUnvestedAmount,
-            ROUNDING_TOLERANCE
-        );
+        assertApproxEqAbs(claimableAmount, correctUnvestedAmount, ROUNDING_TOLERANCE);
         assertEq(vestingEndsAt, block.timestamp + VESTING_DURATION);
         assertEq(lastUpdatedTimestamp, block.timestamp);
 
@@ -175,21 +131,12 @@ contract EscrowSeamTest is Test {
 
         user.claim();
 
-        (claimableAmount, , vestingEndsAt, lastUpdatedTimestamp) = esSEAM
-            .vestingInfo(address(user));
+        (claimableAmount,, vestingEndsAt, lastUpdatedTimestamp) = esSEAM.vestingInfo(address(user));
         assertApproxEqAbs(claimableAmount, 0, ROUNDING_TOLERANCE);
         assertEq(vestingEndsAt, block.timestamp + VESTING_DURATION / 2);
         assertEq(lastUpdatedTimestamp, block.timestamp);
-        assertApproxEqAbs(
-            seam.balanceOf(address(user)),
-            seamBalanceBefore + 500 ether,
-            ROUNDING_TOLERANCE
-        );
-        assertApproxEqAbs(
-            esSEAM.balanceOf(address(user)),
-            esSEAMBalanceBefore - 500 ether,
-            ROUNDING_TOLERANCE
-        );
+        assertApproxEqAbs(seam.balanceOf(address(user)), seamBalanceBefore + 500 ether, ROUNDING_TOLERANCE);
+        assertApproxEqAbs(esSEAM.balanceOf(address(user)), esSEAMBalanceBefore - 500 ether, ROUNDING_TOLERANCE);
     }
 
     function testClaimMultipleDepositsAndClaims() public {
@@ -213,21 +160,15 @@ contract EscrowSeamTest is Test {
         uint256 depositAmount3 = 1600 ether;
         user.deposit(depositAmount3);
 
-        (uint256 claimableAmount, , , ) = esSEAM.vestingInfo(address(user));
+        (uint256 claimableAmount,,,) = esSEAM.vestingInfo(address(user));
         uint256 esSEAMBalanceBefore = esSEAM.balanceOf(address(user));
         uint256 userSeamBalanceBefore = seam.balanceOf(address(user));
 
         user.claim();
 
-        assertEq(
-            seam.balanceOf(address(user)),
-            userSeamBalanceBefore + claimableAmount
-        );
-        assertEq(
-            esSEAM.balanceOf(address(user)),
-            esSEAMBalanceBefore - claimableAmount
-        );
-        (claimableAmount, , , ) = esSEAM.vestingInfo(address(user));
+        assertEq(seam.balanceOf(address(user)), userSeamBalanceBefore + claimableAmount);
+        assertEq(esSEAM.balanceOf(address(user)), esSEAMBalanceBefore - claimableAmount);
+        (claimableAmount,,,) = esSEAM.vestingInfo(address(user));
         assertEq(claimableAmount, 0);
 
         //Increase time by 5,1 months
@@ -239,16 +180,8 @@ contract EscrowSeamTest is Test {
 
         user.claim();
 
-        assertApproxEqAbs(
-            seam.balanceOf(address(user)),
-            seamBalanceBefore + 1600 ether,
-            ROUNDING_TOLERANCE
-        );
-        assertApproxEqAbs(
-            esSEAM.balanceOf(address(user)),
-            esSEAMBalanceBefore - 1600 ether,
-            ROUNDING_TOLERANCE
-        );
+        assertApproxEqAbs(seam.balanceOf(address(user)), seamBalanceBefore + 1600 ether, ROUNDING_TOLERANCE);
+        assertApproxEqAbs(esSEAM.balanceOf(address(user)), esSEAMBalanceBefore - 1600 ether, ROUNDING_TOLERANCE);
 
         //Increase time by 6 months
         //User should now have 1600 tokens unvested and 0 tokens unvested
@@ -259,15 +192,7 @@ contract EscrowSeamTest is Test {
 
         user.claim();
 
-        assertApproxEqAbs(
-            seam.balanceOf(address(user)),
-            seamBalanceBefore + 1600 ether,
-            ROUNDING_TOLERANCE
-        );
-        assertApproxEqAbs(
-            esSEAM.balanceOf(address(user)),
-            0,
-            ROUNDING_TOLERANCE
-        );
+        assertApproxEqAbs(seam.balanceOf(address(user)), seamBalanceBefore + 1600 ether, ROUNDING_TOLERANCE);
+        assertApproxEqAbs(esSEAM.balanceOf(address(user)), 0, ROUNDING_TOLERANCE);
     }
 }

@@ -27,9 +27,7 @@ interface IEscrowSeam is IERC20 {
 
     function vestingDuration() external view returns (uint256);
 
-    function vestingInfo(
-        address
-    ) external view returns (uint256, uint256, uint256, uint256);
+    function vestingInfo(address) external view returns (uint256, uint256, uint256, uint256);
 
     function getClaimableAmount(address) external view returns (uint256);
 

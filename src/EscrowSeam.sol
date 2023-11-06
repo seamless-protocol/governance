@@ -15,12 +15,7 @@ import {IEscrowSeam} from "./interfaces/IEscrowSeam.sol";
  * @dev This contract is vesting contract for SEAM token.
  * @dev EscrowSeam token is not transferable.
  */
-contract EscrowSeam is
-    IEscrowSeam,
-    ERC20Upgradeable,
-    OwnableUpgradeable,
-    UUPSUpgradeable
-{
+contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     using Math for uint256;
     using SafeERC20 for IERC20;
 
@@ -30,11 +25,7 @@ contract EscrowSeam is
     bytes32 private constant EscrowSeamStorageLocation =
         0x6393c68bbda65a43373480543c4f1ff15eb61969ce223f59d8fd1889e26cc300;
 
-    function _getEscrowSeamStorage()
-        private
-        pure
-        returns (EscrowSeamStorage storage $)
-    {
+    function _getEscrowSeamStorage() private pure returns (EscrowSeamStorage storage $) {
         assembly {
             $.slot := EscrowSeamStorageLocation
         }
@@ -46,11 +37,7 @@ contract EscrowSeam is
      * @param _vestingDuration Vesting duration
      * @param _initialOwner Initial owner of the contract
      */
-    function initialize(
-        address _seam,
-        uint256 _vestingDuration,
-        address _initialOwner
-    ) public initializer {
+    function initialize(address _seam, uint256 _vestingDuration, address _initialOwner) public initializer {
         __ERC20_init("Escrow Seamless", "esSEAM");
         __Ownable_init(_initialOwner);
         __UUPSUpgradeable_init();
@@ -66,22 +53,14 @@ contract EscrowSeam is
     /**
      * @notice Prevents transfer of the token.
      */
-    // solhint-disable-next-line func-name-mixedcase
-    function transfer(
-        address,
-        uint256
-    ) public override(IERC20, ERC20Upgradeable) returns (bool) {
+    function transfer(address, uint256) public pure override(IERC20, ERC20Upgradeable) returns (bool) {
         revert NonTransferable();
     }
 
     /**
      * @notice Prevents transfer of the token.
      */
-    function transferFrom(
-        address,
-        address,
-        uint256
-    ) public override(IERC20, ERC20Upgradeable) returns (bool) {
+    function transferFrom(address, address, uint256) public pure override(IERC20, ERC20Upgradeable) returns (bool) {
         revert NonTransferable();
     }
 
@@ -105,9 +84,7 @@ contract EscrowSeam is
      * @notice Returns the vesting info of the account.
      * @param account Account to query
      */
-    function vestingInfo(
-        address account
-    ) external view returns (uint256, uint256, uint256, uint256) {
+    function vestingInfo(address account) external view returns (uint256, uint256, uint256, uint256) {
         EscrowSeamStorage storage $ = _getEscrowSeamStorage();
         VestingData storage vestingData = $.vestingInfo[account];
         return (
@@ -126,14 +103,8 @@ contract EscrowSeam is
     function getClaimableAmount(address account) public view returns (uint256) {
         EscrowSeamStorage storage $ = _getEscrowSeamStorage();
         VestingData storage vestingData = $.vestingInfo[account];
-        uint256 timeDiff = Math.min(
-            block.timestamp,
-            vestingData.vestingEndsAt
-        ) - vestingData.lastUpdatedTimestamp;
-        uint256 unvestedAmount = timeDiff.mulDiv(
-            vestingData.unvestPerSecond,
-            MULTIPLIER
-        );
+        uint256 timeDiff = Math.min(block.timestamp, vestingData.vestingEndsAt) - vestingData.lastUpdatedTimestamp;
+        uint256 unvestedAmount = timeDiff.mulDiv(vestingData.unvestPerSecond, MULTIPLIER);
         return vestingData.claimableAmount + unvestedAmount;
     }
 
@@ -151,19 +122,12 @@ contract EscrowSeam is
         EscrowSeamStorage storage $ = _getEscrowSeamStorage();
         VestingData storage vestingData = $.vestingInfo[msg.sender];
 
-        uint256 timeUntilEnd = vestingData.vestingEndsAt -
-            Math.min(block.timestamp, vestingData.vestingEndsAt);
-        uint256 currVestingAmount = vestingData.unvestPerSecond.mulDiv(
-            timeUntilEnd,
-            MULTIPLIER
-        );
-        uint256 newVestingPeriodDuration = ((currVestingAmount * timeUntilEnd) +
-            (amount * $.vestingDuration)) / (currVestingAmount + amount);
+        uint256 timeUntilEnd = vestingData.vestingEndsAt - Math.min(block.timestamp, vestingData.vestingEndsAt);
+        uint256 currVestingAmount = vestingData.unvestPerSecond.mulDiv(timeUntilEnd, MULTIPLIER);
+        uint256 newVestingPeriodDuration =
+            ((currVestingAmount * timeUntilEnd) + (amount * $.vestingDuration)) / (currVestingAmount + amount);
 
-        vestingData.unvestPerSecond = (currVestingAmount + amount).mulDiv(
-            MULTIPLIER,
-            newVestingPeriodDuration
-        );
+        vestingData.unvestPerSecond = (currVestingAmount + amount).mulDiv(MULTIPLIER, newVestingPeriodDuration);
         vestingData.vestingEndsAt = block.timestamp + newVestingPeriodDuration;
 
         _mint(msg.sender, amount);
