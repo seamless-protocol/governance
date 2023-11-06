@@ -10,11 +10,7 @@ import {Constants} from "../src/library/Constants.sol";
 import {GovernorDeployer} from "./common/GovernorDeployer.sol";
 import {EscrowSeamDeployer} from "./common/EscrowSeamDeployer.sol";
 
-contract SeamFullGovernanceDeploy is
-    GovernorDeployer,
-    EscrowSeamDeployer,
-    Script
-{
+contract SeamFullGovernanceDeploy is GovernorDeployer, EscrowSeamDeployer, Script {
     function getChainId() public view returns (uint256) {
         uint256 chainId;
         assembly {
@@ -50,10 +46,8 @@ contract SeamFullGovernanceDeploy is
             Constants.GUARDIAN_WALLET,
             deployerAddress
         );
-        (
-            SeamGovernor governorShort,
-            SeamTimelockController timelockShort
-        ) = deployGovernorAndTimelock(shortGovernorParams);
+        (SeamGovernor governorShort, SeamTimelockController timelockShort) =
+            deployGovernorAndTimelock(shortGovernorParams);
 
         console.log("Deploying long governor and timelock controller...");
 
@@ -69,53 +63,26 @@ contract SeamFullGovernanceDeploy is
             Constants.GUARDIAN_WALLET,
             deployerAddress
         );
-        (
-            SeamGovernor governorLong,
-            SeamTimelockController timelockLong
-        ) = deployGovernorAndTimelock(longGovernorParams);
+        (SeamGovernor governorLong, SeamTimelockController timelockLong) = deployGovernorAndTimelock(longGovernorParams);
 
-        timelockShort.grantRole(
-            timelockShort.DEFAULT_ADMIN_ROLE(),
-            address(timelockLong)
-        );
-        console.log(
-            "DEFAULT_ADMIN_ROLE on short timelock controller granted to long timelock controller"
-        );
+        timelockShort.grantRole(timelockShort.DEFAULT_ADMIN_ROLE(), address(timelockLong));
+        console.log("DEFAULT_ADMIN_ROLE on short timelock controller granted to long timelock controller");
 
-        timelockShort.revokeRole(
-            timelockShort.DEFAULT_ADMIN_ROLE(),
-            address(timelockShort)
-        );
-        console.log(
-            "DEFAULT_ADMIN_ROLE on short timelock controller revoked from short timelock controller"
-        );
+        timelockShort.revokeRole(timelockShort.DEFAULT_ADMIN_ROLE(), address(timelockShort));
+        console.log("DEFAULT_ADMIN_ROLE on short timelock controller revoked from short timelock controller");
 
-        timelockShort.revokeRole(
-            timelockShort.DEFAULT_ADMIN_ROLE(),
-            deployerAddress
-        );
-        console.log(
-            "DEFAULT_ADMIN_ROLE on short timelock controller revoked from deployer"
-        );
+        timelockShort.revokeRole(timelockShort.DEFAULT_ADMIN_ROLE(), deployerAddress);
+        console.log("DEFAULT_ADMIN_ROLE on short timelock controller revoked from deployer");
 
-        timelockLong.revokeRole(
-            timelockLong.DEFAULT_ADMIN_ROLE(),
-            deployerAddress
-        );
-        console.log(
-            "DEFAULT_ADMIN_ROLE on long timelock controller revoked from deployer"
-        );
+        timelockLong.revokeRole(timelockLong.DEFAULT_ADMIN_ROLE(), deployerAddress);
+        console.log("DEFAULT_ADMIN_ROLE on long timelock controller revoked from deployer");
 
         governorShort.transferOwnership(address(timelockLong));
         console.log("Governor short ownership transferred to long timelock");
         governorLong.transferOwnership(address(timelockLong));
         console.log("Governor long ownership transferred to long timelock");
 
-        deployEscrowSeam(
-            Constants.VOTING_TOKEN,
-            Constants.VESTING_DURATION,
-            address(timelockShort)
-        );
+        deployEscrowSeam(Constants.VOTING_TOKEN, Constants.VESTING_DURATION, address(timelockShort));
         vm.stopBroadcast();
     }
 }

@@ -5,7 +5,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {AccessControlUpgradeable} from "openzeppelin-contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {IEscrowSeam} from "./interfaces/IEscrowSeam.sol";
@@ -16,17 +15,26 @@ import {IEscrowSeam} from "./interfaces/IEscrowSeam.sol";
  * @dev This contract is vesting contract for SEAM token.
  * @dev EscrowSeam token is not transferable.
  */
-contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, AccessControlUpgradeable, OwnableUpgradeable, UUPSUpgradeable {
+contract EscrowSeam is
+    IEscrowSeam,
+    ERC20Upgradeable,
+    OwnableUpgradeable,
+    UUPSUpgradeable
+{
     using Math for uint256;
     using SafeERC20 for IERC20;
 
-    bytes32 public constant DEPOSITOR_ROLE = keccak256("DEPOSITOR_ROLE");
+    uint256 private constant MULTIPLIER = 1e18;
 
     // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.EscrowSeam")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant EscrowSeamStorageLocation =
         0x6393c68bbda65a43373480543c4f1ff15eb61969ce223f59d8fd1889e26cc300;
 
-    function _getEscrowSeamStorage() private pure returns (EscrowSeamStorage storage $) {
+    function _getEscrowSeamStorage()
+        private
+        pure
+        returns (EscrowSeamStorage storage $)
+    {
         assembly {
             $.slot := EscrowSeamStorageLocation
         }
@@ -36,12 +44,16 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, AccessControlUpgradeable, 
      * @notice Initializes the token storage and inherited contracts.
      * @param _seam SEAM token address
      * @param _vestingDuration Vesting duration
+     * @param _initialOwner Initial owner of the contract
      */
-    function initialize(address _seam, uint256 _vestingDuration, address _initialAdmin) public initializer {
+    function initialize(
+        address _seam,
+        uint256 _vestingDuration,
+        address _initialOwner
+    ) public initializer {
         __ERC20_init("Escrow Seamless", "esSEAM");
-        __AccessControl_init();
+        __Ownable_init(_initialOwner);
         __UUPSUpgradeable_init();
-        _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
 
         EscrowSeamStorage storage $ = _getEscrowSeamStorage();
         $.seam = IERC20(_seam);
@@ -49,19 +61,27 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, AccessControlUpgradeable, 
     }
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     /**
      * @notice Prevents transfer of the token.
      */
-    function transfer(address, uint256) public override(IERC20, ERC20Upgradeable) returns (bool) {
+    // solhint-disable-next-line func-name-mixedcase
+    function transfer(
+        address,
+        uint256
+    ) public override(IERC20, ERC20Upgradeable) returns (bool) {
         revert NonTransferable();
     }
 
     /**
      * @notice Prevents transfer of the token.
      */
-    function transferFrom(address, address, uint256) public override(IERC20, ERC20Upgradeable) returns (bool) {
+    function transferFrom(
+        address,
+        address,
+        uint256
+    ) public override(IERC20, ERC20Upgradeable) returns (bool) {
         revert NonTransferable();
     }
 
@@ -85,7 +105,9 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, AccessControlUpgradeable, 
      * @notice Returns the vesting info of the account.
      * @param account Account to query
      */
-    function vestingInfo(address account) external view returns (uint256, uint256, uint256, uint256) {
+    function vestingInfo(
+        address account
+    ) external view returns (uint256, uint256, uint256, uint256) {
         EscrowSeamStorage storage $ = _getEscrowSeamStorage();
         VestingData storage vestingData = $.vestingInfo[account];
         return (
@@ -104,51 +126,63 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, AccessControlUpgradeable, 
     function getClaimableAmount(address account) public view returns (uint256) {
         EscrowSeamStorage storage $ = _getEscrowSeamStorage();
         VestingData storage vestingData = $.vestingInfo[account];
-        uint256 timeDiff = Math.min(block.timestamp, vestingData.vestingEndsAt) - vestingData.lastUpdatedTimestamp;
-        uint256 unvestedAmount = timeDiff.mulDiv(vestingData.unvestPerSecond, 1e18);
+        uint256 timeDiff = Math.min(
+            block.timestamp,
+            vestingData.vestingEndsAt
+        ) - vestingData.lastUpdatedTimestamp;
+        uint256 unvestedAmount = timeDiff.mulDiv(
+            vestingData.unvestPerSecond,
+            MULTIPLIER
+        );
         return vestingData.claimableAmount + unvestedAmount;
     }
 
     /**
      * @notice Vests SEAM token to the contract.
-     * @dev This function should be user only by core protocol contracts. Contract should send SEAM tokens to this contract before calling deposit
-     * @param account Account to vest for
      * @param amount Amount to vest
      */
-    function deposit(address account, uint256 amount) external onlyRole(DEPOSITOR_ROLE) {
+    function deposit(uint256 amount) external {
         if (amount == 0) {
             revert ZeroAmount();
         }
 
-        _updateVesting(account);
+        _updateVesting(msg.sender);
 
         EscrowSeamStorage storage $ = _getEscrowSeamStorage();
-        VestingData storage vestingData = $.vestingInfo[account];
+        VestingData storage vestingData = $.vestingInfo[msg.sender];
 
-        uint256 timeUntilEnd = vestingData.vestingEndsAt - Math.min(block.timestamp, vestingData.vestingEndsAt);
-        uint256 currVestingAmount = vestingData.unvestPerSecond.mulDiv(timeUntilEnd, 1e18);
-        uint256 newVestingPeriodDuration =
-            ((currVestingAmount * timeUntilEnd) + (amount * $.vestingDuration)) / (currVestingAmount + amount);
+        uint256 timeUntilEnd = vestingData.vestingEndsAt -
+            Math.min(block.timestamp, vestingData.vestingEndsAt);
+        uint256 currVestingAmount = vestingData.unvestPerSecond.mulDiv(
+            timeUntilEnd,
+            MULTIPLIER
+        );
+        uint256 newVestingPeriodDuration = ((currVestingAmount * timeUntilEnd) +
+            (amount * $.vestingDuration)) / (currVestingAmount + amount);
 
-        vestingData.unvestPerSecond = (currVestingAmount + amount).mulDiv(1e18, newVestingPeriodDuration);
+        vestingData.unvestPerSecond = (currVestingAmount + amount).mulDiv(
+            MULTIPLIER,
+            newVestingPeriodDuration
+        );
         vestingData.vestingEndsAt = block.timestamp + newVestingPeriodDuration;
 
-        _mint(account, amount);
-        emit Deposit(account, amount);
+        _mint(msg.sender, amount);
+        $.seam.safeTransferFrom(msg.sender, address(this), amount);
+        emit Deposit(msg.sender, amount);
     }
 
     /**
      * @notice Claims unvested tokens.
      */
-    function claim() external {
-        _updateVesting(msg.sender);
+    function claim(address account) external {
+        _updateVesting(account);
 
         EscrowSeamStorage storage $ = _getEscrowSeamStorage();
-        VestingData storage vestingData = $.vestingInfo[msg.sender];
-        _burn(msg.sender, vestingData.claimableAmount);
-        $.seam.safeTransfer(msg.sender, vestingData.claimableAmount);
+        VestingData storage vestingData = $.vestingInfo[account];
+        _burn(account, vestingData.claimableAmount);
+        $.seam.safeTransfer(account, vestingData.claimableAmount);
 
-        emit Claim(msg.sender, vestingData.claimableAmount);
+        emit Claim(account, vestingData.claimableAmount);
         vestingData.claimableAmount = 0;
     }
 

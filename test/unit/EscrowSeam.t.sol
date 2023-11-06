@@ -27,17 +27,19 @@ contract EscrowSeamTest is Test {
             )
         );
         esSEAM = EscrowSeam(address(proxy));
-        esSEAM.grantRole(esSEAM.DEPOSITOR_ROLE(), address(this));
     }
 
     function testDeploy() public {
         assertEq(address(esSEAM.seam()), seam);
         assertEq(esSEAM.vestingDuration(), VESTING_DURATION);
-        assertTrue(esSEAM.hasRole(esSEAM.DEPOSITOR_ROLE(), address(this)));
-        assertTrue(esSEAM.hasRole(esSEAM.DEFAULT_ADMIN_ROLE(), address(this)));
+        assertEq(esSEAM.owner(), address(this));
     }
 
-    function testFuzzTransferRevertNonTransferable(address from, address to, uint256 amount) public {
+    function testFuzzTransferRevertNonTransferable(
+        address from,
+        address to,
+        uint256 amount
+    ) public {
         vm.expectRevert(IEscrowSeam.NonTransferable.selector);
 
         vm.startPrank(from);
@@ -45,34 +47,70 @@ contract EscrowSeamTest is Test {
         vm.stopPrank();
     }
 
-    function testFuzzTransferFromRevertNonTransferable(address from, address to, uint256 amount) public {
+    function testFuzzTransferFromRevertNonTransferable(
+        address from,
+        address to,
+        uint256 amount
+    ) public {
         vm.expectRevert(IEscrowSeam.NonTransferable.selector);
         esSEAM.transferFrom(from, to, amount);
     }
 
     function testSimpleDeposit() public {
-        address account = makeAddr("account");
-        uint256 depositAmount = 1000 ether;
-        esSEAM.deposit(account, depositAmount);
+        vm.mockCall(
+            seam,
+            abi.encodeWithSelector(IERC20.transfer.selector),
+            abi.encode(true)
+        );
 
-        (uint256 claimableAmount, uint256 decreasePerSecond, uint256 vestingEndsAt, uint256 lastUpdatedTimestamp) =
-            esSEAM.vestingInfo(account);
+        address account = makeAddr("account");
+        vm.startPrank(account);
+        uint256 depositAmount = 1000 ether;
+        esSEAM.deposit(depositAmount);
+        vm.stopPrank();
+
+        (
+            uint256 claimableAmount,
+            uint256 decreasePerSecond,
+            uint256 vestingEndsAt,
+            uint256 lastUpdatedTimestamp
+        ) = esSEAM.vestingInfo(account);
         assertEq(claimableAmount, 0);
-        assertEq(decreasePerSecond, (depositAmount * 1 ether) / VESTING_DURATION);
+        assertEq(
+            decreasePerSecond,
+            (depositAmount * 1 ether) / VESTING_DURATION
+        );
         assertEq(vestingEndsAt, block.timestamp + VESTING_DURATION);
         assertEq(lastUpdatedTimestamp, block.timestamp);
     }
 
-    function testFuzzSimpleDeposit(address account, uint256 depositAmount) public {
+    function testFuzzSimpleDeposit(
+        address account,
+        uint256 depositAmount
+    ) public {
         vm.assume(account != address(0));
         depositAmount = bound(depositAmount, 1, type(uint256).max / 1 ether);
+        vm.mockCall(
+            seam,
+            abi.encodeWithSelector(IERC20.transfer.selector),
+            abi.encode(true)
+        );
 
-        esSEAM.deposit(account, depositAmount);
+        vm.startPrank(account);
+        esSEAM.deposit(depositAmount);
+        vm.stopPrank();
 
-        (uint256 claimableAmount, uint256 decreasePerSecond, uint256 vestingEndsAt, uint256 lastUpdatedTimestamp) =
-            esSEAM.vestingInfo(account);
+        (
+            uint256 claimableAmount,
+            uint256 decreasePerSecond,
+            uint256 vestingEndsAt,
+            uint256 lastUpdatedTimestamp
+        ) = esSEAM.vestingInfo(account);
         assertEq(claimableAmount, 0);
-        assertEq(decreasePerSecond, (depositAmount * 1 ether) / VESTING_DURATION);
+        assertEq(
+            decreasePerSecond,
+            (depositAmount * 1 ether) / VESTING_DURATION
+        );
         assertEq(vestingEndsAt, block.timestamp + VESTING_DURATION);
         assertEq(lastUpdatedTimestamp, block.timestamp);
     }
@@ -84,72 +122,130 @@ contract EscrowSeamTest is Test {
         uint256 depositAmount2
     ) public {
         vm.assume(account != address(0));
-        depositAmount1 = bound(depositAmount1, 1, type(uint256).max / 1 ether - 1);
-        depositAmount2 = bound(depositAmount2, 1, type(uint256).max / 1 ether - depositAmount1);
-        timeBetweenDeposits = bound(timeBetweenDeposits, 1, VESTING_DURATION - 1);
+        vm.mockCall(
+            seam,
+            abi.encodeWithSelector(IERC20.transfer.selector),
+            abi.encode(true)
+        );
+        depositAmount1 = bound(
+            depositAmount1,
+            1,
+            type(uint256).max / 1 ether - 1
+        );
+        depositAmount2 = bound(
+            depositAmount2,
+            1,
+            type(uint256).max / 1 ether - depositAmount1
+        );
+        timeBetweenDeposits = bound(
+            timeBetweenDeposits,
+            1,
+            VESTING_DURATION - 1
+        );
 
-        esSEAM.deposit(account, depositAmount1);
+        vm.startPrank(account);
+        esSEAM.deposit(depositAmount1);
         vm.warp(block.timestamp + timeBetweenDeposits);
 
         uint256 timeUntilEnd = VESTING_DURATION - timeBetweenDeposits;
-        uint256 currVestingAmount = (depositAmount1 * timeUntilEnd) / VESTING_DURATION;
+        uint256 currVestingAmount = (depositAmount1 * timeUntilEnd) /
+            VESTING_DURATION;
 
-        esSEAM.deposit(account, depositAmount2);
+        esSEAM.deposit(depositAmount2);
+        vm.stopPrank();
 
-        (uint256 claimableAmount, uint256 decreasePerSecond, uint256 vestingEndsAt, uint256 lastUpdatedTimestamp) =
-            esSEAM.vestingInfo(account);
+        (
+            uint256 claimableAmount,
+            uint256 decreasePerSecond,
+            uint256 vestingEndsAt,
+            uint256 lastUpdatedTimestamp
+        ) = esSEAM.vestingInfo(account);
 
-        uint256 newVestingDuration = ((currVestingAmount * timeUntilEnd) + (depositAmount2 * VESTING_DURATION))
-            / (currVestingAmount + depositAmount2);
+        uint256 newVestingDuration = ((currVestingAmount * timeUntilEnd) +
+            (depositAmount2 * VESTING_DURATION)) /
+            (currVestingAmount + depositAmount2);
 
-        assertEq(claimableAmount, (depositAmount1 * timeBetweenDeposits) / VESTING_DURATION);
-        assertEq(decreasePerSecond, ((currVestingAmount + depositAmount2) * 1 ether) / newVestingDuration);
+        assertEq(
+            claimableAmount,
+            (depositAmount1 * timeBetweenDeposits) / VESTING_DURATION
+        );
+        assertEq(
+            decreasePerSecond,
+            ((currVestingAmount + depositAmount2) * 1 ether) /
+                newVestingDuration
+        );
         assertEq(vestingEndsAt, block.timestamp + newVestingDuration);
         assertEq(lastUpdatedTimestamp, block.timestamp);
     }
 
     function testFuzzDepositRevertZeroAmount(address account) public {
         vm.expectRevert(IEscrowSeam.ZeroAmount.selector);
-        esSEAM.deposit(account, 0);
+        vm.startPrank(account);
+        esSEAM.deposit(0);
+        vm.stopPrank();
     }
 
     function testClaim() public {
         address account = makeAddr("account");
         uint256 depositAmount = 1000 ether;
 
-        esSEAM.deposit(account, depositAmount);
-        vm.warp(block.timestamp + VESTING_DURATION / 2);
-
-        vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector, account, 100 ether), abi.encode(true));
-
+        vm.mockCall(
+            seam,
+            abi.encodeWithSelector(IERC20.transfer.selector),
+            abi.encode(true)
+        );
         vm.startPrank(account);
-        esSEAM.claim();
+        esSEAM.deposit(depositAmount);
+        vm.warp(block.timestamp + VESTING_DURATION / 2);
+        esSEAM.claim(account);
         vm.stopPrank();
 
-        (uint256 claimableAmount,,, uint256 lastUpdatedTimestamp) = esSEAM.vestingInfo(account);
+        (uint256 claimableAmount, , , uint256 lastUpdatedTimestamp) = esSEAM
+            .vestingInfo(account);
 
         assertEq(claimableAmount, 0);
         assertEq(lastUpdatedTimestamp, block.timestamp);
-        assertApproxEqAbs(esSEAM.balanceOf(account), depositAmount / 2, REL_ROUNDING_TOLERANCE);
+        assertApproxEqAbs(
+            esSEAM.balanceOf(account),
+            depositAmount / 2,
+            REL_ROUNDING_TOLERANCE
+        );
     }
 
-    function testFuzzClaim(address account, uint256 depositAmount, uint256 timeBetweenActions) public {
+    function testFuzzClaim(
+        address account,
+        uint256 depositAmount,
+        uint256 timeBetweenActions
+    ) public {
         vm.assume(account != address(0));
-        depositAmount = bound(depositAmount, 1 ether, type(uint256).max / 1 ether);
-        timeBetweenActions = bound(timeBetweenActions, 0, type(uint256).max / 2);
+        depositAmount = bound(
+            depositAmount,
+            1 ether,
+            type(uint256).max / 1 ether
+        );
+        timeBetweenActions = bound(
+            timeBetweenActions,
+            0,
+            type(uint256).max / 2
+        );
 
-        esSEAM.deposit(account, depositAmount);
-        vm.warp(block.timestamp + timeBetweenActions);
-
-        vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
-
+        vm.mockCall(
+            seam,
+            abi.encodeWithSelector(IERC20.transfer.selector),
+            abi.encode(true)
+        );
         vm.startPrank(account);
-        esSEAM.claim();
+        esSEAM.deposit(depositAmount);
+        vm.warp(block.timestamp + timeBetweenActions);
+        esSEAM.claim(account);
         vm.stopPrank();
 
-        (uint256 claimableAmount,,, uint256 lastUpdatedTimestamp) = esSEAM.vestingInfo(account);
+        (uint256 claimableAmount, , , uint256 lastUpdatedTimestamp) = esSEAM
+            .vestingInfo(account);
 
-        uint256 timeElapsed = VESTING_DURATION > timeBetweenActions ? timeBetweenActions : VESTING_DURATION;
+        uint256 timeElapsed = VESTING_DURATION > timeBetweenActions
+            ? timeBetweenActions
+            : VESTING_DURATION;
 
         assertEq(claimableAmount, 0);
         assertEq(lastUpdatedTimestamp, block.timestamp);
