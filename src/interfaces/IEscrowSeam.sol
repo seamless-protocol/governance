@@ -6,7 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface IEscrowSeam is IERC20 {
     struct VestingData {
         uint256 claimableAmount;
-        uint256 unvestPerSecond;
+        uint256 vestPerSecond;
         uint256 vestingEndsAt;
         uint256 lastUpdatedTimestamp;
     }
@@ -20,7 +20,7 @@ interface IEscrowSeam is IERC20 {
     error NonTransferable();
     error ZeroAmount();
 
-    event Deposit(address indexed user, uint256 amount);
+    event Deposit(address indexed from, address indexed onBehalfOf, uint256 amount);
     event Claim(address indexed user, uint256 amount);
 
     function seam() external view returns (address);
@@ -31,7 +31,7 @@ interface IEscrowSeam is IERC20 {
 
     function getClaimableAmount(address) external view returns (uint256);
 
-    function deposit(uint256) external;
+    function deposit(address, uint256) external;
 
     function claim(address) external;
 }

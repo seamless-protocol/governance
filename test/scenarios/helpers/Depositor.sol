@@ -16,7 +16,7 @@ contract Depositor is Test {
 
     function deposit(uint256 amount) external {
         seam.approve(address(esSEAM), amount);
-        esSEAM.deposit(amount);
+        esSEAM.deposit(address(this), amount);
     }
 
     function claim() external {

@@ -89,7 +89,7 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, OwnableUpgradeable, UUPSUp
         VestingData storage vestingData = $.vestingInfo[account];
         return (
             vestingData.claimableAmount,
-            vestingData.unvestPerSecond,
+            vestingData.vestPerSecond,
             vestingData.vestingEndsAt,
             vestingData.lastUpdatedTimestamp
         );
@@ -104,35 +104,35 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, OwnableUpgradeable, UUPSUp
         EscrowSeamStorage storage $ = _getEscrowSeamStorage();
         VestingData storage vestingData = $.vestingInfo[account];
         uint256 timeDiff = Math.min(block.timestamp, vestingData.vestingEndsAt) - vestingData.lastUpdatedTimestamp;
-        uint256 unvestedAmount = timeDiff.mulDiv(vestingData.unvestPerSecond, MULTIPLIER);
-        return vestingData.claimableAmount + unvestedAmount;
+        uint256 vestedAmount = timeDiff.mulDiv(vestingData.vestPerSecond, MULTIPLIER);
+        return vestingData.claimableAmount + vestedAmount;
     }
 
     /**
      * @notice Vests SEAM token to the contract.
      * @param amount Amount to vest
      */
-    function deposit(uint256 amount) external {
+    function deposit(address onBehalfOf, uint256 amount) external {
         if (amount == 0) {
             revert ZeroAmount();
         }
 
-        _updateVesting(msg.sender);
+        _updateVesting(onBehalfOf);
 
         EscrowSeamStorage storage $ = _getEscrowSeamStorage();
-        VestingData storage vestingData = $.vestingInfo[msg.sender];
+        VestingData storage vestingData = $.vestingInfo[onBehalfOf];
 
         uint256 timeUntilEnd = vestingData.vestingEndsAt - Math.min(block.timestamp, vestingData.vestingEndsAt);
-        uint256 currVestingAmount = vestingData.unvestPerSecond.mulDiv(timeUntilEnd, MULTIPLIER);
+        uint256 currVestingAmount = vestingData.vestPerSecond.mulDiv(timeUntilEnd, MULTIPLIER);
         uint256 newVestingPeriodDuration =
             ((currVestingAmount * timeUntilEnd) + (amount * $.vestingDuration)) / (currVestingAmount + amount);
 
-        vestingData.unvestPerSecond = (currVestingAmount + amount).mulDiv(MULTIPLIER, newVestingPeriodDuration);
+        vestingData.vestPerSecond = (currVestingAmount + amount).mulDiv(MULTIPLIER, newVestingPeriodDuration);
         vestingData.vestingEndsAt = block.timestamp + newVestingPeriodDuration;
 
-        _mint(msg.sender, amount);
+        _mint(onBehalfOf, amount);
         $.seam.safeTransferFrom(msg.sender, address(this), amount);
-        emit Deposit(msg.sender, amount);
+        emit Deposit(msg.sender, onBehalfOf, amount);
     }
 
     /**

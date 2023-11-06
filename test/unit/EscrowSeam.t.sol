@@ -52,10 +52,8 @@ contract EscrowSeamTest is Test {
         vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
 
         address account = makeAddr("account");
-        vm.startPrank(account);
         uint256 depositAmount = 1000 ether;
-        esSEAM.deposit(depositAmount);
-        vm.stopPrank();
+        esSEAM.deposit(account, depositAmount);
 
         (uint256 claimableAmount, uint256 decreasePerSecond, uint256 vestingEndsAt, uint256 lastUpdatedTimestamp) =
             esSEAM.vestingInfo(account);
@@ -70,9 +68,7 @@ contract EscrowSeamTest is Test {
         depositAmount = bound(depositAmount, 1, type(uint256).max / 1 ether);
         vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
 
-        vm.startPrank(account);
-        esSEAM.deposit(depositAmount);
-        vm.stopPrank();
+        esSEAM.deposit(account, depositAmount);
 
         (uint256 claimableAmount, uint256 decreasePerSecond, uint256 vestingEndsAt, uint256 lastUpdatedTimestamp) =
             esSEAM.vestingInfo(account);
@@ -94,15 +90,13 @@ contract EscrowSeamTest is Test {
         depositAmount2 = bound(depositAmount2, 1, type(uint256).max / 1 ether - depositAmount1);
         timeBetweenDeposits = bound(timeBetweenDeposits, 1, VESTING_DURATION - 1);
 
-        vm.startPrank(account);
-        esSEAM.deposit(depositAmount1);
+        esSEAM.deposit(account, depositAmount1);
         vm.warp(block.timestamp + timeBetweenDeposits);
 
         uint256 timeUntilEnd = VESTING_DURATION - timeBetweenDeposits;
         uint256 currVestingAmount = (depositAmount1 * timeUntilEnd) / VESTING_DURATION;
 
-        esSEAM.deposit(depositAmount2);
-        vm.stopPrank();
+        esSEAM.deposit(account, depositAmount2);
 
         (uint256 claimableAmount, uint256 decreasePerSecond, uint256 vestingEndsAt, uint256 lastUpdatedTimestamp) =
             esSEAM.vestingInfo(account);
@@ -118,9 +112,7 @@ contract EscrowSeamTest is Test {
 
     function testFuzzDepositRevertZeroAmount(address account) public {
         vm.expectRevert(IEscrowSeam.ZeroAmount.selector);
-        vm.startPrank(account);
-        esSEAM.deposit(0);
-        vm.stopPrank();
+        esSEAM.deposit(account, 0);
     }
 
     function testClaim() public {
@@ -128,9 +120,10 @@ contract EscrowSeamTest is Test {
         uint256 depositAmount = 1000 ether;
 
         vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
-        vm.startPrank(account);
-        esSEAM.deposit(depositAmount);
+        esSEAM.deposit(account, depositAmount);
         vm.warp(block.timestamp + VESTING_DURATION / 2);
+
+        vm.startPrank(account);
         esSEAM.claim(account);
         vm.stopPrank();
 
@@ -147,9 +140,10 @@ contract EscrowSeamTest is Test {
         timeBetweenActions = bound(timeBetweenActions, 0, type(uint256).max / 2);
 
         vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
-        vm.startPrank(account);
-        esSEAM.deposit(depositAmount);
+        esSEAM.deposit(account, depositAmount);
         vm.warp(block.timestamp + timeBetweenActions);
+
+        vm.startPrank(account);
         esSEAM.claim(account);
         vm.stopPrank();
 
