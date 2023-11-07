@@ -10,7 +10,7 @@ import {Constants} from "../src/library/Constants.sol";
 import {GovernorDeployer} from "./common/GovernorDeployer.sol";
 import {EscrowSeamDeployer} from "./common/EscrowSeamDeployer.sol";
 
-contract SeamFullGovernanceDeploy is GovernorDeployer, EscrowSeamDeployer, Script {
+contract SeamFullGovernanceDeploy is GovernorDeployer, EscrowSeamDeployer {
     function getChainId() public view returns (uint256) {
         uint256 chainId;
         assembly {
