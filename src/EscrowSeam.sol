@@ -110,6 +110,7 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, OwnableUpgradeable, UUPSUp
 
     /**
      * @notice Vests SEAM token to the contract.
+     * @param onBehalfOf Account to vest SEAM token for
      * @param amount Amount to vest
      */
     function deposit(address onBehalfOf, uint256 amount) external {
@@ -137,6 +138,7 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, OwnableUpgradeable, UUPSUp
 
     /**
      * @notice Claims unvested tokens.
+     * @param account Account to claim unvested tokens for
      */
     function claim(address account) external {
         _updateVesting(account);
@@ -152,6 +154,7 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, OwnableUpgradeable, UUPSUp
 
     /**
      * @notice Updates the vesting info of the account.
+     * @param account Account to update vesting info for
      */
     function _updateVesting(address account) private {
         EscrowSeamStorage storage $ = _getEscrowSeamStorage();
