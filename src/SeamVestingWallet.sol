@@ -11,7 +11,7 @@ import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
 
 /**
- * @dev VestingWallet implementation, modified from @openzeppelin implementation
+ * @dev VestingWallet implementation, modified from @openzeppelin implementation (https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/625fb3c2b2696f1747ba2e72d1e1113066e6c177/contracts/finance/VestingWalletUpgradeable.sol)
  * Changes are:
  * - beneficiary can claim vested ERC20 tokens, beneficiary cannot be transfered
  * - owner can upgrade contract, set vesting start time after deployment, withdraw tokens

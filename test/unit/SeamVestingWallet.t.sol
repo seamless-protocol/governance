@@ -37,7 +37,7 @@ contract SeamVestingWalletTest is Test {
         _proxy = SeamVestingWallet(address(proxy_));
     }
 
-    function testDeployed() public {
+    function test_Deployed() public {
         assertEq(_proxy.start(), 0);
         assertEq(_proxy.duration(), _duration);
         assertEq(_proxy.end(), type(uint64).max);
@@ -48,7 +48,7 @@ contract SeamVestingWalletTest is Test {
         assertEq(_proxy.beneficiary(), _beneficiary);
     }
 
-    function testUpgrade() public {
+    function test_Upgrade() public {
         address newImplementation = address(new SeamVestingWallet());
 
         _proxy.upgradeToAndCall(address(newImplementation), abi.encodePacked());
@@ -71,12 +71,12 @@ contract SeamVestingWalletTest is Test {
         );
     }
 
-    function testSetStart() public {
+    function test_SetStart() public {
         _proxy.setStart(1);
         assertEq(_proxy.start(), 1);
     }
 
-    function testSetStartRevertIfNotOwner() public {
+    function test_SetStart_RevertIf_NotOwner() public {
         vm.startPrank(_beneficiary);
 
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _beneficiary));
@@ -86,7 +86,7 @@ contract SeamVestingWalletTest is Test {
     }
 
     /// forge-config: default.fuzz.runs = 1
-    function testFuzzWithdraw(uint256 withdrawAmount) public {
+    function testFuzz_Withdraw(uint256 withdrawAmount) public {
         deal(_token, address(_proxy), type(uint256).max);
 
         uint256 balanceThisBefore = IERC20(_token).balanceOf(address(this));
@@ -97,7 +97,7 @@ contract SeamVestingWalletTest is Test {
         assertEq(IERC20(_token).balanceOf(address(_proxy)), balanceVestingWalletBefore - withdrawAmount);
     }
 
-    function testRevertWithdrawIfNotOwner() public {
+    function test_Withdraw_RevertIf_NotOwner() public {
         vm.startPrank(_beneficiary);
 
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _beneficiary));
@@ -106,7 +106,7 @@ contract SeamVestingWalletTest is Test {
         vm.stopPrank();
     }
 
-    function testDelegate() public {
+    function test_Delegate() public {
         vm.startPrank(_beneficiary);
 
         address delegate = makeAddr("delegate");
@@ -119,18 +119,18 @@ contract SeamVestingWalletTest is Test {
         vm.stopPrank();
     }
 
-    function testDelegateRevertIfNotBeneficiary() public {
+    function test_Delegate_RevertIf_NotBeneficiary() public {
         vm.expectRevert(abi.encodeWithSelector(SeamVestingWallet.NotBeneficiary.selector, address(this)));
         _proxy.delegate(makeAddr("delegate"));
     }
 
-    function testVestBeforeStart() public {
+    function test_VestBeforeStart() public {
         _proxy.setStart(uint64(block.timestamp) + 1);
 
         assertEq(_proxy.releasable(), 0);
     }
 
-    function testVestAfterEnd() public {
+    function test_VestAfterEnd() public {
         deal(_token, address(_proxy), 1 ether);
 
         _proxy.setStart(uint64(block.timestamp) - _duration - 1);
@@ -138,7 +138,7 @@ contract SeamVestingWalletTest is Test {
         assertEq(_proxy.releasable(), 1 ether);
     }
 
-    function testFuzzVestHalf(uint256 totalAllocation) public {
+    function testFuzz_VestHalf(uint256 totalAllocation) public {
         _proxy.setStart(uint64(block.timestamp) - (_duration / 2));
 
         deal(_token, address(_proxy), totalAllocation);

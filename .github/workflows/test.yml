@@ -24,10 +24,10 @@ jobs:
         with:
           version: nightly
       
-      # - name: Run Forge Format
-      #   run: |
-      #     forge fmt --check
-      #   id: format
+      - name: Run Forge Format
+        run: |
+          forge fmt --check
+        id: format
 
       - name: Run Forge build
         run: |
