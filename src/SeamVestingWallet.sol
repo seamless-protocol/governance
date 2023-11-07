@@ -1,13 +1,22 @@
 // SPDX-License-Identifier: MIT
+// OpenZeppelin Contracts (last updated v5.0.0) (finance/VestingWallet.sol)
 pragma solidity ^0.8.20;
 
 import {Initializable} from "openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
 
+/**
+ * @dev VestingWallet implementation, modified from @openzeppelin implementation
+ * Changes are:
+ * - beneficiary can claim vested ERC20 tokens, beneficiary cannot be transfered
+ * - owner can upgrade contract, set vesting start time after deployment, withdraw tokens
+ * - remove ETH vesting logic, only vest a single ERC20 token
+ */
 contract SeamVestingWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     event ERC20Released(address indexed token, uint256 amount);
 
@@ -37,7 +46,11 @@ contract SeamVestingWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable
         }
     }
 
-    function initialize(address initialOwner, address beneficiary, IERC20 token, uint64 durationSeconds)
+    /// @param initialOwner address that controls vesting
+    /// @param beneficiary_ address that receives vested tokens
+    /// @param token ERC20 token that is being vested
+    /// @param durationSeconds how long to vest tokens in seconds
+    function initialize(address initialOwner, address beneficiary_, IERC20 token, uint64 durationSeconds)
         external
         initializer
     {
@@ -45,32 +58,54 @@ contract SeamVestingWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable
         __UUPSUpgradeable_init();
 
         SeamVestingWalletStorage storage $ = _getSeamVestingWalletStorage();
-        $._beneficiary = beneficiary;
+        $._beneficiary = beneficiary_;
         $._token = token;
         $._duration = durationSeconds;
-        $._start = type(uint64).max;
     }
 
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
+    /**
+     * @dev Getter for the beneficiary address.
+     */
+    function beneficiary() external view returns (address) {
+        SeamVestingWalletStorage storage $ = _getSeamVestingWalletStorage();
+        return $._beneficiary;
+    }
+
+    /**
+     * @dev Getter for the start timestamp.
+     */
     function start() public view virtual returns (uint256) {
         SeamVestingWalletStorage storage $ = _getSeamVestingWalletStorage();
         return $._start;
     }
 
+    /// @param startTimestamp the new vesting start
     function setStart(uint64 startTimestamp) external onlyOwner {
         SeamVestingWalletStorage storage $ = _getSeamVestingWalletStorage();
         $._start = startTimestamp;
     }
 
+    /**
+     * @dev Getter for the vesting duration.
+     */
     function duration() public view virtual returns (uint256) {
         SeamVestingWalletStorage storage $ = _getSeamVestingWalletStorage();
         return $._duration;
     }
 
+    /**
+     * @dev Getter for the end timestamp.
+     */
     function end() public view virtual returns (uint256) {
-        return start() + duration();
+        SeamVestingWalletStorage storage $ = _getSeamVestingWalletStorage();
+        uint256 start_ = $._start;
+
+        if (start_ == 0) return type(uint64).max;
+
+        return start_ + $._duration;
     }
 
     /**
@@ -95,6 +130,7 @@ contract SeamVestingWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable
      */
     function release() public virtual {
         SeamVestingWalletStorage storage $ = _getSeamVestingWalletStorage();
+
         uint256 amount = releasable();
         $._released += amount;
         emit ERC20Released(address($._token), amount);
@@ -102,28 +138,27 @@ contract SeamVestingWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable
     }
 
     /**
-     * @dev Calculates the amount of tokens that has already vested. Default implementation is a linear vesting curve.
+     * @dev Calculates the amount of tokens that has already vested. Using a linear vesting curve.
      */
     function vestedAmount(uint64 timestamp) public view virtual returns (uint256) {
         SeamVestingWalletStorage storage $ = _getSeamVestingWalletStorage();
-        return _vestingSchedule($._token.balanceOf(address(this)) + released(), timestamp);
+        uint256 totalAllocation = $._token.balanceOf(address(this)) + $._released;
+        if ($._start == 0 || timestamp < $._start) {
+            return 0;
+        } else if (timestamp >= end()) {
+            return totalAllocation;
+        } else {
+            return Math.mulDiv(totalAllocation, timestamp - $._start, $._duration);
+        }
     }
 
     /// @notice Delegate votes to target address
     function delegate(address delegatee) external {
         SeamVestingWalletStorage storage $ = _getSeamVestingWalletStorage();
-        if (msg.sender != $._beneficiary) revert NotBeneficiary(msg.sender);
-        IVotes(address($._token)).delegate(delegatee);
-    }
 
-    function _vestingSchedule(uint256 totalAllocation, uint64 timestamp) internal view virtual returns (uint256) {
-        if (start() == 0 || timestamp < start()) {
-            return 0;
-        } else if (timestamp >= end()) {
-            return totalAllocation;
-        } else {
-            return (totalAllocation * (timestamp - start())) / duration();
-        }
+        if (msg.sender != $._beneficiary) revert NotBeneficiary(msg.sender);
+
+        IVotes(address($._token)).delegate(delegatee);
     }
 
     function withdraw(uint256 amount) external onlyOwner {
