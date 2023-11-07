@@ -26,4 +26,6 @@ library Constants {
 
     address public constant VOTING_TOKEN = 0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85;
     address public constant GUARDIAN_WALLET = address(0);
+
+    uint256 public constant VESTING_DURATION = 365 days;
 }

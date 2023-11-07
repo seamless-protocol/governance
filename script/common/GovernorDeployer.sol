@@ -7,7 +7,7 @@ import {SeamGovernor} from "../../src/SeamGovernor.sol";
 import {SeamTimelockController} from "../../src/SeamTimelockController.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
 
-contract GovernorDeployer {
+contract GovernorDeployer is Script {
     struct GovernorParams {
         string name;
         uint48 votingDelay;
@@ -50,7 +50,7 @@ contract GovernorDeployer {
                 SeamGovernor.initialize.selector,
                 params.name,
                 params.votingDelay,
-                params.votingPeriod,                
+                params.votingPeriod,
                 params.proposalNumerator,
                 params.voteNumerator,
                 params.quorumNumerator,

@@ -8,8 +8,9 @@ import {SeamTimelockController} from "../src/SeamTimelockController.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
 import {Constants} from "../src/library/Constants.sol";
 import {GovernorDeployer} from "./common/GovernorDeployer.sol";
+import {EscrowSeamDeployer} from "./common/EscrowSeamDeployer.sol";
 
-contract SeamFullGovernanceDeploy is GovernorDeployer, Script {
+contract SeamFullGovernanceDeploy is GovernorDeployer, EscrowSeamDeployer {
     function getChainId() public view returns (uint256) {
         uint256 chainId;
         assembly {
@@ -81,6 +82,7 @@ contract SeamFullGovernanceDeploy is GovernorDeployer, Script {
         governorLong.transferOwnership(address(timelockLong));
         console.log("Governor long ownership transferred to long timelock");
 
+        deployEscrowSeam(Constants.VOTING_TOKEN, Constants.VESTING_DURATION, address(timelockShort));
         vm.stopBroadcast();
     }
 }
