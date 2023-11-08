@@ -2,101 +2,72 @@
 pragma solidity ^0.8.20;
 
 import {Initializable} from "openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
+import {AccessControlUpgradeable} from "openzeppelin-contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {ISeamEmissionManager} from "./interfaces/ISeamEmissionManager.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
+import {SeamEmissionManagerStorage as Storage} from "./storage/SeamEmissionManagerStorage.sol";
 
-/**
- * @title SeamEmissionManager
- * @author Seamless Protocol
- * @notice This contract is responsible for managing SEAM token emission.
- */
-contract SeamEmissionManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
+/// @title SeamEmissionManager
+/// @author Seamless Protocol
+/// @notice This contract is responsible for managing SEAM token emission.
+contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     using SafeERC20 for IERC20;
 
-    event SetEmissionPerSecond(uint256 emissionRate);
-    event Claim(address indexed receiver, uint256 amount);
-
-    struct SeamEmissionManagerStorage {
-        IERC20 seam;
-        uint256 emissionPerSecond;
-        uint64 lastClaimedTimestamp;
-    }
-
-    // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.SeamEmissionManager")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant SeamEmissionManagerStorageLocation =
-        0x499527223a0cbf0f8120b81b4a5c3bfc177472cf818369c98e27b6304d0f5000;
-
-    function _getSeamEmissionManagerStorage() private pure returns (SeamEmissionManagerStorage storage $) {
-        assembly {
-            $.slot := SeamEmissionManagerStorageLocation
-        }
-    }
+    bytes32 public constant CLAIMER_ROLE = keccak256("CLAIMER_ROLE");
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
 
-    /**
-     * @notice Initializes the token storage and inherited contracts.
-     * @param seam SEAM token address
-     * @param emissionPerSecond Emission per second
-     * @param initialOwner Initial owner of the contract
-     */
-    function initialize(address seam, uint256 emissionPerSecond, address initialOwner) external initializer {
-        __Ownable_init(initialOwner);
+    /// @notice Initializes the token storage and inherited contracts.
+    /// @param _seam SEAM token address
+    /// @param _emissionPerSecond Emission per second
+    /// @param _initialAdmin Initial admin of the contract
+    function initialize(address _seam, uint256 _emissionPerSecond, address _initialAdmin, address _claimer)
+        external
+        initializer
+    {
+        __AccessControl_init();
         __UUPSUpgradeable_init();
+        _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
+        _grantRole(CLAIMER_ROLE, _claimer);
 
-        SeamEmissionManagerStorage storage $ = _getSeamEmissionManagerStorage();
-        $.seam = IERC20(seam);
-        $.emissionPerSecond = emissionPerSecond;
+        Storage.Layout storage $ = Storage.layout();
+        $.seam = IERC20(_seam);
+        $.emissionPerSecond = _emissionPerSecond;
         $.lastClaimedTimestamp = uint64(block.timestamp);
     }
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(address) internal override onlyOwner {}
+    function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
-    /**
-     * @notice Returns SEAM token address.
-     */
+    /// @inheritdoc ISeamEmissionManager
     function getSeam() external view returns (address) {
-        SeamEmissionManagerStorage storage $ = _getSeamEmissionManagerStorage();
-        return address($.seam);
+        return address(Storage.layout().seam);
     }
 
-    /**
-     * @notice Returns last claimed timestamp.
-     */
+    /// @inheritdoc ISeamEmissionManager
     function getLastClaimedTimestamp() external view returns (uint256) {
-        SeamEmissionManagerStorage storage $ = _getSeamEmissionManagerStorage();
-        return $.lastClaimedTimestamp;
+        return Storage.layout().lastClaimedTimestamp;
     }
 
-    /**
-     * @notice Returns emission per second.
-     */
+    /// @inheritdoc ISeamEmissionManager
     function getEmissionPerSecond() external view returns (uint256) {
-        SeamEmissionManagerStorage storage $ = _getSeamEmissionManagerStorage();
-        return $.emissionPerSecond;
+        return Storage.layout().emissionPerSecond;
     }
 
-    /**
-     * @notice Sets emission per second.
-     */
-    function setEmissionPerSecond(uint256 emissionPerSecond) external onlyOwner {
-        SeamEmissionManagerStorage storage $ = _getSeamEmissionManagerStorage();
-        $.emissionPerSecond = emissionPerSecond;
+    /// @inheritdoc ISeamEmissionManager
+    function setEmissionPerSecond(uint256 emissionPerSecond) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        Storage.layout().emissionPerSecond = emissionPerSecond;
         emit SetEmissionPerSecond(emissionPerSecond);
     }
 
-    /**
-     * @notice Claims SEAM tokens and sends them to given address.
-     * @param receiver Address to receive SEAM tokens
-     */
-    function claim(address receiver) external onlyOwner {
-        SeamEmissionManagerStorage storage $ = _getSeamEmissionManagerStorage();
+    /// @inheritdoc ISeamEmissionManager
+    function claim(address receiver) external onlyRole(CLAIMER_ROLE) {
+        Storage.Layout storage $ = Storage.layout();
         uint256 emissionPerSecond = $.emissionPerSecond;
         uint64 lastClaimedTimestamp = $.lastClaimedTimestamp;
         uint64 currentTimestamp = uint64(block.timestamp);

@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {SeamEmissionManager} from "src/SeamEmissionManager.sol";
-import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {AccessControlUpgradeable} from "openzeppelin-contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 
 contract SeamEmissionManagerTest is Test {
@@ -22,39 +22,47 @@ contract SeamEmissionManagerTest is Test {
                 SeamEmissionManager.initialize.selector,
                 seam,
                 emissionPerSecond,
+                address(this),
                 address(this)
             )
         );
         emissionManager = SeamEmissionManager(address(proxy));
     }
 
-    function testDeployed() public {
+    function test_SetUp() public {
         assertEq(emissionManager.getSeam(), seam);
         assertEq(emissionManager.getEmissionPerSecond(), emissionPerSecond);
         assertEq(emissionManager.getLastClaimedTimestamp(), block.timestamp);
-        assertEq(emissionManager.owner(), address(this));
+        assertTrue(emissionManager.hasRole(emissionManager.DEFAULT_ADMIN_ROLE(), address(this)));
+        assertTrue(emissionManager.hasRole(emissionManager.CLAIMER_ROLE(), address(this)));
     }
 
-    function testSetEmissionPerSecond() public {
+    function test_SetEmissionPerSecond() public {
         uint256 newEmissionPerSecond = 2 ether;
         emissionManager.setEmissionPerSecond(newEmissionPerSecond);
         assertEq(emissionManager.getEmissionPerSecond(), newEmissionPerSecond);
     }
 
-    function testFuzzSetEmissionPerSecond(uint256 newEmissionPerSecond) public {
+    function testFuzz_SetEmissionPerSecond(uint256 newEmissionPerSecond) public {
         emissionManager.setEmissionPerSecond(newEmissionPerSecond);
         assertEq(emissionManager.getEmissionPerSecond(), newEmissionPerSecond);
     }
 
-    function testFuzzSetEmissionPerSecondRevertNotOwner(address caller, uint256 newEmissionPerSecond) public {
+    function testFuzz_SetEmissionPerSecond_RevertIf_NotDefaultAdmin(address caller, uint256 newEmissionPerSecond)
+        public
+    {
         vm.assume(caller != address(this));
         vm.startPrank(caller);
-        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, caller));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AccessControlUpgradeable.hasRole.selector, emissionManager.DEFAULT_ADMIN_ROLE(), caller
+            )
+        );
         emissionManager.setEmissionPerSecond(newEmissionPerSecond);
         vm.stopPrank();
     }
 
-    function testClaim() public {
+    function test_Claim() public {
         deal(seam, address(emissionManager), type(uint256).max);
 
         uint256 receiverBalanceBefore = IERC20(seam).balanceOf(address(this));
@@ -69,7 +77,7 @@ contract SeamEmissionManagerTest is Test {
         );
     }
 
-    function testFuzzClaim(address receiver, uint256 timeElapsed) public {
+    function testFuzz_Claim(address receiver, uint256 timeElapsed) public {
         vm.assume(receiver != address(0));
         timeElapsed = bound(timeElapsed, 0, type(uint64).max / emissionPerSecond);
         deal(seam, address(emissionManager), type(uint256).max);
@@ -85,5 +93,15 @@ contract SeamEmissionManagerTest is Test {
             IERC20(seam).balanceOf(address(emissionManager)),
             emissionManagerBalanceBefore - emissionPerSecond * timeElapsed
         );
+    }
+
+    function testFuzz_Claim_RevertIf_NotClaimer(address caller) public {
+        vm.assume(caller != address(this));
+        vm.startPrank(caller);
+        vm.expectRevert(
+            abi.encodeWithSelector(AccessControlUpgradeable.hasRole.selector, emissionManager.CLAIMER_ROLE(), caller)
+        );
+        emissionManager.claim(address(this));
+        vm.stopPrank();
     }
 }
