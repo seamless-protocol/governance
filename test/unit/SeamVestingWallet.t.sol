@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import {SeamVestingWallet, Initializable} from "src/SeamVestingWallet.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
-import {IERC20} from "openzeppelin-contracts/token/erc20/IERC20.sol";
+import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 
