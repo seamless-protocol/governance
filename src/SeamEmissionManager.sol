@@ -24,6 +24,7 @@ contract SeamEmissionManager is Initializable, OwnableUpgradeable, UUPSUpgradeab
         uint64 lastClaimedTimestamp;
     }
 
+    // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.SeamEmissionManager")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant SeamEmissionManagerStorageLocation =
         0x499527223a0cbf0f8120b81b4a5c3bfc177472cf818369c98e27b6304d0f5000;
 
