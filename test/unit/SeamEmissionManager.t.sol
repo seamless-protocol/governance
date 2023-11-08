@@ -70,6 +70,7 @@ contract SeamEmissionManagerTest is Test {
     }
 
     function testFuzzClaim(address receiver, uint256 timeElapsed) public {
+        vm.assume(receiver != address(0));
         timeElapsed = bound(timeElapsed, 0, type(uint64).max / emissionPerSecond);
         deal(seam, address(emissionManager), type(uint256).max);
 
