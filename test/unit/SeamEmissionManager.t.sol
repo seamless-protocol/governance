@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {SeamEmissionManager} from "src/SeamEmissionManager.sol";
-import {AccessControlUpgradeable} from "openzeppelin-contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 
 contract SeamEmissionManagerTest is Test {
@@ -55,7 +55,7 @@ contract SeamEmissionManagerTest is Test {
         vm.startPrank(caller);
         vm.expectRevert(
             abi.encodeWithSelector(
-                AccessControlUpgradeable.hasRole.selector, emissionManager.DEFAULT_ADMIN_ROLE(), caller
+                IAccessControl.AccessControlUnauthorizedAccount.selector, caller, emissionManager.DEFAULT_ADMIN_ROLE()
             )
         );
         emissionManager.setEmissionPerSecond(newEmissionPerSecond);
@@ -99,7 +99,9 @@ contract SeamEmissionManagerTest is Test {
         vm.assume(caller != address(this));
         vm.startPrank(caller);
         vm.expectRevert(
-            abi.encodeWithSelector(AccessControlUpgradeable.hasRole.selector, emissionManager.CLAIMER_ROLE(), caller)
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, caller, emissionManager.CLAIMER_ROLE()
+            )
         );
         emissionManager.claim(address(this));
         vm.stopPrank();
