@@ -50,7 +50,7 @@ contract SeamVestingWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable
     /// @param beneficiary_ address that receives vested tokens
     /// @param token ERC20 token that is being vested
     /// @param durationSeconds how long to vest tokens in seconds
-    function initialize(address initialOwner, address beneficiary_, IERC20 token, uint64 durationSeconds)
+    function initialize(address initialOwner, address beneficiary, IERC20 token, uint64 durationSeconds)
         external
         initializer
     {
@@ -58,7 +58,7 @@ contract SeamVestingWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable
         __UUPSUpgradeable_init();
 
         SeamVestingWalletStorage storage $ = _getSeamVestingWalletStorage();
-        $._beneficiary = beneficiary_;
+        $._beneficiary = beneficiary;
         $._token = token;
         $._duration = durationSeconds;
     }
@@ -139,6 +139,10 @@ contract SeamVestingWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable
 
     /**
      * @dev Calculates the amount of tokens that has already vested. Using a linear vesting curve.
+     *
+     * Any assets transferred to this contract will follow the vesting schedule as if they were locked from the beginning.
+     * Consequently, if the vesting has already started, any amount of tokens sent to this contract will (at least partly)
+     * be immediately releasable.
      */
     function vestedAmount(uint64 timestamp) public view virtual returns (uint256) {
         SeamVestingWalletStorage storage $ = _getSeamVestingWalletStorage();
@@ -161,8 +165,14 @@ contract SeamVestingWallet is Initializable, OwnableUpgradeable, UUPSUpgradeable
         IVotes(address($._token)).delegate(delegatee);
     }
 
-    function withdraw(uint256 amount) external onlyOwner {
-        SeamVestingWalletStorage storage $ = _getSeamVestingWalletStorage();
-        $._token.transfer(msg.sender, amount);
+    /// @notice Transfer tokens out of vesting contract
+    /// @param token token to transfer out
+    /// @param to address to send tokens to
+    /// @param amount amount of tokens to transfer
+    /// @dev Any assets transferred to this contract will follow the vesting schedule as if they were locked from the beginning.
+    /// Consequently, if the vesting has already started, any amount of tokens sent to this contract will (at least partly)
+    /// be immediately releasable.
+    function transfer(address token, address to, uint256 amount) external onlyOwner {
+        IERC20(token).transfer(to, amount);
     }
 }
