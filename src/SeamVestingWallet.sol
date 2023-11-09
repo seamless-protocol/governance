@@ -46,7 +46,7 @@ contract SeamVestingWallet is ISeamVestingWallet, Initializable, OwnableUpgradea
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
-    modifier OnlyBeneficiary() {
+    modifier onlyBeneficiary() {
         if (msg.sender != beneficiary()) {
             revert NotBeneficiary(msg.sender);
         }
@@ -123,7 +123,7 @@ contract SeamVestingWallet is ISeamVestingWallet, Initializable, OwnableUpgradea
     }
 
     /// @inheritdoc ISeamVestingWallet
-    function delegate(address _delegatee) external OnlyBeneficiary {
+    function delegate(address _delegatee) external onlyBeneficiary {
         IVotes(address(Storage.layout()._token)).delegate(_delegatee);
     }
 
