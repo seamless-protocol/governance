@@ -59,7 +59,7 @@ contract SeamVestingWallet is ISeamVestingWallet, Initializable, OwnableUpgradea
     }
 
     /// @inheritdoc ISeamVestingWallet
-    function start() public view virtual returns (uint256) {
+    function start() public view returns (uint256) {
         return Storage.layout()._start;
     }
 
@@ -69,12 +69,12 @@ contract SeamVestingWallet is ISeamVestingWallet, Initializable, OwnableUpgradea
     }
 
     /// @inheritdoc ISeamVestingWallet
-    function duration() public view virtual returns (uint256) {
+    function duration() public view returns (uint256) {
         return Storage.layout()._duration;
     }
 
     /// @inheritdoc ISeamVestingWallet
-    function end() public view virtual returns (uint256) {
+    function end() public view returns (uint256) {
         Storage.Layout storage $ = Storage.layout();
         uint256 start_ = $._start;
 
@@ -84,12 +84,12 @@ contract SeamVestingWallet is ISeamVestingWallet, Initializable, OwnableUpgradea
     }
 
     /// @inheritdoc ISeamVestingWallet
-    function released() public view virtual returns (uint256) {
+    function released() public view returns (uint256) {
         return Storage.layout()._released;
     }
 
     /// @inheritdoc ISeamVestingWallet
-    function releasable() public view virtual returns (uint256) {
+    function releasable() public view returns (uint256) {
         uint256 vestedAmount_ = vestedAmount(uint64(block.timestamp));
         uint256 released_ = released();
 
@@ -99,7 +99,7 @@ contract SeamVestingWallet is ISeamVestingWallet, Initializable, OwnableUpgradea
     }
 
     /// @inheritdoc ISeamVestingWallet
-    function release() public virtual {
+    function release() public {
         Storage.Layout storage $ = Storage.layout();
 
         uint256 amount = releasable();
@@ -109,7 +109,7 @@ contract SeamVestingWallet is ISeamVestingWallet, Initializable, OwnableUpgradea
     }
 
     /// @inheritdoc ISeamVestingWallet
-    function vestedAmount(uint64 _timestamp) public view virtual returns (uint256) {
+    function vestedAmount(uint64 _timestamp) public view returns (uint256) {
         Storage.Layout storage $ = Storage.layout();
         uint256 totalAllocation = $._token.balanceOf(address(this)) + $._released;
 
