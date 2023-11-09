@@ -45,6 +45,7 @@ The community Governance Guardian multisig will utilize GnosisSafe and be a “3
 Governance Guardians commit to industry best practices, such as utilizing secure hardware wallets. The initial Governance Guardians from the community are:
 
 - Brandon Iles
+- Chaos Labs
 - Daryl Hok
 - Mark Toda
 - Richy Qiao
