@@ -3,10 +3,12 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import {SeamVestingWallet, Initializable} from "src/SeamVestingWallet.sol";
+import {ISeamVestingWallet} from "src/interfaces/ISeamVestingWallet.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
+import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 
 contract SeamVestingWalletTest is Test {
@@ -86,12 +88,12 @@ contract SeamVestingWalletTest is Test {
     }
 
     /// forge-config: default.fuzz.runs = 1
-    function testFuzz_Withdraw(uint256 withdrawAmount) public {
+    function testFuzz_Transfer(uint256 withdrawAmount) public {
         deal(_token, address(_proxy), type(uint256).max);
 
         uint256 balanceThisBefore = IERC20(_token).balanceOf(address(this));
         uint256 balanceVestingWalletBefore = IERC20(_token).balanceOf(address(_proxy));
-        _proxy.withdraw(withdrawAmount);
+        _proxy.transfer(_token, address(this), withdrawAmount);
 
         assertEq(IERC20(_token).balanceOf(address(this)), balanceThisBefore + withdrawAmount);
         assertEq(IERC20(_token).balanceOf(address(_proxy)), balanceVestingWalletBefore - withdrawAmount);
@@ -101,7 +103,7 @@ contract SeamVestingWalletTest is Test {
         vm.startPrank(_beneficiary);
 
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _beneficiary));
-        _proxy.withdraw(1);
+        _proxy.transfer(_token, address(this), 1);
 
         vm.stopPrank();
     }
@@ -120,7 +122,7 @@ contract SeamVestingWalletTest is Test {
     }
 
     function test_Delegate_RevertIf_NotBeneficiary() public {
-        vm.expectRevert(abi.encodeWithSelector(SeamVestingWallet.NotBeneficiary.selector, address(this)));
+        vm.expectRevert(abi.encodeWithSelector(ISeamVestingWallet.NotBeneficiary.selector, address(this)));
         _proxy.delegate(makeAddr("delegate"));
     }
 
@@ -138,12 +140,14 @@ contract SeamVestingWalletTest is Test {
         assertEq(_proxy.releasable(), 1 ether);
     }
 
-    function testFuzz_VestHalf(uint256 totalAllocation) public {
-        _proxy.setStart(uint64(block.timestamp) - (_duration / 2));
+    function testFuzz_Vest(uint256 totalAllocation, uint64 percentVested) public {
+        percentVested = uint64(bound(percentVested, 1, 100));
+
+        _proxy.setStart(uint64(block.timestamp) - (_duration * percentVested / 100));
 
         deal(_token, address(_proxy), totalAllocation);
 
-        uint256 expectedVestedAmount = totalAllocation / 2;
+        uint256 expectedVestedAmount = Math.mulDiv(totalAllocation, percentVested, 100);
 
         assertEq(_proxy.releasable(), expectedVestedAmount);
         assertEq(_proxy.vestedAmount(uint64(block.timestamp)), expectedVestedAmount);
@@ -159,5 +163,78 @@ contract SeamVestingWalletTest is Test {
         assertEq(_proxy.released(), expectedVestedAmount);
         assertEq(_proxy.releasable(), 0);
         assertEq(_proxy.vestedAmount(uint64(block.timestamp)), expectedVestedAmount);
+    }
+
+    function testFuzz_VestAddedBalance(uint256 startingAllocation, uint256 addedAmount, uint64 percentVested) public {
+        percentVested = uint64(bound(percentVested, 0, 100));
+        startingAllocation = bound(startingAllocation, 0, type(uint256).max - addedAmount);
+
+        _proxy.setStart(uint64(block.timestamp) - (_duration * percentVested / 100));
+
+        deal(_token, address(_proxy), startingAllocation);
+
+        uint256 expectedVestedAmount = Math.mulDiv(startingAllocation, percentVested, 100);
+
+        assertEq(_proxy.releasable(), expectedVestedAmount);
+        assertEq(_proxy.vestedAmount(uint64(block.timestamp)), expectedVestedAmount);
+        assertEq(_proxy.released(), 0);
+
+        uint256 expectedVestedAmountAfterTransfer = Math.mulDiv(startingAllocation + addedAmount, percentVested, 100);
+
+        uint256 snapshot = vm.snapshot();
+
+        _proxy.release();
+
+        ERC20Mock(_token).mint(address(_proxy), addedAmount);
+
+        assertEq(_proxy.releasable(), expectedVestedAmountAfterTransfer);
+        assertEq(_proxy.vestedAmount(uint64(block.timestamp)), expectedVestedAmountAfterTransfer);
+        assertEq(_proxy.released(), expectedVestedAmount);
+
+        vm.revertTo(snapshot);
+
+        ERC20Mock(_token).mint(address(_proxy), addedAmount);
+
+        assertEq(_proxy.releasable(), expectedVestedAmountAfterTransfer);
+        assertEq(_proxy.vestedAmount(uint64(block.timestamp)), expectedVestedAmountAfterTransfer);
+        assertEq(_proxy.released(), 0);
+    }
+
+    function testFuzz_VestRemovedBalance(uint256 startingAllocation, uint256 removedAmount, uint64 percentVested)
+        public
+    {
+        percentVested = uint64(bound(percentVested, 0, 100));
+        removedAmount = bound(removedAmount, 0, startingAllocation);
+
+        uint256 expectedVestedAmount = Math.mulDiv(startingAllocation, percentVested, 100);
+        removedAmount = bound(removedAmount, 0, startingAllocation - expectedVestedAmount);
+
+        _proxy.setStart(uint64(block.timestamp) - (_duration * percentVested / 100));
+
+        deal(_token, address(_proxy), startingAllocation);
+
+        assertEq(_proxy.releasable(), expectedVestedAmount);
+        assertEq(_proxy.vestedAmount(uint64(block.timestamp)), expectedVestedAmount);
+        assertEq(_proxy.released(), 0);
+
+        uint256 expectedVestedAmountAfterTransfer = Math.mulDiv(startingAllocation - removedAmount, percentVested, 100);
+
+        uint256 snapshot = vm.snapshot();
+
+        _proxy.release();
+
+        _proxy.transfer(_token, address(this), removedAmount);
+
+        assertEq(_proxy.releasable(), 0);
+        assertEq(_proxy.vestedAmount(uint64(block.timestamp)), expectedVestedAmountAfterTransfer);
+        assertEq(_proxy.released(), expectedVestedAmount);
+
+        vm.revertTo(snapshot);
+
+        _proxy.transfer(_token, address(this), removedAmount);
+
+        assertEq(_proxy.releasable(), expectedVestedAmountAfterTransfer);
+        assertEq(_proxy.vestedAmount(uint64(block.timestamp)), expectedVestedAmountAfterTransfer);
+        assertEq(_proxy.released(), 0);
     }
 }
