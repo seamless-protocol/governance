@@ -55,26 +55,22 @@ contract SeamVestingWallet is ISeamVestingWallet, Initializable, OwnableUpgradea
 
     /// @inheritdoc ISeamVestingWallet
     function beneficiary() public view returns (address) {
-        Storage.Layout storage $ = Storage.layout();
-        return $._beneficiary;
+        return Storage.layout()._beneficiary;
     }
 
     /// @inheritdoc ISeamVestingWallet
     function start() public view virtual returns (uint256) {
-        Storage.Layout storage $ = Storage.layout();
-        return $._start;
+        return Storage.layout()._start;
     }
 
     /// @inheritdoc ISeamVestingWallet
     function setStart(uint64 startTimestamp) external onlyOwner {
-        Storage.Layout storage $ = Storage.layout();
-        $._start = startTimestamp;
+        Storage.layout()._start = startTimestamp;
     }
 
     /// @inheritdoc ISeamVestingWallet
     function duration() public view virtual returns (uint256) {
-        Storage.Layout storage $ = Storage.layout();
-        return $._duration;
+        return Storage.layout()._duration;
     }
 
     /// @inheritdoc ISeamVestingWallet
@@ -89,8 +85,7 @@ contract SeamVestingWallet is ISeamVestingWallet, Initializable, OwnableUpgradea
 
     /// @inheritdoc ISeamVestingWallet
     function released() public view virtual returns (uint256) {
-        Storage.Layout storage $ = Storage.layout();
-        return $._released;
+        return Storage.layout()._released;
     }
 
     /// @inheritdoc ISeamVestingWallet
@@ -117,6 +112,7 @@ contract SeamVestingWallet is ISeamVestingWallet, Initializable, OwnableUpgradea
     function vestedAmount(uint64 _timestamp) public view virtual returns (uint256) {
         Storage.Layout storage $ = Storage.layout();
         uint256 totalAllocation = $._token.balanceOf(address(this)) + $._released;
+
         if ($._start == 0 || _timestamp < $._start) {
             return 0;
         } else if (_timestamp >= end()) {
@@ -128,9 +124,7 @@ contract SeamVestingWallet is ISeamVestingWallet, Initializable, OwnableUpgradea
 
     /// @inheritdoc ISeamVestingWallet
     function delegate(address _delegatee) external OnlyBeneficiary {
-        Storage.Layout storage $ = Storage.layout();
-
-        IVotes(address($._token)).delegate(_delegatee);
+        IVotes(address(Storage.layout()._token)).delegate(_delegatee);
     }
 
     /// @inheritdoc ISeamVestingWallet
