@@ -12,13 +12,14 @@ import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
 import {ISeamVestingWallet} from "src/interfaces/ISeamVestingWallet.sol";
 import {SeamVestingWalletStorage as Storage} from "src/storage/SeamVestingWalletStorage.sol";
 
-/**
- * @dev VestingWallet implementation, modified from @openzeppelin implementation (https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/625fb3c2b2696f1747ba2e72d1e1113066e6c177/contracts/finance/VestingWalletUpgradeable.sol)
- * Changes are:
- * - beneficiary can claim vested ERC20 tokens, beneficiary cannot be transfered
- * - owner can upgrade contract, set vesting start time after deployment, withdraw tokens
- * - remove ETH vesting logic, only vest a single ERC20 token
- */
+/// @title SeamGovernor
+/// @author Seamless Protocol
+/// @notice Governor contract of the Seamless Protocol used for both short and long governors
+/// @dev VestingWallet implementation, modified from @openzeppelin implementation (https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/625fb3c2b2696f1747ba2e72d1e1113066e6c177/contracts/finance/VestingWalletUpgradeable.sol)
+/// Changes are:
+/// - beneficiary can claim vested ERC20 tokens, beneficiary cannot be transfered
+/// - owner can upgrade contract, set vesting start time after deployment, withdraw tokens
+/// - remove ETH vesting logic, only vest a single ERC20 token
 contract SeamVestingWallet is ISeamVestingWallet, Initializable, OwnableUpgradeable, UUPSUpgradeable {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
