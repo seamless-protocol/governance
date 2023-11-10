@@ -18,8 +18,9 @@ contract SeamAirdrop is ISeamAirdrop, Ownable {
 
     mapping(address => bool) public hasClaimed;
 
-    constructor(IERC20 _seam, address _owner) Ownable(_owner) {
+    constructor(IERC20 _seam, bytes32 _merkleRoot, address _owner) Ownable(_owner) {
         seam = _seam;
+        merkleRoot = _merkleRoot;
     }
 
     /// @inheritdoc ISeamAirdrop
