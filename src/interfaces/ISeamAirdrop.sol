@@ -23,8 +23,8 @@ interface ISeamAirdrop {
     /// @param merkleProof Merkle proof
     function claim(address recipient, uint256 amount, bytes32[] calldata merkleProof) external;
 
-    /// @notice Claims tokens for the recipient and vests them on escrow seam contract
-    /// @dev If proof is invalid or recipient already claimed tokens, reverts, otherwise tokens are vested on behalf of caller
+    /// @notice Claims tokens for the sender and vests them on escrow seam contract
+    /// @dev If proof is invalid or sender already claimed tokens, reverts, otherwise tokens are vested on behalf of caller
     /// @param amount Amount of tokens to claim and vest
     /// @param merkleProof Merkle proof
     function claimAndVest(uint256 amount, bytes32[] calldata merkleProof) external;
