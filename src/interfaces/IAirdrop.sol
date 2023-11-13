@@ -6,7 +6,7 @@ pragma solidity ^0.8.20;
 interface IAirdrop {
     event MerkleRootSet(bytes32 merkleRoot);
     event Claim(address indexed recipient, uint256 amount);
-    event ClaimAndVest(address indexed recipient, uint256 amount);
+    event Withdraw(address indexed recipient, uint256 amount);
 
     error AlreadyClaimed(address recipient);
     error InvalidProof();
@@ -21,5 +21,15 @@ interface IAirdrop {
     /// @param recipient Address to claim tokens for
     /// @param amount Amount of tokens to claim
     /// @param merkleProof Merkle proof
-    function claim(address recipient, uint256 amount, bytes32[] calldata merkleProof) external;
+    function claim(
+        address recipient,
+        uint256 amount,
+        bytes32[] calldata merkleProof
+    ) external;
+
+    /// @notice Withdraws tokens from the contract
+    /// @dev This function should be used only by the owner
+    /// @param recipient Address to withdraw tokens to
+    /// @param amount Amount of tokens to withdraw
+    function withdraw(address recipient, uint256 amount) external;
 }
