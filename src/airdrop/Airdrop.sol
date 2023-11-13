@@ -17,11 +17,7 @@ abstract contract Airdrop is IAirdrop, Ownable {
 
     mapping(address => bool) public hasClaimed;
 
-    constructor(
-        IERC20 _seam,
-        bytes32 _merkleRoot,
-        address _owner
-    ) Ownable(_owner) {
+    constructor(IERC20 _seam, bytes32 _merkleRoot, address _owner) Ownable(_owner) {
         seam = _seam;
         merkleRoot = _merkleRoot;
     }
@@ -33,21 +29,11 @@ abstract contract Airdrop is IAirdrop, Ownable {
     }
 
     /// @inheritdoc IAirdrop
-    function claim(
-        address recipient,
-        uint256 amount,
-        bytes32[] calldata merkleProof
-    ) external {
+    function claim(address recipient, uint256 amount, bytes32[] calldata merkleProof) external {
         if (hasClaimed[recipient]) {
             revert AlreadyClaimed(recipient);
         }
-        if (
-            !MerkleProof.verify(
-                merkleProof,
-                merkleRoot,
-                keccak256(abi.encodePacked(recipient, amount))
-            )
-        ) {
+        if (!MerkleProof.verify(merkleProof, merkleRoot, keccak256(abi.encodePacked(recipient, amount)))) {
             revert InvalidProof();
         }
 

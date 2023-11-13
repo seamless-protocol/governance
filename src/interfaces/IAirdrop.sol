@@ -21,11 +21,7 @@ interface IAirdrop {
     /// @param recipient Address to claim tokens for
     /// @param amount Amount of tokens to claim
     /// @param merkleProof Merkle proof
-    function claim(
-        address recipient,
-        uint256 amount,
-        bytes32[] calldata merkleProof
-    ) external;
+    function claim(address recipient, uint256 amount, bytes32[] calldata merkleProof) external;
 
     /// @notice Withdraws tokens from the contract
     /// @dev This function should be used only by the owner
