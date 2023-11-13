@@ -43,9 +43,9 @@ abstract contract Airdrop is IAirdrop, Ownable {
         emit Claim(recipient, amount);
     }
 
-    function withdraw(address recipient, uint256 amount) external onlyOwner {
-        SafeERC20.safeTransfer(seam, recipient, amount);
-        emit Withdraw(recipient, amount);
+    function withdraw(IERC20 token, address recipient, uint256 amount) external onlyOwner {
+        SafeERC20.safeTransfer(token, recipient, amount);
+        emit Withdraw(address(token), recipient, amount);
     }
 
     /// @notice Claim hook for transferring tokens

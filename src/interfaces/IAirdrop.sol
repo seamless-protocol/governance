@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
+import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+
 /// @title Airdrop Interface
 /// @notice Interface for the Airdrop contract
 interface IAirdrop {
     event MerkleRootSet(bytes32 merkleRoot);
     event Claim(address indexed recipient, uint256 amount);
-    event Withdraw(address indexed recipient, uint256 amount);
+    event Withdraw(address indexed token, address indexed recipient, uint256 amount);
 
     error AlreadyClaimed(address recipient);
     error InvalidProof();
@@ -25,7 +27,8 @@ interface IAirdrop {
 
     /// @notice Withdraws tokens from the contract
     /// @dev This function should be used only by the owner
+    /// @param token Address of the token to withdraw
     /// @param recipient Address to withdraw tokens to
     /// @param amount Amount of tokens to withdraw
-    function withdraw(address recipient, uint256 amount) external;
+    function withdraw(IERC20 token, address recipient, uint256 amount) external;
 }

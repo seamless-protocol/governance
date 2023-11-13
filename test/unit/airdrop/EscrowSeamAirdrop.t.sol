@@ -56,17 +56,21 @@ contract EscrowSeamAirdropTest is Test {
     }
 
     function testFuzz_Withdraw(address recipient, uint256 amount) public {
+        vm.assume(recipient != address(0));
+        vm.assume(amount != 0);
         deal(token, address(escrowSeamAirdrop), amount);
-        escrowSeamAirdrop.withdraw(recipient, amount);
+        escrowSeamAirdrop.withdraw(IERC20(token), recipient, amount);
         assertEq(IERC20(token).balanceOf(recipient), amount);
         assertEq(IERC20(token).balanceOf(address(escrowSeamAirdrop)), 0);
     }
 
-    function testFuzz_Withdraw_RevertIf_NotOwner(address caller, address recipient, uint256 amount) public {
+    function testFuzz_Withdraw_RevertIf_NotOwner(address caller, address asset, address recipient, uint256 amount)
+        public
+    {
         vm.assume(caller != address(this));
         vm.startPrank(caller);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, caller));
-        escrowSeamAirdrop.withdraw(recipient, amount);
+        escrowSeamAirdrop.withdraw(IERC20(asset), recipient, amount);
         vm.stopPrank();
     }
 
