@@ -3,7 +3,7 @@ import path from "path";
 import { logger } from "./utils/logger";
 
 // Input CSV file path
-const csvFilePath: string = path.join(__dirname, "./input/data.csv");
+const csvFilePath: string = path.join(__dirname, "./input/addresses.csv");
 
 // Output JSON file path
 const jsonFilePath: string = path.join(__dirname, "./input/addresses.json");
