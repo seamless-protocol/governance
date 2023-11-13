@@ -3,11 +3,11 @@ pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {IAirdrop} from "src/interfaces/IAirdrop.sol";
 import {ISeamAirdrop} from "src/interfaces/ISeamAirdrop.sol";
-import {IEscrowSeam} from "src/interfaces/IEscrowSeam.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
-import {SeamAirdrop} from "src/SeamAirdrop.sol";
+import {SeamAirdrop} from "src/airdrop/SeamAirdrop.sol";
 
 contract SeamAirdropTest is Test {
     address immutable token = address(new ERC20Mock());
@@ -20,19 +20,13 @@ contract SeamAirdropTest is Test {
     bytes32 immutable merkleRoot = 0xd0aa6a4e5b4e13462921d7518eebdb7b297a7877d6cfe078b0c318827392fb55;
     SeamAirdrop seamAirdrop;
 
-    address immutable escrowSeam = makeAddr("EscrowSeam");
     address immutable user1 = 0x016C8780e5ccB32E5CAA342a926794cE64d9C364;
     address immutable user2 = 0x185a4dc360CE69bDCceE33b3784B0282f7961aea;
     bytes32 immutable user1Proof = 0x005a0033b5a1ac5c2872d7689e0f064ad6d2287ab98439e44c822e1c46530033;
     bytes32 immutable user2Proof = 0xceeae64152a2deaf8c661fccd5645458ba20261b16d2f6e090fe908b0ac9ca88;
 
     function setUp() public {
-        seamAirdrop = new SeamAirdrop(
-            IERC20(token),
-            IEscrowSeam(escrowSeam),
-            merkleRoot,
-            address(this)
-        );
+        seamAirdrop = new SeamAirdrop(IERC20(token), merkleRoot, address(this));
     }
 
     function test_SetUp() public {
@@ -85,7 +79,7 @@ contract SeamAirdropTest is Test {
         proof[0] = user1Proof;
         seamAirdrop.claim(user1, user1Claim, proof);
 
-        vm.expectRevert(abi.encodeWithSelector(ISeamAirdrop.AlreadyClaimed.selector, user1));
+        vm.expectRevert(abi.encodeWithSelector(IAirdrop.AlreadyClaimed.selector, user1));
         seamAirdrop.claim(user1, user1Claim, proof);
     }
 
@@ -94,7 +88,7 @@ contract SeamAirdropTest is Test {
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = userProof;
 
-        vm.expectRevert(ISeamAirdrop.InvalidProof.selector);
+        vm.expectRevert(IAirdrop.InvalidProof.selector);
         seamAirdrop.claim(user1, amount, proof);
     }
 
@@ -103,10 +97,11 @@ contract SeamAirdropTest is Test {
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = user1Proof;
 
-        vm.expectRevert(ISeamAirdrop.InvalidProof.selector);
+        vm.expectRevert(IAirdrop.InvalidProof.selector);
         seamAirdrop.claim(user1, amount, proof);
     }
 
+    /*
     function test_ClaimAndVest() public {
         uint256 initialBalance = type(uint256).max;
         deal(token, address(seamAirdrop), initialBalance);
@@ -117,9 +112,22 @@ contract SeamAirdropTest is Test {
 
         vm.startPrank(user1);
         vm.mockCall(
-            escrowSeam, abi.encodeWithSelector(IEscrowSeam.deposit.selector, user1, user1Claim), abi.encodePacked()
+            escrowSeam,
+            abi.encodeWithSelector(
+                IEscrowSeam.deposit.selector,
+                user1,
+                user1Claim
+            ),
+            abi.encodePacked()
         );
-        vm.expectCall(escrowSeam, abi.encodeWithSelector(IEscrowSeam.deposit.selector, user1, user1Claim));
+        vm.expectCall(
+            escrowSeam,
+            abi.encodeWithSelector(
+                IEscrowSeam.deposit.selector,
+                user1,
+                user1Claim
+            )
+        );
         seamAirdrop.claimAndVest(user1Claim, proof);
         vm.stopPrank();
 
@@ -135,18 +143,30 @@ contract SeamAirdropTest is Test {
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = user1Proof;
         vm.mockCall(
-            escrowSeam, abi.encodeWithSelector(IEscrowSeam.deposit.selector, user1, user1Claim), abi.encodePacked()
+            escrowSeam,
+            abi.encodeWithSelector(
+                IEscrowSeam.deposit.selector,
+                user1,
+                user1Claim
+            ),
+            abi.encodePacked()
         );
         vm.startPrank(user1);
         seamAirdrop.claimAndVest(user1Claim, proof);
 
-        vm.expectRevert(abi.encodeWithSelector(ISeamAirdrop.AlreadyClaimed.selector, user1));
+        vm.expectRevert(
+            abi.encodeWithSelector(ISeamAirdrop.AlreadyClaimed.selector, user1)
+        );
         seamAirdrop.claimAndVest(user1Claim, proof);
 
         vm.stopPrank();
     }
 
-    function testFuzz_ClaimAndVest_RevertIf_InvalidProof(address caller, uint256 amount, bytes32 userProof) public {
+    function testFuzz_ClaimAndVest_RevertIf_InvalidProof(
+        address caller,
+        uint256 amount,
+        bytes32 userProof
+    ) public {
         vm.assume(userProof != user1Proof);
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = userProof;
@@ -157,7 +177,9 @@ contract SeamAirdropTest is Test {
         vm.stopPrank();
     }
 
-    function testFuzz_ClaimAndVest_RevertIf_InvalidAmount(uint256 amount) public {
+    function testFuzz_ClaimAndVest_RevertIf_InvalidAmount(
+        uint256 amount
+    ) public {
         vm.assume(amount != 10 ether);
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = user1Proof;
@@ -167,4 +189,5 @@ contract SeamAirdropTest is Test {
         seamAirdrop.claimAndVest(amount, proof);
         vm.stopPrank();
     }
+    */
 }

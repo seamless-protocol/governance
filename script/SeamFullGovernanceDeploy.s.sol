@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Script.sol";
+import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {SeamGovernor} from "../src/SeamGovernor.sol";
 import {SeamTimelockController} from "../src/SeamTimelockController.sol";
@@ -9,6 +10,9 @@ import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
 import {Constants} from "../src/library/Constants.sol";
 import {GovernorDeployer} from "./common/GovernorDeployer.sol";
 import {EscrowSeamDeployer} from "./common/EscrowSeamDeployer.sol";
+import {EscrowSeam} from "../src/EscrowSeam.sol";
+import {SeamAirdrop} from "../src/airdrop/SeamAirdrop.sol";
+import {EscrowSeamAirdrop} from "../src/airdrop/EscrowSeamAirdrop.sol";
 
 contract SeamFullGovernanceDeploy is GovernorDeployer, EscrowSeamDeployer {
     function getChainId() public view returns (uint256) {
@@ -82,7 +86,24 @@ contract SeamFullGovernanceDeploy is GovernorDeployer, EscrowSeamDeployer {
         governorLong.transferOwnership(address(timelockLong));
         console.log("Governor long ownership transferred to long timelock");
 
-        deployEscrowSeam(Constants.VOTING_TOKEN, Constants.VESTING_DURATION, address(timelockShort));
+        EscrowSeam escrowSeam =
+            deployEscrowSeam(Constants.VOTING_TOKEN, Constants.VESTING_DURATION, address(timelockShort));
+
+        SeamAirdrop seamAirdrop = new SeamAirdrop(
+            IERC20(Constants.VOTING_TOKEN),
+            bytes32(0x0),
+            address(timelockShort)
+        );
+        console.log("Deployed SeamAirdrop to: ", address(seamAirdrop));
+
+        EscrowSeamAirdrop escrowSeamAirdrop = new EscrowSeamAirdrop(
+            IERC20(Constants.VOTING_TOKEN),
+            escrowSeam,
+            bytes32(0x0),
+            address(timelockShort)
+        );
+        console.log("Deployed EscrowSeamAirdrop to: ", address(escrowSeamAirdrop));
+
         vm.stopBroadcast();
     }
 }
