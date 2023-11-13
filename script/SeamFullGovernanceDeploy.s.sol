@@ -83,6 +83,7 @@ contract SeamFullGovernanceDeploy is GovernorDeployer, EscrowSeamDeployer {
         console.log("Governor long ownership transferred to long timelock");
 
         deployEscrowSeam(Constants.VOTING_TOKEN, Constants.VESTING_DURATION, address(timelockShort));
+
         vm.stopBroadcast();
     }
 }
