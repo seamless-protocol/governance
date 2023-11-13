@@ -4,7 +4,8 @@
   "description": "Script to generate Merkle tree root from inputs",
   "scripts": {
     "format": "prettier --write ./script/airdrop/*.ts ./script/airdrop/**/*.ts",
-    "generate-merkle-root": "ts-node ./script/airdrop/main.ts"
+    "generate-merkle-root": "ts-node ./script/airdrop/main.ts",
+    "convert-csv-to-json": "ts-node ./script/airdrop/convertCsvToJson.ts"
   },
   "devDependencies": {
     "@types/node": "^20.9.0",
