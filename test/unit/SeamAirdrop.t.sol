@@ -98,6 +98,15 @@ contract SeamAirdropTest is Test {
         seamAirdrop.claim(user1, amount, proof);
     }
 
+    function testFuzz_Claim_RevertIf_InvalidAmount(uint256 amount) public {
+        vm.assume(amount != 10 ether);
+        bytes32[] memory proof = new bytes32[](1);
+        proof[0] = user1Proof;
+
+        vm.expectRevert(ISeamAirdrop.InvalidProof.selector);
+        seamAirdrop.claim(user1, amount, proof);
+    }
+
     function test_ClaimAndVest() public {
         uint256 initialBalance = type(uint256).max;
         deal(token, address(seamAirdrop), initialBalance);
@@ -143,6 +152,17 @@ contract SeamAirdropTest is Test {
         proof[0] = userProof;
 
         vm.startPrank(caller);
+        vm.expectRevert(ISeamAirdrop.InvalidProof.selector);
+        seamAirdrop.claimAndVest(amount, proof);
+        vm.stopPrank();
+    }
+
+    function testFuzz_ClaimAndVest_RevertIf_InvalidAmount(uint256 amount) public {
+        vm.assume(amount != 10 ether);
+        bytes32[] memory proof = new bytes32[](1);
+        proof[0] = user1Proof;
+
+        vm.startPrank(user1);
         vm.expectRevert(ISeamAirdrop.InvalidProof.selector);
         seamAirdrop.claimAndVest(amount, proof);
         vm.stopPrank();
