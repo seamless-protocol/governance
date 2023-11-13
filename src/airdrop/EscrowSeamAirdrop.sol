@@ -5,6 +5,8 @@ import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IEscrowSeam} from "../interfaces/IEscrowSeam.sol";
 import {Airdrop} from "./Airdrop.sol";
 
+/// @title Escrow Seam Airdrop
+/// @notice Airdrop contract that deposits SEAM into the EscrowSeam contract
 contract EscrowSeamAirdrop is Airdrop {
     IEscrowSeam public immutable escrowSeam;
 
@@ -14,6 +16,8 @@ contract EscrowSeamAirdrop is Airdrop {
         escrowSeam = _escrowSeam;
     }
 
+    /// @inheritdoc Airdrop
+    /// @dev This function deposits the SEAM tokens into the EscrowSeam contract
     function transfer(address recipient, uint256 amount) internal override {
         seam.approve(address(escrowSeam), amount);
         escrowSeam.deposit(recipient, amount);
