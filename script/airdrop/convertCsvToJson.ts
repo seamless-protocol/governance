@@ -9,7 +9,7 @@ const csvFilePath: string = path.join(__dirname, "./input/data.csv");
 const jsonFilePath: string = path.join(__dirname, "./input/addresses.json");
 
 /**
- * Throws error and exists process
+ * Throws error and exits process
  * @param {string} error to log
  */
 function throwErrorAndExit(error: string): void {
@@ -31,7 +31,15 @@ function throwErrorAndExit(error: string): void {
 
   let jsonFile: any = {};
   csvFile.forEach((line: string) => {
-    const [address, amount] = line.split(";");
+    const [address, amount] = line.split(",");
+
+    if (jsonFile[address]) {
+      throwErrorAndExit(`Duplicate address found: ${address}`);
+    }
+    if (!Number(amount)) {
+      throwErrorAndExit(`Invalid amount found for address: ${address}`);
+    }
+
     jsonFile[address] = Number(amount);
   });
 
