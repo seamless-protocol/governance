@@ -16,3 +16,6 @@ docs/
 # coverage
 lcov.info
 report/
+
+# packages
+node_modules/

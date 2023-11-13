@@ -1,0 +1,10 @@
+{
+  "files": "./script/airdrop/*.ts",
+  "options": {
+  "printWidth": 120,
+  "tabWidth": 2,
+  "useTabs": false,
+  "singleQuote": false,
+  "bracketSpacing": false
+  }
+}
