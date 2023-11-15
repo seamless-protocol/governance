@@ -143,7 +143,7 @@ contract SeamVestingWalletTest is Test {
     function testFuzz_Vest(uint256 totalAllocation, uint64 percentVested) public {
         percentVested = uint64(bound(percentVested, 1, 100));
 
-        _proxy.setStart(uint64(block.timestamp) - (_duration * percentVested / 100));
+        _proxy.setStart(uint64(block.timestamp) - ((_duration * percentVested) / 100));
 
         deal(_token, address(_proxy), totalAllocation);
 
@@ -169,7 +169,7 @@ contract SeamVestingWalletTest is Test {
         percentVested = uint64(bound(percentVested, 0, 100));
         startingAllocation = bound(startingAllocation, 0, type(uint256).max - addedAmount);
 
-        _proxy.setStart(uint64(block.timestamp) - (_duration * percentVested / 100));
+        _proxy.setStart(uint64(block.timestamp) - ((_duration * percentVested) / 100));
 
         deal(_token, address(_proxy), startingAllocation);
 
@@ -209,7 +209,7 @@ contract SeamVestingWalletTest is Test {
         uint256 expectedVestedAmount = Math.mulDiv(startingAllocation, percentVested, 100);
         removedAmount = bound(removedAmount, 0, startingAllocation - expectedVestedAmount);
 
-        _proxy.setStart(uint64(block.timestamp) - (_duration * percentVested / 100));
+        _proxy.setStart(uint64(block.timestamp) - ((_duration * percentVested) / 100));
 
         deal(_token, address(_proxy), startingAllocation);
 
