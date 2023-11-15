@@ -29,12 +29,7 @@ abstract contract TransferStrategyBase is ITransferStrategyBase {
     }
 
     /// @inheritdoc ITransferStrategyBase
-    function getIncentivesController()
-        external
-        view
-        override
-        returns (address)
-    {
+    function getIncentivesController() external view override returns (address) {
         return incentivesController;
     }
 
@@ -44,18 +39,10 @@ abstract contract TransferStrategyBase is ITransferStrategyBase {
     }
 
     /// @inheritdoc ITransferStrategyBase
-    function performTransfer(
-        address to,
-        address reward,
-        uint256 amount
-    ) external virtual returns (bool);
+    function performTransfer(address to, address reward, uint256 amount) external virtual returns (bool);
 
     /// @inheritdoc ITransferStrategyBase
-    function emergencyWithdrawal(
-        address token,
-        address to,
-        uint256 amount
-    ) external onlyRewardsAdmin {
+    function emergencyWithdrawal(address token, address to, uint256 amount) external onlyRewardsAdmin {
         SafeERC20.safeTransfer(IERC20(token), to, amount);
         emit EmergencyWithdrawal(msg.sender, token, to, amount);
     }

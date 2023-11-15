@@ -14,22 +14,15 @@ contract SeamTransferStrategy is ISeamTransferStrategy, TransferStrategyBase {
     IERC20 public immutable seam;
     IEscrowSeam public immutable escrowSeam;
 
-    constructor(
-        IERC20 _seam,
-        IEscrowSeam _escrowSeam,
-        address _incentivesController,
-        address _rewardsAdmin
-    ) TransferStrategyBase(_incentivesController, _rewardsAdmin) {
+    constructor(IERC20 _seam, IEscrowSeam _escrowSeam, address _incentivesController, address _rewardsAdmin)
+        TransferStrategyBase(_incentivesController, _rewardsAdmin)
+    {
         seam = _seam;
         escrowSeam = _escrowSeam;
     }
 
     /// @inheritdoc ITransferStrategyBase
-    function performTransfer(
-        address to,
-        address,
-        uint256 amount
-    )
+    function performTransfer(address to, address, uint256 amount)
         external
         override(ITransferStrategyBase, TransferStrategyBase)
         onlyIncentivesController
