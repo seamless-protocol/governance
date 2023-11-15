@@ -9,11 +9,6 @@ abstract contract TransferStrategyBase is ITransferStrategyBase {
     address internal immutable incentivesController;
     address internal immutable rewardsAdmin;
 
-    constructor(address _incentivesController, address _rewardsAdmin) {
-        incentivesController = _incentivesController;
-        rewardsAdmin = _rewardsAdmin;
-    }
-
     modifier onlyIncentivesController() {
         if (msg.sender != incentivesController) {
             revert NotIncentivesController();
@@ -26,6 +21,11 @@ abstract contract TransferStrategyBase is ITransferStrategyBase {
             revert NotRewardsAdmin();
         }
         _;
+    }
+
+    constructor(address _incentivesController, address _rewardsAdmin) {
+        incentivesController = _incentivesController;
+        rewardsAdmin = _rewardsAdmin;
     }
 
     /// @inheritdoc ITransferStrategyBase
