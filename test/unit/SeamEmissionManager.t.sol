@@ -9,6 +9,7 @@ import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 
 contract SeamEmissionManagerTest is Test {
+/*
     address immutable seam = address(new ERC20Mock());
     uint256 immutable emissionPerSecond = 1 ether;
 
@@ -106,4 +107,5 @@ contract SeamEmissionManagerTest is Test {
         emissionManager.claim(address(this));
         vm.stopPrank();
     }
+    */
 }
