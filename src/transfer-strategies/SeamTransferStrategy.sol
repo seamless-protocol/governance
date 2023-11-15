@@ -9,7 +9,7 @@ import {TransferStrategyBase} from "./TransferStrategyBase.sol";
 
 /// @title Seam transfer strategy
 /// @notice Transfer strategy for the Seam token
-/// @dev This contract should be used in order to vest SEAM tokens insise EscrowSeam contract for users
+/// @dev This contract should be used in order to vest SEAM tokens inside EscrowSeam contract for users
 contract SeamTransferStrategy is ISeamTransferStrategy, TransferStrategyBase {
     IERC20 public immutable seam;
     IEscrowSeam public immutable escrowSeam;
