@@ -34,4 +34,6 @@ library Constants {
     address public constant ESCROW_SEAM_ADDRESS = address(0x0);
     bytes32 public constant MERKLE_ROOT = bytes32(0x0);
     address public constant SHORT_TIMELOCK_ADDRESS = address(0);
+
+    address public constant INCENTIVES_CONTROLLER_ADDRESS = 0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780;
 }
