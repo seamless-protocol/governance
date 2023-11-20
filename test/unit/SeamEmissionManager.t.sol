@@ -87,7 +87,7 @@ contract SeamEmissionManagerTest is Test {
         assertEq(emissionManager.getCategories().length, 2);
     }
 
-    function testFuzz_AddNewCategory_RevertIf_InvalidPercentage() public {
+    function test_AddNewCategory_RevertIf_InvalidPercentage() public {
         string memory description = "ILM LPs";
         uint256 minPercentage = 4;
         uint256 maxPercentage = 3;
