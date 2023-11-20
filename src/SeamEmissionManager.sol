@@ -27,6 +27,7 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
     /// @param _seam SEAM token address
     /// @param _emissionPerSecond Emission per second
     /// @param _initialAdmin Initial admin of the contract
+    /// @param _claimer Address that can claim SEAM tokens
     function initialize(address _seam, uint256 _emissionPerSecond, address _initialAdmin, address _claimer)
         external
         initializer
@@ -52,6 +53,11 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
     /// @inheritdoc ISeamEmissionManager
     function getEmissionPerSecond() external view returns (uint256) {
         return Storage.layout().emissionPerSecond;
+    }
+
+    /// @inheritdoc ISeamEmissionManager
+    function getCategory(uint256 categoryIndex) public view returns (Storage.CategoryConfig memory) {
+        return Storage.layout().categories[categoryIndex];
     }
 
     /// @inheritdoc ISeamEmissionManager
@@ -84,6 +90,21 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
                 receiver: address(0)
             })
         );
+
+        emit AddNewCategory(description, minPercentage, maxPercentage);
+    }
+
+    // @inheritdoc ISeamEmissionManager
+    function removeCategory(uint256 categoryIndex) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        Storage.CategoryConfig[] storage categories = Storage.layout().categories;
+
+        string memory description = categories[categoryIndex].description;
+        categories[categoryIndex] = categories[categories.length - 1];
+        categories.pop();
+
+        _validateSumOfPercentages();
+
+        emit RemoveCategory(categoryIndex, description);
     }
 
     /// @inheritdoc ISeamEmissionManager
@@ -92,16 +113,15 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         if (indexes.length != receivers.length) {
-            revert IncompatibleData();
+            revert ArrayLengthMismatch();
         }
 
         Storage.Layout storage $ = Storage.layout();
         for (uint256 i = 0; i < indexes.length; i++) {
-            Storage.CategoryConfig storage category = $.categories[indexes[i]];
-            if (category.receiver == address(0)) {
+            if (receivers[i] == address(0)) {
                 revert InvalidReceiver();
             }
-            category.receiver = receivers[i];
+            Storage.layout().categories[indexes[i]].receiver = receivers[i];
         }
     }
 
@@ -111,7 +131,7 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         if (indexes.length != percentages.length) {
-            revert IncompatibleData();
+            revert ArrayLengthMismatch();
         }
 
         Storage.Layout storage $ = Storage.layout();
@@ -128,17 +148,21 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
     }
 
     /// @inheritdoc ISeamEmissionManager
-    function setCategoriesPercetagesAndReceivers(
+    function setCategoryPercetagesAndReceivers(
         uint256[] calldata indexes,
         uint256[] calldata percentages,
         address[] calldata receivers
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (indexes.length != percentages.length) {
-            revert IncompatibleData();
+        if (indexes.length != percentages.length || indexes.length != receivers.length) {
+            revert ArrayLengthMismatch();
         }
 
         Storage.Layout storage $ = Storage.layout();
         for (uint256 i = 0; i < indexes.length; i++) {
+            if (receivers[i] == address(0)) {
+                revert InvalidReceiver();
+            }
+
             Storage.CategoryConfig storage category = $.categories[indexes[i]];
 
             if (percentages[i] > category.maxPercentage || percentages[i] < category.minPercentage) {
@@ -163,10 +187,10 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
             (currentTimestamp - lastClaimedTimestamp) * emissionPerSecond, category.percentage, BASE_PERCENTAGE
         );
 
-        $.seam.transfer(category.receiver, emissionAmount);
         category.lastClaimedTimestamp = currentTimestamp;
+        SafeERC20.safeTransfer($.seam, category.receiver, emissionAmount);
 
-        emit Claim(category.receiver, emissionAmount);
+        emit Claim(categoryIndex, category.receiver, emissionAmount, category.description);
     }
 
     /// @notice Validates that sum of percentages for all categories is 100%.
