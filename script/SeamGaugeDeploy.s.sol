@@ -37,12 +37,7 @@ contract SeamGaugeDeployScript is Script {
                 Constants.SHORT_TIMELOCK_ADDRESS
             )
         );
-        console.log(
-            "Seam gauge proxy deployed to: ",
-            address(proxy),
-            " implementation: ",
-            address(implementation)
-        );
+        console.log("Seam gauge proxy deployed to: ", address(proxy), " implementation: ", address(implementation));
 
         vm.startBroadcast(deployerPrivateKey);
     }

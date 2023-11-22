@@ -14,12 +14,7 @@ import {SeamGaugeStorage as Storage} from "./storage/SeamGaugeStorage.sol";
 /// @author Seamless Protocol
 /// @notice This contract is responsible for managing SEAM token emission.
 /// @dev This contract should send SEAM tokens to each category as per their percentage.
-contract SeamGauge is
-    ISeamGauge,
-    Initializable,
-    AccessControlUpgradeable,
-    UUPSUpgradeable
-{
+contract SeamGauge is ISeamGauge, Initializable, AccessControlUpgradeable, UUPSUpgradeable {
     uint256 public constant BASE_PERCENTAGE = 1000;
     bytes32 public constant CLAIMER_ROLE = keccak256("CLAIMER_ROLE");
 
@@ -33,12 +28,10 @@ contract SeamGauge is
     /// @param _emissionPerSecond Emission per second
     /// @param _initialAdmin Initial admin of the contract
     /// @param _claimer Address that can claim SEAM tokens
-    function initialize(
-        address _seam,
-        uint256 _emissionPerSecond,
-        address _initialAdmin,
-        address _claimer
-    ) external initializer {
+    function initialize(address _seam, uint256 _emissionPerSecond, address _initialAdmin, address _claimer)
+        external
+        initializer
+    {
         __AccessControl_init();
         __UUPSUpgradeable_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
@@ -50,9 +43,7 @@ contract SeamGauge is
     }
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(
-        address
-    ) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
     /// @inheritdoc ISeamGauge
     function getSeam() external view returns (address) {
@@ -65,35 +56,26 @@ contract SeamGauge is
     }
 
     /// @inheritdoc ISeamGauge
-    function getCategory(
-        uint256 categoryIndex
-    ) public view returns (Storage.CategoryConfig memory) {
+    function getCategory(uint256 categoryIndex) public view returns (Storage.CategoryConfig memory) {
         return Storage.layout().categories[categoryIndex];
     }
 
     /// @inheritdoc ISeamGauge
-    function getCategories()
-        external
-        view
-        returns (Storage.CategoryConfig[] memory)
-    {
+    function getCategories() external view returns (Storage.CategoryConfig[] memory) {
         return Storage.layout().categories;
     }
 
     /// @inheritdoc ISeamGauge
-    function setEmissionPerSecond(
-        uint256 emissionPerSecond
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setEmissionPerSecond(uint256 emissionPerSecond) external onlyRole(DEFAULT_ADMIN_ROLE) {
         Storage.layout().emissionPerSecond = emissionPerSecond;
         emit SetEmissionPerSecond(emissionPerSecond);
     }
 
     /// @inheritdoc ISeamGauge
-    function addNewCategory(
-        string memory description,
-        uint256 minPercentage,
-        uint256 maxPercentage
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addNewCategory(string memory description, uint256 minPercentage, uint256 maxPercentage)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         if (minPercentage > maxPercentage || maxPercentage > BASE_PERCENTAGE) {
             revert InvalidPercentage();
         }
@@ -113,12 +95,8 @@ contract SeamGauge is
     }
 
     // @inheritdoc ISeamGauge
-    function removeCategory(
-        uint256 categoryIndex
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        Storage.CategoryConfig[] storage categories = Storage
-            .layout()
-            .categories;
+    function removeCategory(uint256 categoryIndex) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        Storage.CategoryConfig[] storage categories = Storage.layout().categories;
 
         string memory description = categories[categoryIndex].description;
         categories[categoryIndex] = categories[categories.length - 1];
@@ -130,10 +108,10 @@ contract SeamGauge is
     }
 
     /// @inheritdoc ISeamGauge
-    function setCategoryReceivers(
-        uint256[] calldata indexes,
-        address[] calldata receivers
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setCategoryReceivers(uint256[] calldata indexes, address[] calldata receivers)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         if (indexes.length != receivers.length) {
             revert ArrayLengthMismatch();
         }
@@ -147,10 +125,10 @@ contract SeamGauge is
     }
 
     /// @inheritdoc ISeamGauge
-    function setCategoryPercentages(
-        uint256[] calldata indexes,
-        uint256[] calldata percentages
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setCategoryPercentages(uint256[] calldata indexes, uint256[] calldata percentages)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         if (indexes.length != percentages.length) {
             revert ArrayLengthMismatch();
         }
@@ -159,10 +137,7 @@ contract SeamGauge is
         for (uint256 i = 0; i < indexes.length; i++) {
             Storage.CategoryConfig storage category = $.categories[indexes[i]];
 
-            if (
-                percentages[i] > category.maxPercentage ||
-                percentages[i] < category.minPercentage
-            ) {
+            if (percentages[i] > category.maxPercentage || percentages[i] < category.minPercentage) {
                 revert PercentageOutOfBounds();
             }
             category.percentage = percentages[i];
@@ -177,10 +152,7 @@ contract SeamGauge is
         uint256[] calldata percentages,
         address[] calldata receivers
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (
-            indexes.length != percentages.length ||
-            indexes.length != receivers.length
-        ) {
+        if (indexes.length != percentages.length || indexes.length != receivers.length) {
             revert ArrayLengthMismatch();
         }
 
@@ -192,10 +164,7 @@ contract SeamGauge is
 
             Storage.CategoryConfig storage category = $.categories[indexes[i]];
 
-            if (
-                percentages[i] > category.maxPercentage ||
-                percentages[i] < category.minPercentage
-            ) {
+            if (percentages[i] > category.maxPercentage || percentages[i] < category.minPercentage) {
                 revert PercentageOutOfBounds();
             }
             category.percentage = percentages[i];
@@ -214,20 +183,13 @@ contract SeamGauge is
         uint64 lastClaimedTimestamp = category.lastClaimedTimestamp;
         uint64 currentTimestamp = uint64(block.timestamp);
         uint256 emissionAmount = Math.mulDiv(
-            (currentTimestamp - lastClaimedTimestamp) * emissionPerSecond,
-            category.percentage,
-            BASE_PERCENTAGE
+            (currentTimestamp - lastClaimedTimestamp) * emissionPerSecond, category.percentage, BASE_PERCENTAGE
         );
 
         category.lastClaimedTimestamp = currentTimestamp;
         SafeERC20.safeTransfer($.seam, category.receiver, emissionAmount);
 
-        emit Claim(
-            categoryIndex,
-            category.receiver,
-            emissionAmount,
-            category.description
-        );
+        emit Claim(categoryIndex, category.receiver, emissionAmount, category.description);
     }
 
     /// @notice Validates that sum of percentages for all categories is 100%.

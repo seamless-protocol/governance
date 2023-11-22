@@ -44,24 +44,19 @@ contract SeamGaugeTest is Test {
         assertEq(gauge.getEmissionPerSecond(), newEmissionPerSecond);
     }
 
-    function testFuzz_SetEmissionPerSecond(
-        uint256 newEmissionPerSecond
-    ) public {
+    function testFuzz_SetEmissionPerSecond(uint256 newEmissionPerSecond) public {
         gauge.setEmissionPerSecond(newEmissionPerSecond);
         assertEq(gauge.getEmissionPerSecond(), newEmissionPerSecond);
     }
 
-    function testFuzz_SetEmissionPerSecond_RevertIf_NotDefaultAdmin(
-        address caller,
-        uint256 newEmissionPerSecond
-    ) public {
+    function testFuzz_SetEmissionPerSecond_RevertIf_NotDefaultAdmin(address caller, uint256 newEmissionPerSecond)
+        public
+    {
         vm.assume(caller != address(this));
         vm.startPrank(caller);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                caller,
-                gauge.DEFAULT_ADMIN_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector, caller, gauge.DEFAULT_ADMIN_ROLE()
             )
         );
         gauge.setEmissionPerSecond(newEmissionPerSecond);
@@ -226,9 +221,7 @@ contract SeamGaugeTest is Test {
         assertEq(gauge.getCategory(1).percentage, 900);
     }
 
-    function test_SetCategoryPercentages_RevertWhen_ArrayLengthMismatch()
-        public
-    {
+    function test_SetCategoryPercentages_RevertWhen_ArrayLengthMismatch() public {
         uint256[] memory categories = new uint256[](2);
         uint256[] memory percentages = new uint256[](1);
 
@@ -236,9 +229,7 @@ contract SeamGaugeTest is Test {
         gauge.setCategoryPercentages(categories, percentages);
     }
 
-    function test_SetCategoryPercentages_RevertWhen_PercetageOutOfBounds()
-        public
-    {
+    function test_SetCategoryPercentages_RevertWhen_PercetageOutOfBounds() public {
         string memory description = "ILM LPs";
         uint256 minPercentage = 4;
         uint256 maxPercentage = 400;
@@ -260,9 +251,7 @@ contract SeamGaugeTest is Test {
         gauge.setCategoryPercentages(categories, percentages);
     }
 
-    function test_SetCategoryPercentages_RevertIf_InvalidSumOfPercentages()
-        public
-    {
+    function test_SetCategoryPercentages_RevertIf_InvalidSumOfPercentages() public {
         string memory description = "ILM LPs";
         uint256 minPercentage = 0;
         uint256 maxPercentage = 400;
@@ -308,11 +297,7 @@ contract SeamGaugeTest is Test {
         address[] memory receivers = new address[](2);
         receivers[0] = receiver1;
         receivers[1] = receiver2;
-        gauge.setCategoryPercetagesAndReceivers(
-            categories,
-            percentages,
-            receivers
-        );
+        gauge.setCategoryPercetagesAndReceivers(categories, percentages, receivers);
 
         assertEq(gauge.getCategory(0).percentage, 100);
         assertEq(gauge.getCategory(1).percentage, 900);
@@ -320,9 +305,7 @@ contract SeamGaugeTest is Test {
         assertEq(gauge.getCategory(1).receiver, receiver2);
     }
 
-    function test_SetCategoryPercentagesAndRecievers_RevertWhen_ArrayLengthMismatch()
-        public
-    {
+    function test_SetCategoryPercentagesAndRecievers_RevertWhen_ArrayLengthMismatch() public {
         string memory description = "ILM LPs";
         uint256 minPercentage = 4;
         uint256 maxPercentage = 400;
@@ -333,16 +316,10 @@ contract SeamGaugeTest is Test {
         address[] memory receivers = new address[](1);
 
         vm.expectRevert(ISeamGauge.ArrayLengthMismatch.selector);
-        gauge.setCategoryPercetagesAndReceivers(
-            categories,
-            percentages,
-            receivers
-        );
+        gauge.setCategoryPercetagesAndReceivers(categories, percentages, receivers);
     }
 
-    function test_SetCategoryPercentagesAndReceivers_RevertWhen_InvalidReceiver()
-        public
-    {
+    function test_SetCategoryPercentagesAndReceivers_RevertWhen_InvalidReceiver() public {
         uint256[] memory categories = new uint256[](1);
         categories[0] = 0;
         uint256[] memory percentages = new uint256[](1);
@@ -351,16 +328,10 @@ contract SeamGaugeTest is Test {
         receivers[0] = address(0);
 
         vm.expectRevert(ISeamGauge.InvalidReceiver.selector);
-        gauge.setCategoryPercetagesAndReceivers(
-            categories,
-            percentages,
-            receivers
-        );
+        gauge.setCategoryPercetagesAndReceivers(categories, percentages, receivers);
     }
 
-    function test_SetCategoryPercentagesAndReceivers_RevertWhen_PercentageOutOfBounds()
-        public
-    {
+    function test_SetCategoryPercentagesAndReceivers_RevertWhen_PercentageOutOfBounds() public {
         string memory description = "ILM LPs";
         uint256 minPercentage = 4;
         uint256 maxPercentage = 400;
@@ -375,26 +346,16 @@ contract SeamGaugeTest is Test {
 
         // Should fail because percentage is greater than max percentage
         vm.expectRevert(ISeamGauge.PercentageOutOfBounds.selector);
-        gauge.setCategoryPercetagesAndReceivers(
-            categories,
-            percentages,
-            receivers
-        );
+        gauge.setCategoryPercetagesAndReceivers(categories, percentages, receivers);
 
         percentages[0] = 3;
 
         // Should fail because percentage is less than min percentage
         vm.expectRevert(ISeamGauge.PercentageOutOfBounds.selector);
-        gauge.setCategoryPercetagesAndReceivers(
-            categories,
-            percentages,
-            receivers
-        );
+        gauge.setCategoryPercetagesAndReceivers(categories, percentages, receivers);
     }
 
-    function test_SetCategoryPercentagesAndReceivers_RevertWhen_InvalidPercentageSum()
-        public
-    {
+    function test_SetCategoryPercentagesAndReceivers_RevertWhen_InvalidPercentageSum() public {
         string memory description = "ILM LPs";
         uint256 minPercentage = 0;
         uint256 maxPercentage = 400;
@@ -417,11 +378,7 @@ contract SeamGaugeTest is Test {
 
         // Revert because sum of percentages is 100.1% which is not 100%
         vm.expectRevert(ISeamGauge.InvalidPercentageSum.selector);
-        gauge.setCategoryPercetagesAndReceivers(
-            categories,
-            percentages,
-            receivers
-        );
+        gauge.setCategoryPercetagesAndReceivers(categories, percentages, receivers);
     }
 
     function test_Claim() public {
@@ -449,11 +406,7 @@ contract SeamGaugeTest is Test {
         address[] memory receivers = new address[](2);
         receivers[0] = receiver1;
         receivers[1] = receiver2;
-        gauge.setCategoryPercetagesAndReceivers(
-            categories,
-            percentages,
-            receivers
-        );
+        gauge.setCategoryPercetagesAndReceivers(categories, percentages, receivers);
 
         // We go 5000 seconds in time, emissions are set to 1 token per second which means that until now 5000 tokens should be emitted and ready to claiming
         vm.warp(block.timestamp + 5000);

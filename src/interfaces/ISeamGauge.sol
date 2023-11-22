@@ -7,18 +7,9 @@ import {SeamGaugeStorage as Storage} from "../storage/SeamGaugeStorage.sol";
 /// @notice Interface for the SEAM gauge contract.
 interface ISeamGauge {
     event SetEmissionPerSecond(uint256 emissionRate);
-    event AddNewCategory(
-        string categoryDescription,
-        uint256 minPercentage,
-        uint256 maxPercentage
-    );
+    event AddNewCategory(string categoryDescription, uint256 minPercentage, uint256 maxPercentage);
     event RemoveCategory(uint256 indexed categoryIndex, string desciption);
-    event Claim(
-        uint256 indexed categoryIndex,
-        address indexed receiver,
-        uint256 amount,
-        string categoryDescription
-    );
+    event Claim(uint256 indexed categoryIndex, address indexed receiver, uint256 amount, string categoryDescription);
 
     error InvalidPercentage();
     error InvalidReceiver();
@@ -34,15 +25,10 @@ interface ISeamGauge {
 
     /// @notice Returns category information for given index.
     /// @param categoryIndex Index of category to return information for
-    function getCategory(
-        uint256 categoryIndex
-    ) external view returns (Storage.CategoryConfig memory);
+    function getCategory(uint256 categoryIndex) external view returns (Storage.CategoryConfig memory);
 
     /// @notice Returns all active categories.
-    function getCategories()
-        external
-        view
-        returns (Storage.CategoryConfig[] memory);
+    function getCategories() external view returns (Storage.CategoryConfig[] memory);
 
     /// @notice Sets emission per second.
     function setEmissionPerSecond(uint256) external;
@@ -53,11 +39,7 @@ interface ISeamGauge {
     /// @param maxPercentage Maximum percentage of emission for this category, once set it cannot be modified
     /// @dev Current percentage of category will be automatically set to zero and reciever will be set to zero address
     ///      which means that after adding category that category must be configured
-    function addNewCategory(
-        string memory description,
-        uint256 minPercentage,
-        uint256 maxPercentage
-    ) external;
+    function addNewCategory(string memory description, uint256 minPercentage, uint256 maxPercentage) external;
 
     /// @notice Removes category.
     /// @param categoryIndex Index of category to remove
@@ -68,18 +50,12 @@ interface ISeamGauge {
     /// @param indexes Indexes of categories to set receivers for
     /// @param receivers Addresses of receivers
     /// @dev For each category only one receiver can be set, receivers and indexes arrays must be of the same length
-    function setCategoryReceivers(
-        uint256[] calldata indexes,
-        address[] calldata receivers
-    ) external;
+    function setCategoryReceivers(uint256[] calldata indexes, address[] calldata receivers) external;
 
     /// @notice Sets percentages for categories.
     /// @param indexes Indexes of categories to set percentages for
     /// @param percentages Percentages of emission for categories
-    function setCategoryPercentages(
-        uint256[] calldata indexes,
-        uint256[] calldata percentages
-    ) external;
+    function setCategoryPercentages(uint256[] calldata indexes, uint256[] calldata percentages) external;
 
     /// @notice Sets percentages and receivers for categories.
     /// @param indexes Indexes of categories to set percentages and receivers for
