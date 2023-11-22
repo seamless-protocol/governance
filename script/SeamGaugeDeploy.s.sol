@@ -3,10 +3,10 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Script.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {SeamEmissionManager} from "../src/SeamEmissionManager.sol";
+import {SeamGauge} from "../src/SeamGauge.sol";
 import {Constants} from "../src/library/Constants.sol";
 
-contract SeamDeployScript is Script {
+contract SeamGaugeDeployScript is Script {
     function getChainId() public view returns (uint256) {
         uint256 chainId;
         assembly {
@@ -26,11 +26,11 @@ contract SeamDeployScript is Script {
 
         console.log("Deploying...");
 
-        SeamEmissionManager implementation = new SeamEmissionManager();
+        SeamGauge implementation = new SeamGauge();
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(implementation),
             abi.encodeWithSelector(
-                SeamEmissionManager.initialize.selector,
+                SeamGauge.initialize.selector,
                 Constants.SEAM_ADDRESS,
                 Constants.SEAM_EMISSION_PER_SECOND,
                 Constants.SHORT_TIMELOCK_ADDRESS,
@@ -38,7 +38,10 @@ contract SeamDeployScript is Script {
             )
         );
         console.log(
-            "Seam emission manager proxy deployed to: ", address(proxy), " implementation: ", address(implementation)
+            "Seam gauge proxy deployed to: ",
+            address(proxy),
+            " implementation: ",
+            address(implementation)
         );
 
         vm.startBroadcast(deployerPrivateKey);
