@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import {ISeamTransferStrategy} from "../interfaces/ISeamTransferStrategy.sol";
@@ -9,7 +9,8 @@ import {TransferStrategyBase} from "./TransferStrategyBase.sol";
 
 /// @title Seam transfer strategy
 /// @notice Transfer strategy for the Seam token
-/// @dev This contract should be used in order to vest SEAM tokens inside EscrowSeam contract for users
+/// @dev This contract should be used in order to vest SEAM tokens inside EscrowSeam contract for users.
+///      This is made based on transfer strategies from Aave V3 periphery repository https://github.com/aave/aave-v3-periphery/tree/master
 contract SeamTransferStrategy is ISeamTransferStrategy, TransferStrategyBase {
     IERC20 public immutable seam;
     IEscrowSeam public immutable escrowSeam;
