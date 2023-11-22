@@ -13,7 +13,7 @@ contract SeamVestingWalletDeployScript is Script {
     address constant INITIAL_OWNER = address(0);
     address constant BENEFICIARY = address(0);
     IERC20 constant TOKEN = IERC20(Constants.SEAM_ADDRESS);
-    uint64 constant DURATION_SECONDS = 3 * (365 * 24 * 60 * 60);    // 3 years
+    uint64 constant DURATION_SECONDS = 3 * (365 * 24 * 60 * 60); // 3 years
 
     function getChainId() public view returns (uint256) {
         uint256 chainId;
@@ -52,7 +52,12 @@ contract SeamVestingWalletDeployScript is Script {
             )
         );
 
-        console.log("Deployed vesting wallet proxy to: ", address(proxy), " implementation: ", address(vestingWalletImplementation));
+        console.log(
+            "Deployed vesting wallet proxy to: ",
+            address(proxy),
+            " implementation: ",
+            address(vestingWalletImplementation)
+        );
 
         vm.stopBroadcast();
     }
