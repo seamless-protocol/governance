@@ -3,13 +3,15 @@ pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
-import {IAirdrop} from "src/interfaces/IAirdrop.sol";
 import {ISeamAirdrop} from "src/interfaces/ISeamAirdrop.sol";
+import {IEscrowSeam} from "src/interfaces/IEscrowSeam.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
-import {SeamAirdrop} from "src/airdrop/SeamAirdrop.sol";
+import {SeamAirdrop} from "src/SeamAirdrop.sol";
 
 contract SeamAirdropTest is Test {
+    uint256 public constant MAX_VESTING_PERCENTAGE = 100_00;
+
     address immutable token = address(new ERC20Mock());
 
     /// This merkle root is generated from the following JSON
@@ -18,6 +20,8 @@ contract SeamAirdropTest is Test {
     ///    "0x185a4dc360ce69bdccee33b3784b0282f7961aea": 100
     /// }
     bytes32 immutable merkleRoot = 0xd0aa6a4e5b4e13462921d7518eebdb7b297a7877d6cfe078b0c318827392fb55;
+    uint256 immutable vestingPercentage = 30_00; // 30%
+    address immutable escrowSeamAddress = makeAddr("escrowSeam");
     SeamAirdrop seamAirdrop;
 
     address immutable user1 = 0x016C8780e5ccB32E5CAA342a926794cE64d9C364;
@@ -26,11 +30,19 @@ contract SeamAirdropTest is Test {
     bytes32 immutable user2Proof = 0xceeae64152a2deaf8c661fccd5645458ba20261b16d2f6e090fe908b0ac9ca88;
 
     function setUp() public {
-        seamAirdrop = new SeamAirdrop(IERC20(token), merkleRoot, address(this));
+        seamAirdrop = new SeamAirdrop(
+            IERC20(token),
+            IEscrowSeam(escrowSeamAddress),
+            vestingPercentage,
+            merkleRoot,
+            address(this)
+        );
     }
 
     function test_SetUp() public {
         assertEq(address(seamAirdrop.seam()), token);
+        assertEq(address(seamAirdrop.escrowSeam()), escrowSeamAddress);
+        assertEq(seamAirdrop.vestingPercentage(), vestingPercentage);
         assertEq(seamAirdrop.merkleRoot(), merkleRoot);
         assertEq(seamAirdrop.owner(), address(this));
     }
@@ -46,6 +58,27 @@ contract SeamAirdropTest is Test {
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, caller));
         seamAirdrop.setMerkleRoot(newMerkleRoot);
         vm.stopPrank();
+    }
+
+    function testFuzz_SetVestingPercentage(uint256 newVestingPercentage) public {
+        vm.assume(newVestingPercentage <= MAX_VESTING_PERCENTAGE);
+        seamAirdrop.setVestingPercentage(newVestingPercentage);
+        assertEq(seamAirdrop.vestingPercentage(), newVestingPercentage);
+    }
+
+    function testFuzz_SetVestingPercentage_RevertIf_NotOwner(address caller, uint256 newVestingPercentage) public {
+        vm.assume(newVestingPercentage > MAX_VESTING_PERCENTAGE);
+        vm.assume(caller != address(this));
+        vm.startPrank(caller);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, caller));
+        seamAirdrop.setVestingPercentage(newVestingPercentage);
+        vm.stopPrank();
+    }
+
+    function testFuzz_SetVestingPercentage_RevertIf_InvalidVestingPercentage(uint256 newVestingPercentage) public {
+        vm.assume(newVestingPercentage > MAX_VESTING_PERCENTAGE);
+        vm.expectRevert(ISeamAirdrop.InvalidVestingPercentage.selector);
+        seamAirdrop.setVestingPercentage(newVestingPercentage);
     }
 
     function testFuzz_Withdraw(address recipient, uint256 amount) public {
@@ -68,28 +101,31 @@ contract SeamAirdropTest is Test {
     }
 
     function test_Claim() public {
+        vm.mockCall(escrowSeamAddress, abi.encodeWithSelector(IEscrowSeam.deposit.selector), abi.encode());
+
         uint256 initialBalance = type(uint256).max;
         deal(token, address(seamAirdrop), initialBalance);
 
         uint256 user1Claim = 10 ether;
+        uint256 user1SeamClaim = 7 ether;
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = user1Proof;
         seamAirdrop.claim(user1, user1Claim, proof);
 
-        assertEq(IERC20(token).balanceOf(user1), user1Claim);
+        assertEq(IERC20(token).balanceOf(user1), user1SeamClaim);
         assertTrue(seamAirdrop.hasClaimed(user1));
-        assertEq(IERC20(token).balanceOf(address(seamAirdrop)), initialBalance - user1Claim);
 
         uint256 user2Claim = 100 ether;
+        uint256 user2SeamClaim = 70 ether;
         proof[0] = user2Proof;
         seamAirdrop.claim(user2, user2Claim, proof);
 
-        assertEq(IERC20(token).balanceOf(user2), user2Claim);
+        assertEq(IERC20(token).balanceOf(user2), user2SeamClaim);
         assertTrue(seamAirdrop.hasClaimed(user2));
-        assertEq(IERC20(token).balanceOf(address(seamAirdrop)), initialBalance - user1Claim - user2Claim);
     }
 
     function test_Claim_RevertIf_AlreadyClaimed() public {
+        vm.mockCall(escrowSeamAddress, abi.encodeWithSelector(IEscrowSeam.deposit.selector), abi.encode());
         uint256 initialBalance = type(uint256).max;
         deal(token, address(seamAirdrop), initialBalance);
 
@@ -98,7 +134,7 @@ contract SeamAirdropTest is Test {
         proof[0] = user1Proof;
         seamAirdrop.claim(user1, user1Claim, proof);
 
-        vm.expectRevert(abi.encodeWithSelector(IAirdrop.AlreadyClaimed.selector, user1));
+        vm.expectRevert(abi.encodeWithSelector(ISeamAirdrop.AlreadyClaimed.selector, user1));
         seamAirdrop.claim(user1, user1Claim, proof);
     }
 
@@ -107,7 +143,7 @@ contract SeamAirdropTest is Test {
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = userProof;
 
-        vm.expectRevert(IAirdrop.InvalidProof.selector);
+        vm.expectRevert(ISeamAirdrop.InvalidProof.selector);
         seamAirdrop.claim(user1, amount, proof);
     }
 
@@ -116,7 +152,7 @@ contract SeamAirdropTest is Test {
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = user1Proof;
 
-        vm.expectRevert(IAirdrop.InvalidProof.selector);
+        vm.expectRevert(ISeamAirdrop.InvalidProof.selector);
         seamAirdrop.claim(user1, amount, proof);
     }
 }
