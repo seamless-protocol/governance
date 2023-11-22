@@ -8,7 +8,6 @@ import {SeamVestingWallet} from "../src/SeamVestingWallet.sol";
 import {Constants} from "../src/library/Constants.sol";
 
 contract SeamVestingWalletDeployScript is Script {
-
     function getChainId() public view returns (uint256) {
         uint256 chainId;
         assembly {
@@ -23,7 +22,6 @@ contract SeamVestingWalletDeployScript is Script {
         address initialOwner = vm.envOr("INITIAL_OWNER", deployerAddress);
         address beneficiary = vm.envAddress("BENEFICIARY");
         uint64 durationSeconds = vm.envOr("DURATION_SECONDS", 3 * 365 days);
-        
 
         console.log("Deployer address: ", deployerAddress);
         console.log("Deployer balance: ", deployerAddress.balance);
