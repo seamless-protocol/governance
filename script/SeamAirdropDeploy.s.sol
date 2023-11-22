@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "forge-std/Script.sol";
 import {Constants} from "../src/library/Constants.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {IEscrowSeam} from "../src/interfaces/IEscrowSeam.sol";
 import {SeamAirdrop} from "../src/airdrop/SeamAirdrop.sol";
 
 contract SeamAirdropDeploy is Script {
@@ -30,6 +31,8 @@ contract SeamAirdropDeploy is Script {
 
         SeamAirdrop seamAirdrop = new SeamAirdrop(
             IERC20(Constants.SEAM_ADDRESS),
+            IEscrowSeam(Constants.ESCROW_SEAM_ADDRESS),
+            Constants.VESTING_PERCENTAGE,
             Constants.MERKLE_ROOT,
             Constants.SHORT_TIMELOCK_ADDRESS
         );

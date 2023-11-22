@@ -32,6 +32,7 @@ library Constants {
     //TODO: Change this addresses to the correct ones when deploying airdrop contracts
     address public constant SEAM_ADDRESS = address(0x0);
     address public constant ESCROW_SEAM_ADDRESS = address(0x0);
+    uint256 public constant VESTING_PERCENTAGE = 10_00; // 10%
     bytes32 public constant MERKLE_ROOT = bytes32(0x0);
     address public constant SHORT_TIMELOCK_ADDRESS = address(0);
 }
