@@ -3,12 +3,11 @@ pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
-import {IAirdrop} from "src/interfaces/IAirdrop.sol";
 import {ISeamAirdrop} from "src/interfaces/ISeamAirdrop.sol";
 import {IEscrowSeam} from "src/interfaces/IEscrowSeam.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
-import {SeamAirdrop} from "src/airdrop/SeamAirdrop.sol";
+import {SeamAirdrop} from "src/SeamAirdrop.sol";
 
 contract SeamAirdropTest is Test {
     uint256 public constant MAX_VESTING_PERCENTAGE = 100_00;
@@ -135,7 +134,7 @@ contract SeamAirdropTest is Test {
         proof[0] = user1Proof;
         seamAirdrop.claim(user1, user1Claim, proof);
 
-        vm.expectRevert(abi.encodeWithSelector(IAirdrop.AlreadyClaimed.selector, user1));
+        vm.expectRevert(abi.encodeWithSelector(ISeamAirdrop.AlreadyClaimed.selector, user1));
         seamAirdrop.claim(user1, user1Claim, proof);
     }
 
@@ -144,7 +143,7 @@ contract SeamAirdropTest is Test {
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = userProof;
 
-        vm.expectRevert(IAirdrop.InvalidProof.selector);
+        vm.expectRevert(ISeamAirdrop.InvalidProof.selector);
         seamAirdrop.claim(user1, amount, proof);
     }
 
@@ -153,7 +152,7 @@ contract SeamAirdropTest is Test {
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = user1Proof;
 
-        vm.expectRevert(IAirdrop.InvalidProof.selector);
+        vm.expectRevert(ISeamAirdrop.InvalidProof.selector);
         seamAirdrop.claim(user1, amount, proof);
     }
 }

@@ -2,30 +2,45 @@
 pragma solidity ^0.8.20;
 
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
+import {MerkleProof} from "openzeppelin-contracts/utils/cryptography/MerkleProof.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
-import {ISeamAirdrop} from "../interfaces/ISeamAirdrop.sol";
-import {IEscrowSeam} from "../interfaces/IEscrowSeam.sol";
-import {Airdrop} from "./Airdrop.sol";
+import {ISeamAirdrop} from "./interfaces/ISeamAirdrop.sol";
+import {IEscrowSeam} from "./interfaces/IEscrowSeam.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 
 /// @title Seam Airdrop
 /// @notice Airdrop contract that transfers SEAM tokens
 /// @dev New contract should be deployed for each airdrop
-contract SeamAirdrop is ISeamAirdrop, Airdrop {
+contract SeamAirdrop is ISeamAirdrop, Ownable {
+    using SafeERC20 for IERC20;
+
     uint256 public constant MAX_VESTING_PERCENTAGE = 100_00;
 
     IEscrowSeam public escrowSeam;
+    IERC20 public immutable seam;
     uint256 public vestingPercentage;
+    bytes32 public merkleRoot;
+
+    mapping(address => bool) public hasClaimed;
 
     constructor(IERC20 _seam, IEscrowSeam _escrowSeam, uint256 _vestingPercentage, bytes32 _merkleRoot, address _owner)
-        Airdrop(_seam, _merkleRoot, _owner)
+        Ownable(_owner)
     {
         if (_vestingPercentage > MAX_VESTING_PERCENTAGE) {
             revert InvalidVestingPercentage();
         }
 
+        seam = _seam;
         escrowSeam = _escrowSeam;
         vestingPercentage = _vestingPercentage;
+        merkleRoot = _merkleRoot;
+    }
+
+    /// @inheritdoc ISeamAirdrop
+    function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
+        merkleRoot = _merkleRoot;
+        emit MerkleRootSet(_merkleRoot);
     }
 
     /// @inheritdoc ISeamAirdrop
@@ -35,12 +50,18 @@ contract SeamAirdrop is ISeamAirdrop, Airdrop {
         }
 
         vestingPercentage = _vestingPercentage;
-        emit SetVestingPercentage(_vestingPercentage);
+        emit VestingPercentageSet(_vestingPercentage);
     }
 
-    /// @inheritdoc Airdrop
-    /// @dev This function transfers the SEAM tokens to recipients and vest SEAM tokens to esSEAM contract on behalf of recipients.
-    function transfer(address recipient, uint256 amount) internal override {
+    /// @inheritdoc ISeamAirdrop
+    function claim(address recipient, uint256 amount, bytes32[] calldata merkleProof) external {
+        if (hasClaimed[recipient]) {
+            revert AlreadyClaimed(recipient);
+        }
+        if (!MerkleProof.verify(merkleProof, merkleRoot, keccak256(abi.encodePacked(recipient, amount)))) {
+            revert InvalidProof();
+        }
+
         uint256 esSeamAmount = Math.mulDiv(amount, vestingPercentage, MAX_VESTING_PERCENTAGE);
         uint256 seamAmount = amount - esSeamAmount;
 
@@ -52,6 +73,12 @@ contract SeamAirdrop is ISeamAirdrop, Airdrop {
             SafeERC20.safeTransfer(seam, recipient, seamAmount);
         }
 
-        emit Transfer(recipient, seamAmount, esSeamAmount);
+        hasClaimed[recipient] = true;
+        emit Claim(recipient, amount);
+    }
+
+    function withdraw(IERC20 token, address recipient, uint256 amount) external onlyOwner {
+        SafeERC20.safeTransfer(token, recipient, amount);
+        emit Withdraw(address(token), recipient, amount);
     }
 }

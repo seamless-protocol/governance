@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 import {Constants} from "../src/library/Constants.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IEscrowSeam} from "../src/interfaces/IEscrowSeam.sol";
-import {SeamAirdrop} from "../src/airdrop/SeamAirdrop.sol";
+import {SeamAirdrop} from "../src/SeamAirdrop.sol";
 
 contract SeamAirdropDeploy is Script {
     function getChainId() public view returns (uint256) {
