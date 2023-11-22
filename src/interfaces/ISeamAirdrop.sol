@@ -12,7 +12,7 @@ interface ISeamAirdrop {
 
     event VestingPercentageSet(uint256 vestingPercentage);
     event MerkleRootSet(bytes32 merkleRoot);
-    event Claim(address indexed recipient, uint256 amount);
+    event Claim(address indexed recipient, uint256 seamAmount, uint256 esSeamAmount);
     event Withdraw(address indexed token, address indexed recipient, uint256 amount);
 
     /// @notice Sets the vesting percentage

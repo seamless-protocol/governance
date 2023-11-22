@@ -74,7 +74,7 @@ contract SeamAirdrop is ISeamAirdrop, Ownable {
         }
 
         hasClaimed[recipient] = true;
-        emit Claim(recipient, amount);
+        emit Claim(recipient, seamAmount, esSeamAmount);
     }
 
     function withdraw(IERC20 token, address recipient, uint256 amount) external onlyOwner {
