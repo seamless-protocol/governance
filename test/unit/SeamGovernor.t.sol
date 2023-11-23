@@ -2,7 +2,6 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
@@ -22,6 +21,7 @@ contract SeamGovernorTest is Test {
     uint256 public constant VOTE_NUMERATOR = 666;
 
     address immutable _seam = makeAddr("SEAM");
+    address immutable _esSEAM = makeAddr("esSEAM");
     address immutable _timelockController = makeAddr("timelockController");
 
     SeamGovernor public governorImplementation;
@@ -43,7 +43,8 @@ contract SeamGovernorTest is Test {
                 PROPOSAL_NUMERATOR,
                 VOTE_NUMERATOR,
                 QUORUM_NUMERATOR,
-                IVotes(_seam),
+                _seam,
+                _esSEAM,
                 TimelockControllerUpgradeable(payable(_timelockController)),
                 address(this)
             )

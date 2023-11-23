@@ -5,7 +5,6 @@ import "forge-std/Script.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {SeamGovernor} from "../../src/SeamGovernor.sol";
 import {SeamTimelockController} from "../../src/SeamTimelockController.sol";
-import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
 
 contract GovernorDeployer is Script {
     struct GovernorParams {
@@ -15,7 +14,8 @@ contract GovernorDeployer is Script {
         uint256 voteNumerator;
         uint256 proposalNumerator;
         uint256 quorumNumerator;
-        address votingToken;
+        address seam;
+        address esSEAM;
         uint256 timelockControllerMinDelay;
         address guardianWallet;
         address deployer;
@@ -54,7 +54,8 @@ contract GovernorDeployer is Script {
                 params.proposalNumerator,
                 params.voteNumerator,
                 params.quorumNumerator,
-                IVotes(params.votingToken),
+                params.seam,
+                params.esSEAM,
                 timelockControllerProxy,
                 params.deployer
             )

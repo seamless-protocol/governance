@@ -24,7 +24,6 @@ library Constants {
     uint256 public constant GOVERNOR_LONG_NUMERATOR = 3;
     uint256 public constant TIMELOCK_CONTROLLER_LONG_MIN_DELAY = 5 days;
 
-    address public constant VOTING_TOKEN = 0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85;
     address public constant GUARDIAN_WALLET = address(0);
 
     uint256 public constant VESTING_DURATION = 365 days;

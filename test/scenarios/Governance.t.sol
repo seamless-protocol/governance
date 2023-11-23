@@ -5,7 +5,6 @@ import "forge-std/Test.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
 import {IGovernor} from "openzeppelin-contracts/governance/IGovernor.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
-import {IERC6372} from "openzeppelin-contracts/interfaces/IERC6372.sol";
 import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -16,6 +15,7 @@ import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/access/Owna
 import {GovernorTimelockControlUpgradeable} from
     "openzeppelin-contracts-upgradeable/governance/extensions/GovernorTimelockControlUpgradeable.sol";
 import {Seam} from "src/Seam.sol";
+import {EscrowSeam} from "src/EscrowSeam.sol";
 import {SeamGovernor} from "src/SeamGovernor.sol";
 import {SeamTimelockController} from "src/SeamTimelockController.sol";
 import {Constants} from "src/library/Constants.sol";
@@ -31,6 +31,7 @@ contract GovernanceTest is Test, GovernorDeployer {
     uint256 public constant QUORUM_NUMERATOR = 34;
 
     Seam public seam;
+    EscrowSeam public esSEAM;
     SeamGovernor public shortGovernor;
     SeamGovernor public longGovernor;
     SeamTimelockController public shortTimelock;
@@ -45,17 +46,29 @@ contract GovernanceTest is Test, GovernorDeployer {
     Voter public longGovernorVoter2;
 
     function setUp() public {
-        Seam tokenImplementation = new Seam();
-        ERC1967Proxy proxy = new ERC1967Proxy(
-            address(tokenImplementation),
+        Seam seamTokenImplementation = new Seam();
+        ERC1967Proxy seamProxy = new ERC1967Proxy(
+            address(seamTokenImplementation),
             abi.encodeWithSelector(
                 Seam.initialize.selector,
                 Constants.TOKEN_NAME,
                 Constants.TOKEN_SYMBOL,
-                Constants.MINT_AMOUNT * (10 ** tokenImplementation.decimals())
+                Constants.MINT_AMOUNT * (10 ** seamTokenImplementation.decimals())
             )
         );
-        seam = Seam(address(proxy));
+        seam = Seam(address(seamProxy));
+
+        EscrowSeam esSEAMTokenImplementation = new EscrowSeam();
+        ERC1967Proxy esSEAMProxy = new ERC1967Proxy(
+            address(esSEAMTokenImplementation),
+            abi.encodeWithSelector(
+                EscrowSeam.initialize.selector,
+                address(seam),
+                365 days,
+                address(this)
+            )
+        );
+        esSEAM = EscrowSeam(address(esSEAMProxy));
 
         GovernorParams memory shortGovernorParams = GovernorParams(
             Constants.GOVERNOR_SHORT_NAME,
@@ -65,6 +78,7 @@ contract GovernanceTest is Test, GovernorDeployer {
             Constants.GOVERNOR_SHORT_PROPOSAL_NUMERATOR,
             Constants.GOVERNOR_SHORT_NUMERATOR,
             address(seam),
+            address(esSEAM),
             Constants.TIMELOCK_CONTROLLER_SHORT_MIN_DELAY,
             Constants.GUARDIAN_WALLET,
             address(this)
@@ -79,6 +93,7 @@ contract GovernanceTest is Test, GovernorDeployer {
             Constants.GOVERNOR_LONG_PROPOSAL_NUMERATOR,
             Constants.GOVERNOR_LONG_NUMERATOR,
             address(seam),
+            address(esSEAM),
             Constants.TIMELOCK_CONTROLLER_LONG_MIN_DELAY,
             Constants.GUARDIAN_WALLET,
             address(this)
@@ -285,6 +300,36 @@ contract GovernanceTest is Test, GovernorDeployer {
 
         vm.expectRevert();
         longGovernorProposer.queue(proposalId);
+    }
+
+    function testFuzz_GetVotes(uint8 fraction) public {
+        vm.assume(fraction > 0);
+
+        uint256 esSEAMAmount = seam.balanceOf(address(shortGovernorVoter1)) * fraction / type(uint8).max;
+
+        vm.startPrank(address(shortGovernorVoter1));
+
+        seam.approve(address(esSEAM), esSEAMAmount);
+        esSEAM.deposit(address(shortGovernorVoter1), esSEAMAmount);
+
+        // required to use constant due to bug with warp + block.timestamp: https://github.com/foundry-rs/foundry/issues/3806
+        vm.warp(2);
+
+        assertEq(
+            shortGovernor.getVotes(address(shortGovernorVoter1), 1),
+            seam.balanceOf(address(shortGovernorVoter1))
+        );
+
+        esSEAM.delegate(address(shortGovernorVoter1));
+
+        vm.warp(3);
+
+        assertEq(
+            shortGovernor.getVotes(address(shortGovernorVoter1), 2),
+            seam.balanceOf(address(shortGovernorVoter1)) + esSEAM.balanceOf(address(shortGovernorVoter1))
+        );
+
+        vm.stopPrank();
     }
 
     function _hashOperationBatch(
