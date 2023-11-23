@@ -21,7 +21,7 @@ contract SeamVestingWalletDeployScript is Script {
         address deployerAddress = vm.addr(deployerPrivateKey);
         address initialOwner = vm.envOr("INITIAL_OWNER", deployerAddress);
         address beneficiary = vm.envAddress("BENEFICIARY");
-        uint64 durationSeconds = vm.envOr("DURATION_SECONDS", 3 * 365 days);
+        uint64 durationSeconds = uint64(vm.envOr("DURATION_SECONDS", uint256(3 * 365 days)));
 
         console.log("Deployer address: ", deployerAddress);
         console.log("Deployer balance: ", deployerAddress.balance);
