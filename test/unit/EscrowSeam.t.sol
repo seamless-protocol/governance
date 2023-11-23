@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {EscrowSeam} from "src/EscrowSeam.sol";
 import {IEscrowSeam} from "src/interfaces/IEscrowSeam.sol";
@@ -33,6 +33,8 @@ contract EscrowSeamTest is Test {
         assertEq(address(esSEAM.seam()), seam);
         assertEq(esSEAM.vestingDuration(), VESTING_DURATION);
         assertEq(esSEAM.owner(), address(this));
+        assertEq(esSEAM.clock(), block.timestamp);
+        assertEq(esSEAM.CLOCK_MODE(), "mode=timestamp");
     }
 
     function testFuzzTransferRevertNonTransferable(address from, address to, uint256 amount) public {
@@ -137,7 +139,7 @@ contract EscrowSeamTest is Test {
     function testFuzzClaim(address account, uint256 depositAmount, uint256 timeBetweenActions) public {
         vm.assume(account != address(0));
         depositAmount = bound(depositAmount, 1 ether, type(uint256).max / 1 ether);
-        timeBetweenActions = bound(timeBetweenActions, 0, type(uint256).max / 2);
+        timeBetweenActions = bound(timeBetweenActions, 0, type(uint48).max / 2);
 
         vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
         esSEAM.deposit(account, depositAmount);
@@ -158,5 +160,10 @@ contract EscrowSeamTest is Test {
             depositAmount - (depositAmount * timeElapsed) / VESTING_DURATION,
             ABS_ROUNDING_TOLERANCE
         );
+    }
+
+    function testDelegate() public {
+        esSEAM.delegate(address(this));
+        assertEq(esSEAM.getVotes(address(this)), esSEAM.totalSupply());
     }
 }

@@ -19,7 +19,8 @@ import {TimelockControllerUpgradeable} from
     "openzeppelin-contracts-upgradeable/governance/TimelockControllerUpgradeable.sol";
 import {Address} from "openzeppelin-contracts/utils/Address.sol";
 import {IGovernor} from "openzeppelin-contracts/governance/IGovernor.sol";
-import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
+import {IERC5805} from "openzeppelin-contracts/interfaces/IERC5805.sol";
+import {SeamGovernorStorage as Storage} from "./storage/SeamGovernorStorage.sol";
 import {GovernorCountingFractionUpgradeable} from "./GovernorCountingFractionUpgradeable.sol";
 
 /**
@@ -58,7 +59,8 @@ contract SeamGovernor is
      * @param _initialVotingPeriod Initial voting period
      * @param _voteNumeratorValue Initial vote numerator value
      * @param _quorumNumeratorValue Initial quorum numerator value
-     * @param _token Token used for voting
+     * @param _seam Token used for voting
+     * @param _esSEAM Token used for voting but not for total supply. Must have same clock mode as _seam
      * @param _timelock Timelock controller used for execution
      * @param initialOwner Initial owner of governor contract
      */
@@ -69,12 +71,13 @@ contract SeamGovernor is
         uint256 _proposalNumeratorValue,
         uint256 _voteNumeratorValue,
         uint256 _quorumNumeratorValue,
-        IVotes _token,
+        IERC5805 _seam,
+        IERC5805 _esSEAM,
         TimelockControllerUpgradeable _timelock,
         address initialOwner
     ) external initializer {
         __Governor_init(_name);
-        __GovernorVotes_init(_token);
+        __GovernorVotes_init(_seam);
         __GovernorStorage_init();
         __GovernorSettings_init(_initialVotingDelay, _initialVotingPeriod, _proposalNumeratorValue);
         __GovernorCountingFraction_init(_voteNumeratorValue);
@@ -82,6 +85,9 @@ contract SeamGovernor is
         __GovernorTimelockControl_init(_timelock);
         __Ownable_init(initialOwner);
         __UUPSUpgradeable_init();
+
+        Storage.Layout storage $ = Storage.layout();
+        $._esSEAM = _esSEAM;
     }
 
     function _checkGovernance() internal override onlyOwner {}
@@ -135,6 +141,15 @@ contract SeamGovernor is
 
     function proposalDenominator() public view virtual returns (uint256) {
         return 1000;
+    }
+
+    function _getVotes(address account, uint256 timepoint, bytes memory /*params*/ )
+        internal
+        view
+        override(GovernorUpgradeable, GovernorVotesUpgradeable)
+        returns (uint256)
+    {
+        return token().getPastVotes(account, timepoint) + Storage.layout()._esSEAM.getPastVotes(account, timepoint);
     }
 
     function votingDelay() public view override(GovernorUpgradeable, GovernorSettingsUpgradeable) returns (uint256) {

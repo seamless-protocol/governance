@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {ERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import {ERC20VotesUpgradeable} from
+    "openzeppelin-contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {VotesUpgradeable} from "openzeppelin-contracts-upgradeable/governance/utils/VotesUpgradeable.sol";
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
@@ -15,7 +18,7 @@ import {IEscrowSeam} from "./interfaces/IEscrowSeam.sol";
  * @dev This contract is vesting contract for SEAM token.
  * @dev EscrowSeam token is not transferable.
  */
-contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
+contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, ERC20VotesUpgradeable, OwnableUpgradeable, UUPSUpgradeable {
     using Math for uint256;
     using SafeERC20 for IERC20;
 
@@ -31,6 +34,10 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, OwnableUpgradeable, UUPSUp
         }
     }
 
+    constructor() {
+        _disableInitializers();
+    }
+
     /**
      * @notice Initializes the token storage and inherited contracts.
      * @param _seam SEAM token address
@@ -39,6 +46,7 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, OwnableUpgradeable, UUPSUp
      */
     function initialize(address _seam, uint256 _vestingDuration, address _initialOwner) public initializer {
         __ERC20_init("Escrow Seamless", "esSEAM");
+        __ERC20Votes_init();
         __Ownable_init(_initialOwner);
         __UUPSUpgradeable_init();
 
@@ -49,6 +57,17 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, OwnableUpgradeable, UUPSUp
 
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address) internal override onlyOwner {}
+
+    /// @inheritdoc VotesUpgradeable
+    function clock() public view override returns (uint48) {
+        return uint48(block.timestamp);
+    }
+
+    /// @inheritdoc VotesUpgradeable
+    // solhint-disable-next-line func-name-mixedcase
+    function CLOCK_MODE() public pure override returns (string memory) {
+        return "mode=timestamp";
+    }
 
     /**
      * @notice Prevents transfer of the token.
@@ -161,5 +180,13 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, OwnableUpgradeable, UUPSUp
         VestingData storage vestingData = $.vestingInfo[account];
         vestingData.claimableAmount = getClaimableAmount(account);
         vestingData.lastUpdatedTimestamp = block.timestamp;
+    }
+
+    /// @inheritdoc ERC20Upgradeable
+    function _update(address from, address to, uint256 value)
+        internal
+        override(ERC20Upgradeable, ERC20VotesUpgradeable)
+    {
+        super._update(from, to, value);
     }
 }
