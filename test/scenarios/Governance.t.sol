@@ -315,10 +315,7 @@ contract GovernanceTest is Test, GovernorDeployer {
         // required to use constant due to bug with warp + block.timestamp: https://github.com/foundry-rs/foundry/issues/3806
         vm.warp(2);
 
-        assertEq(
-            shortGovernor.getVotes(address(shortGovernorVoter1), 1),
-            seam.balanceOf(address(shortGovernorVoter1))
-        );
+        assertEq(shortGovernor.getVotes(address(shortGovernorVoter1), 1), seam.balanceOf(address(shortGovernorVoter1)));
 
         esSEAM.delegate(address(shortGovernorVoter1));
 
