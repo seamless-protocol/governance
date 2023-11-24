@@ -5,8 +5,8 @@ library Constants {
     string public constant TOKEN_NAME = "Seamless";
     string public constant TOKEN_SYMBOL = "SEAM";
     uint256 public constant MINT_AMOUNT = 100_000_000;
-    address public constant TRANSFER_ROLES_TO = 0xA1b5f2cc9B407177CD8a4ACF1699fa0b99955A22;
-    bool public constant REVOKE_DEPLOYER_PERM = true;
+    address public constant TRANSFER_ROLES_TO = address(0);
+    bool public constant REVOKE_DEPLOYER_PERM = false;
 
     string public constant GOVERNOR_SHORT_NAME = "SeamGovernorShort";
     uint48 public constant GOVERNOR_SHORT_VOTING_DELAY = 2 days;
@@ -24,7 +24,7 @@ library Constants {
     uint256 public constant GOVERNOR_LONG_NUMERATOR = 3;
     uint256 public constant TIMELOCK_CONTROLLER_LONG_MIN_DELAY = 5 days;
 
-    address public constant GUARDIAN_WALLET = address(0);
+    address public constant GUARDIAN_WALLET = 0xA1b5f2cc9B407177CD8a4ACF1699fa0b99955A22;
 
     uint256 public constant VESTING_DURATION = 365 days;
 

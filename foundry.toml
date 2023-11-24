@@ -6,7 +6,9 @@ solc = "0.8.20"
 
 # Must set evm version to paris since solc > 0.8.20 uses op code PUSH0
 evm_version = "paris"
-via_ir = true
+optimizer_runs = 100
+via_ir = false
+revert_strings = "strip"
 
 [rpc_endpoints]
 base = "${BASE_RPC_URL}"

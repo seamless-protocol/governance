@@ -7,6 +7,7 @@ import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Votes} from "openzeppelin-contracts/governance/utils/Votes.sol";
+import {IERC5805} from "openzeppelin-contracts/interfaces/IERC5805.sol";
 import {TimelockControllerUpgradeable} from
     "openzeppelin-contracts-upgradeable/governance/TimelockControllerUpgradeable.sol";
 import {Seam} from "src/Seam.sol";
@@ -37,16 +38,20 @@ contract SeamGovernorTest is Test {
             address(governorImplementation),
             abi.encodeWithSelector(
                 SeamGovernor.initialize.selector,
-                NAME,
-                VOTING_DELAY,
-                VOTING_PERIOD,
-                PROPOSAL_NUMERATOR,
-                VOTE_NUMERATOR,
-                QUORUM_NUMERATOR,
-                _seam,
-                _esSEAM,
-                TimelockControllerUpgradeable(payable(_timelockController)),
-                address(this)
+                SeamGovernor.InitParams({
+                    name: NAME,
+                    initialVotingDelay: VOTING_DELAY,
+                    initialVotingPeriod: VOTING_PERIOD,
+                    proposalNumeratorValue: PROPOSAL_NUMERATOR,
+                    voteNumeratorValue: VOTE_NUMERATOR,
+                    quorumNumeratorValue: QUORUM_NUMERATOR,
+                    seam: IERC5805(_seam),
+                    esSEAM: IERC5805(_esSEAM),
+                    timelock: TimelockControllerUpgradeable(
+                        payable(_timelockController)
+                    ),
+                    initialOwner: address(this)
+                })
             )
         );
         governorProxy = SeamGovernor(payable(proxy));
