@@ -42,6 +42,19 @@ contract SeamGovernor is
 {
     error ProposalNumeratorTooLarge();
 
+    struct InitParams {
+        string name;
+        uint48 initialVotingDelay;
+        uint32 initialVotingPeriod;
+        uint256 proposalNumeratorValue;
+        uint256 voteNumeratorValue;
+        uint256 quorumNumeratorValue;
+        IERC5805 seam;
+        IERC5805 esSEAM;
+        TimelockControllerUpgradeable timelock;
+        address initialOwner;
+    }
+
     modifier onlyExecutor() {
         super._checkGovernance();
         _;
@@ -54,40 +67,21 @@ contract SeamGovernor is
 
     /**
      * @notice Initializes governor contract and inherited contracts.
-     * @param _name Name of governor contract
-     * @param _initialVotingDelay Initial voting delay
-     * @param _initialVotingPeriod Initial voting period
-     * @param _voteNumeratorValue Initial vote numerator value
-     * @param _quorumNumeratorValue Initial quorum numerator value
-     * @param _seam Token used for voting
-     * @param _esSEAM Token used for voting but not for total supply. Must have same clock mode as _seam
-     * @param _timelock Timelock controller used for execution
-     * @param initialOwner Initial owner of governor contract
+     * @param params InitParams
      */
-    function initialize(
-        string memory _name,
-        uint48 _initialVotingDelay,
-        uint32 _initialVotingPeriod,
-        uint256 _proposalNumeratorValue,
-        uint256 _voteNumeratorValue,
-        uint256 _quorumNumeratorValue,
-        IERC5805 _seam,
-        IERC5805 _esSEAM,
-        TimelockControllerUpgradeable _timelock,
-        address initialOwner
-    ) external initializer {
-        __Governor_init(_name);
-        __GovernorVotes_init(_seam);
+    function initialize(InitParams calldata params) external initializer {
+        __Governor_init(params.name);
+        __GovernorVotes_init(params.seam);
         __GovernorStorage_init();
-        __GovernorSettings_init(_initialVotingDelay, _initialVotingPeriod, _proposalNumeratorValue);
-        __GovernorCountingFraction_init(_voteNumeratorValue);
-        __GovernorVotesQuorumFraction_init(_quorumNumeratorValue);
-        __GovernorTimelockControl_init(_timelock);
-        __Ownable_init(initialOwner);
+        __GovernorSettings_init(params.initialVotingDelay, params.initialVotingPeriod, params.proposalNumeratorValue);
+        __GovernorCountingFraction_init(params.voteNumeratorValue);
+        __GovernorVotesQuorumFraction_init(params.quorumNumeratorValue);
+        __GovernorTimelockControl_init(params.timelock);
+        __Ownable_init(params.initialOwner);
         __UUPSUpgradeable_init();
 
         Storage.Layout storage $ = Storage.layout();
-        $._esSEAM = _esSEAM;
+        $._esSEAM = params.esSEAM;
     }
 
     function _checkGovernance() internal override onlyOwner {}
