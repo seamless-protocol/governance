@@ -19,7 +19,8 @@ contract SeamL1DeployScript is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        SeamL1 seamL1 = new SeamL1(Constants.BASE_L1_BRIDGE, Constants.SEAM_ADDRESS, Constants.TOKEN_NAME, Constants.TOKEN_SYMBOL);
+        SeamL1 seamL1 =
+            new SeamL1(Constants.BASE_L1_BRIDGE, Constants.SEAM_ADDRESS, Constants.TOKEN_NAME, Constants.TOKEN_SYMBOL);
 
         console.log("SEAM bridged deployed to L1 at: ", address(seamL1));
 

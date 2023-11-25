@@ -37,6 +37,9 @@ Base Tenderly Fork: `make deploy-base-tenderly`
 SEAM (proxy): `0x8c0dE778f20e7D25E6E2AAc23d5Bee1d19Deb491`
 SEAM Implementation: `0x0F2B5682562E3743F68D106CDf9512a9cd70e62e`
 
+### Ethereum Testnet (Goerli)
+SEAML1: `0x4a46Ebdd35B12703717d6F4DfbF5db91E6Ac0660`
+
 ### Base Mainnet
 SEAM (proxy)proxy: `0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85`
 SEAM Implementation: `0x213fB4BBE3BfB56d967459BdB2749b4597513d24`
