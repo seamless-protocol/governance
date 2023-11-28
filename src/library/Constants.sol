@@ -34,4 +34,6 @@ library Constants {
     uint256 public constant VESTING_PERCENTAGE = 10_00; // 10%
     bytes32 public constant MERKLE_ROOT = bytes32(0x0);
     address public constant SHORT_TIMELOCK_ADDRESS = address(0);
+
+    address public constant BASE_L1_BRIDGE = 0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1;
 }

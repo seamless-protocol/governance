@@ -43,6 +43,9 @@ Base Tenderly Fork: `make deploy-base-tenderly`
 |Timelock long|`0x4347a5445E3c33DBdb8414bC525C3dEA2A7F9296`|`0x94cBDAe2D67bad72bFCab48D429365cC819BaA3e`|
 |Governor long|`0x4A8d272ce2248f18c0EDe5969e365172C452EdbF`|`0x0Aa5E51c34bfc9509A264a48E842591cAC2c8B14`|
 
+### Ethereum Testnet (Goerli)
+SEAML1: `0x4a46Ebdd35B12703717d6F4DfbF5db91E6Ac0660`
+
 ### Base Mainnet
 | Contract | Proxy address | Implementation address |
 |---|---|---|
