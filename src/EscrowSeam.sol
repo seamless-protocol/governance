@@ -45,7 +45,7 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, ERC20VotesUpgradeable, Own
      * @param _initialOwner Initial owner of the contract
      */
     function initialize(address _seam, uint256 _vestingDuration, address _initialOwner) public initializer {
-        __ERC20_init("Escrow Seamless", "esSEAM");
+        __ERC20_init("Escrow SEAM", "esSEAM");
         __ERC20Votes_init();
         __Ownable_init(_initialOwner);
         __UUPSUpgradeable_init();
