@@ -77,7 +77,7 @@ contract GovernanceTest is Test, GovernorDeployer {
             Constants.GOVERNOR_SHORT_VOTING_PERIOD,
             Constants.GOVERNOR_SHORT_VOTE_NUMERATOR,
             Constants.GOVERNOR_SHORT_PROPOSAL_THRESHOLD,
-            Constants.GOVERNOR_SHORT_NUMERATOR,
+            Constants.GOVERNOR_SHORT_QUORUM_NUMERATOR,
             address(seam),
             address(esSEAM),
             Constants.TIMELOCK_CONTROLLER_SHORT_MIN_DELAY,
@@ -92,7 +92,7 @@ contract GovernanceTest is Test, GovernorDeployer {
             Constants.GOVERNOR_LONG_VOTING_PERIOD,
             Constants.GOVERNOR_LONG_VOTE_NUMERATOR,
             Constants.GOVERNOR_LONG_PROPOSAL_THRESHOLD,
-            Constants.GOVERNOR_LONG_NUMERATOR,
+            Constants.GOVERNOR_LONG_QUORUM_NUMERATOR,
             address(seam),
             address(esSEAM),
             Constants.TIMELOCK_CONTROLLER_LONG_MIN_DELAY,
@@ -277,7 +277,7 @@ contract GovernanceTest is Test, GovernorDeployer {
         uint256 proposalId = shortGovernorProposer.propose(targets, values, calldatas, "Grant SEAM tokens");
 
         vm.warp(block.timestamp + Constants.GOVERNOR_SHORT_VOTING_DELAY + 1);
-        shortGovernorVoter1.vote(proposalId, 1);
+        shortGovernorVoter3.vote(proposalId, 1);
 
         vm.expectRevert();
         shortGovernorProposer.queue(proposalId);

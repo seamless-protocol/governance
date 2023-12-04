@@ -93,6 +93,11 @@ contract SeamGovernor is
         Address.verifyCallResult(success, returndata);
     }
 
+    /// @inheritdoc GovernorVotesQuorumFractionUpgradeable
+    function quorumDenominator() public pure override returns (uint256) {
+        return 1000;
+    }
+
     /**
      * @dev See {IGovernor-proposalThreshold}.
      */

@@ -20,8 +20,8 @@ The governance system is implemented using OpenZeppelin contracts, which are the
 
 #### Short/Protocol changes
 
-- Quorum: 4% of token supply (For, No, and Abstain votes count toward quorum)
-  - SEAM total supply is 100,000,00 so quorum is 4,000,000
+- Quorum: 1,5% of token supply (For, No, and Abstain votes count toward quorum)
+  - SEAM total supply is 100,000,00 so quorum is 1,500,000
 - Vote differential: Number of For votes > Number of Against votes
 - Timelock: 2 days (48 hours)
 - Proposal voting power requirement: 0.2% of token supply
@@ -30,8 +30,8 @@ The governance system is implemented using OpenZeppelin contracts, which are the
 
 #### Long/Governance changes
 
-- Quorum: 4% of token supply (For, No, and Abstain votes count toward quorum)
-  - SEAM total supply is 100,000,00 so quorum is 4,000,000
+- Quorum: 1,5% of token supply (For, No, and Abstain votes count toward quorum)
+  - SEAM total supply is 100,000,00 so quorum is 1,500,000
 - Vote differential: Number of For votes > 2 x Number of Against votes
 - Timelock: 5 days (120 hours)
 - Proposal voting power requirement: 0.2% of token supply
