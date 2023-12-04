@@ -17,7 +17,6 @@ contract Voter is Test {
     }
 
     function vote(uint256 proposalId, uint8 support) public {
-        vm.warp(block.timestamp + Constants.GOVERNOR_SHORT_VOTING_DELAY + 1);
         governor.castVote(proposalId, support);
     }
 }
