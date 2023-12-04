@@ -6,11 +6,8 @@ import {GovernorCountingSimpleUpgradeable} from
     "openzeppelin-contracts-upgradeable/governance/extensions/GovernorCountingSimpleUpgradeable.sol";
 import {Checkpoints} from "openzeppelin-contracts/utils/structs/Checkpoints.sol";
 import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
-import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 
 abstract contract GovernorCountingFractionUpgradeable is Initializable, GovernorCountingSimpleUpgradeable {
-    uint256 public constant MULTIPLIER = 1e18;
-
     /// @custom:storage-location erc7201:seamless.contracts.storage.GovernorCountingFraction
     struct GovernorCountingFractionStorage {
         Checkpoints.Trace208 _voteCountNumeratorHistory;
@@ -127,7 +124,7 @@ abstract contract GovernorCountingFractionUpgradeable is Initializable, Governor
     function _voteSucceeded(uint256 proposalId) internal view override returns (bool) {
         (uint256 againstVotes, uint256 forVotes,) = proposalVotes(proposalId);
 
-        return Math.mulDiv(forVotes, MULTIPLIER, (forVotes + againstVotes))
-            > Math.mulDiv(voteCountNumerator(proposalSnapshot(proposalId)), MULTIPLIER, voteCountDenominator());
+        return forVotes * voteCountDenominator()
+            > (forVotes + againstVotes) * voteCountNumerator(proposalSnapshot(proposalId));
     }
 }
