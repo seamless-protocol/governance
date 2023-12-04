@@ -42,6 +42,7 @@ contract GovernanceTest is Test, GovernorDeployer {
 
     Voter public shortGovernorVoter1;
     Voter public shortGovernorVoter2;
+    Voter public shortGovernorVoter3;
     Voter public longGovernorVoter1;
     Voter public longGovernorVoter2;
 
@@ -75,8 +76,8 @@ contract GovernanceTest is Test, GovernorDeployer {
             Constants.GOVERNOR_SHORT_VOTING_DELAY,
             Constants.GOVERNOR_SHORT_VOTING_PERIOD,
             Constants.GOVERNOR_SHORT_VOTE_NUMERATOR,
-            Constants.GOVERNOR_SHORT_PROPOSAL_NUMERATOR,
-            Constants.GOVERNOR_SHORT_NUMERATOR,
+            Constants.GOVERNOR_SHORT_PROPOSAL_THRESHOLD,
+            Constants.GOVERNOR_SHORT_QUORUM_NUMERATOR,
             address(seam),
             address(esSEAM),
             Constants.TIMELOCK_CONTROLLER_SHORT_MIN_DELAY,
@@ -90,8 +91,8 @@ contract GovernanceTest is Test, GovernorDeployer {
             Constants.GOVERNOR_LONG_VOTING_DELAY,
             Constants.GOVERNOR_LONG_VOTING_PERIOD,
             Constants.GOVERNOR_LONG_VOTE_NUMERATOR,
-            Constants.GOVERNOR_LONG_PROPOSAL_NUMERATOR,
-            Constants.GOVERNOR_LONG_NUMERATOR,
+            Constants.GOVERNOR_LONG_PROPOSAL_THRESHOLD,
+            Constants.GOVERNOR_LONG_QUORUM_NUMERATOR,
             address(seam),
             address(esSEAM),
             Constants.TIMELOCK_CONTROLLER_LONG_MIN_DELAY,
@@ -118,6 +119,7 @@ contract GovernanceTest is Test, GovernorDeployer {
         );
         shortGovernorVoter1 = new Voter(address(seam), payable(shortGovernor));
         shortGovernorVoter2 = new Voter(address(seam), payable(shortGovernor));
+        shortGovernorVoter3 = new Voter(address(seam), payable(shortGovernor));
         longGovernorVoter1 = new Voter(address(seam), payable(longGovernor));
         longGovernorVoter2 = new Voter(address(seam), payable(longGovernor));
 
@@ -127,6 +129,7 @@ contract GovernanceTest is Test, GovernorDeployer {
         seam.transfer(address(longGovernorProposer), 10_000_000 ether);
         seam.transfer(address(shortGovernorVoter1), 2_500_000 ether);
         seam.transfer(address(shortGovernorVoter2), 2_500_000 ether);
+        seam.transfer(address(shortGovernorVoter3), 500_000 ether);
         seam.transfer(address(longGovernorVoter1), 2_500_000 ether);
         seam.transfer(address(longGovernorVoter2), 2_500_000 ether);
     }
@@ -135,9 +138,10 @@ contract GovernanceTest is Test, GovernorDeployer {
      * Scenario:
      *     1. Propose grant SEAM tokens to specific address
      *     2. User1 votes for proposal
-     *     3. User2 votes for proposal
-     *     4. Queue proposal
-     *     5. Execute proposal
+     *     3. User2 votes against proposal
+     *     4. User3 votes for proposal
+     *     5. Queue proposal
+     *     6. Execute proposal
      */
     function test_SuccessfulProposalExecution_ShortGovernor() public {
         address receiver = makeAddr("receiver");
@@ -153,8 +157,10 @@ contract GovernanceTest is Test, GovernorDeployer {
 
         uint256 proposalId = shortGovernorProposer.propose(targets, values, calldatas, "Grant SEAM tokens");
 
+        vm.warp(block.timestamp + Constants.GOVERNOR_SHORT_VOTING_DELAY + 1);
         shortGovernorVoter1.vote(proposalId, 1);
-        shortGovernorVoter2.vote(proposalId, 1);
+        shortGovernorVoter2.vote(proposalId, 0);
+        shortGovernorVoter3.vote(proposalId, 1);
         shortGovernorProposer.queue(proposalId);
         shortGovernorProposer.execute(targets, values, calldatas, "Grant SEAM tokens");
 
@@ -178,6 +184,7 @@ contract GovernanceTest is Test, GovernorDeployer {
 
         uint256 proposalId = longGovernorProposer.propose(targets, values, calldatas, "Change short timelock contract");
 
+        vm.warp(block.timestamp + Constants.GOVERNOR_LONG_VOTING_DELAY + 1);
         longGovernorVoter1.vote(proposalId, 1);
         longGovernorVoter2.vote(proposalId, 1);
         longGovernorProposer.queue(proposalId);
@@ -202,6 +209,7 @@ contract GovernanceTest is Test, GovernorDeployer {
 
         uint256 proposalId = shortGovernorProposer.propose(targets, values, calldatas, "Change short timelock contract");
 
+        vm.warp(block.timestamp + Constants.GOVERNOR_SHORT_VOTING_DELAY + 1);
         shortGovernorVoter1.vote(proposalId, 1);
         shortGovernorVoter2.vote(proposalId, 1);
         shortGovernorProposer.queue(proposalId);
@@ -226,6 +234,7 @@ contract GovernanceTest is Test, GovernorDeployer {
 
         uint256 proposalId = shortGovernorProposer.propose(targets, values, calldatas, "Steal SEAM tokens");
 
+        vm.warp(block.timestamp + Constants.GOVERNOR_SHORT_VOTING_DELAY + 1);
         shortGovernorVoter1.vote(proposalId, 1);
         shortGovernorVoter2.vote(proposalId, 1);
         shortGovernorProposer.queue(proposalId);
@@ -243,7 +252,7 @@ contract GovernanceTest is Test, GovernorDeployer {
 
     function test_Propose_Revert_NotEnoughVotingPower() public {
         uint256 seamProposerBalance = seam.balanceOf(address(shortGovernorProposer));
-        seam.transferFrom(address(shortGovernorProposer), address(this), seamProposerBalance - 500_000 ether + 1);
+        seam.transferFrom(address(shortGovernorProposer), address(this), seamProposerBalance - 200_000 ether + 1);
 
         address[] memory targets = new address[](1);
         uint256[] memory values = new uint256[](1);
@@ -253,8 +262,8 @@ contract GovernanceTest is Test, GovernorDeployer {
             abi.encodeWithSelector(
                 IGovernor.GovernorInsufficientProposerVotes.selector,
                 address(shortGovernorProposer),
-                500_000 ether - 1,
-                500_000 ether
+                200_000 ether - 1,
+                200_000 ether
             )
         );
         shortGovernorProposer.propose(targets, values, calldatas, "Grant SEAM tokens");
@@ -267,7 +276,8 @@ contract GovernanceTest is Test, GovernorDeployer {
 
         uint256 proposalId = shortGovernorProposer.propose(targets, values, calldatas, "Grant SEAM tokens");
 
-        shortGovernorVoter1.vote(proposalId, 1);
+        vm.warp(block.timestamp + Constants.GOVERNOR_SHORT_VOTING_DELAY + 1);
+        shortGovernorVoter3.vote(proposalId, 1);
 
         vm.expectRevert();
         shortGovernorProposer.queue(proposalId);
@@ -280,6 +290,7 @@ contract GovernanceTest is Test, GovernorDeployer {
 
         uint256 proposalId = shortGovernorProposer.propose(targets, values, calldatas, "Grant SEAM tokens");
 
+        vm.warp(block.timestamp + Constants.GOVERNOR_SHORT_VOTING_DELAY + 1);
         shortGovernorVoter1.vote(proposalId, 1);
         shortGovernorVoter2.vote(proposalId, 0);
 
@@ -293,8 +304,9 @@ contract GovernanceTest is Test, GovernorDeployer {
         bytes[] memory calldatas = new bytes[](1);
 
         uint256 proposalId = longGovernorProposer.propose(targets, values, calldatas, "Grant SEAM tokens");
-
         seam.transfer(address(longGovernorVoter1), 1 ether);
+
+        vm.warp(block.timestamp + Constants.GOVERNOR_LONG_VOTING_DELAY + 1);
         longGovernorVoter1.vote(proposalId, 1);
         longGovernorVoter2.vote(proposalId, 0);
 

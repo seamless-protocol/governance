@@ -15,7 +15,7 @@ contract GovernorDeployer is Script {
         uint48 votingDelay;
         uint32 votingPeriod;
         uint256 voteNumerator;
-        uint256 proposalNumerator;
+        uint256 proposalThreshold;
         uint256 quorumNumerator;
         address seam;
         address esSEAM;
@@ -55,7 +55,7 @@ contract GovernorDeployer is Script {
                     name: params.name,
                     initialVotingDelay: params.votingDelay,
                     initialVotingPeriod: params.votingPeriod,
-                    proposalNumeratorValue: params.proposalNumerator,
+                    proposalThresholdValue: params.proposalThreshold,
                     voteNumeratorValue: params.voteNumerator,
                     quorumNumeratorValue: params.quorumNumerator,
                     seam: IERC5805(params.seam),

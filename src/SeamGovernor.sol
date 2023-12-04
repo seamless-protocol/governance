@@ -40,13 +40,11 @@ contract SeamGovernor is
     OwnableUpgradeable,
     UUPSUpgradeable
 {
-    error ProposalNumeratorTooLarge();
-
     struct InitParams {
         string name;
         uint48 initialVotingDelay;
         uint32 initialVotingPeriod;
-        uint256 proposalNumeratorValue;
+        uint256 proposalThresholdValue;
         uint256 voteNumeratorValue;
         uint256 quorumNumeratorValue;
         IERC5805 seam;
@@ -73,7 +71,7 @@ contract SeamGovernor is
         __Governor_init(params.name);
         __GovernorVotes_init(params.seam);
         __GovernorStorage_init();
-        __GovernorSettings_init(params.initialVotingDelay, params.initialVotingPeriod, params.proposalNumeratorValue);
+        __GovernorSettings_init(params.initialVotingDelay, params.initialVotingPeriod, params.proposalThresholdValue);
         __GovernorCountingFraction_init(params.voteNumeratorValue);
         __GovernorVotesQuorumFraction_init(params.quorumNumeratorValue);
         __GovernorTimelockControl_init(params.timelock);
@@ -89,32 +87,15 @@ contract SeamGovernor is
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address newImplementation) internal override onlyGovernance {}
 
-    /**
-     * @dev Changes the proposal numerator.
-     *
-     * Emits a {ProposalThresholdSet} event.
-     *
-     * Requirements:
-     *
-     * - New numerator must be smaller or equal to the denominator.
-     */
-    function setProposalNumerator(uint256 newProposalNumerator) external {
-        setProposalThreshold(newProposalNumerator);
-    }
-
-    /// @inheritdoc GovernorSettingsUpgradeable
-    function setProposalThreshold(uint256 newProposalThreshold) public override onlyGovernance {
-        if (newProposalThreshold > proposalDenominator()) {
-            revert ProposalNumeratorTooLarge();
-        }
-
-        _setProposalThreshold(newProposalThreshold);
-    }
-
     /// @inheritdoc GovernorUpgradeable
     function relay(address target, uint256 value, bytes calldata data) external payable override onlyExecutor {
         (bool success, bytes memory returndata) = target.call{value: value}(data);
         Address.verifyCallResult(success, returndata);
+    }
+
+    /// @inheritdoc GovernorVotesQuorumFractionUpgradeable
+    function quorumDenominator() public pure override returns (uint256) {
+        return 1000;
     }
 
     /**
@@ -126,15 +107,7 @@ contract SeamGovernor is
         override(GovernorUpgradeable, GovernorSettingsUpgradeable)
         returns (uint256)
     {
-        return (token().getPastTotalSupply(clock() - 1) * proposalNumerator()) / proposalDenominator();
-    }
-
-    function proposalNumerator() public view virtual returns (uint256) {
         return super.proposalThreshold();
-    }
-
-    function proposalDenominator() public view virtual returns (uint256) {
-        return 1000;
     }
 
     function _getVotes(address account, uint256 timepoint, bytes memory /*params*/ )
