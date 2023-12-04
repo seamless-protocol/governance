@@ -50,3 +50,6 @@ SEAML1: `0x4a46Ebdd35B12703717d6F4DfbF5db91E6Ac0660`
 | Contract | Proxy address | Implementation address |
 |---|---|---|
 |SEAM|`0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85`|`0x213fB4BBE3BfB56d967459BdB2749b4597513d24`|
+
+### Ethereum Mainnet
+SeamL1: `0x6b66ccd1340c479B07B390d326eaDCbb84E726Ba`
