@@ -61,7 +61,6 @@ contract SeamGovernorTest is Test {
         assertEq(governorProxy.name(), NAME);
         assertEq(governorProxy.votingDelay(), VOTING_DELAY);
         assertEq(governorProxy.votingPeriod(), VOTING_PERIOD);
-        assertEq(governorProxy.proposalNumerator(), PROPOSAL_NUMERATOR);
         assertEq(governorProxy.quorumNumerator(), QUORUM_NUMERATOR);
         assertEq(address(governorProxy.token()), _seam);
         assertEq(address(governorProxy.timelock()), _timelockController);
@@ -99,18 +98,6 @@ contract SeamGovernorTest is Test {
         assertEq(governorProxy.votingPeriod(), votingPeriod);
     }
 
-    function testFuzzSetProposalNumerator(uint256 proposalNumerator) public {
-        proposalNumerator = bound(proposalNumerator, 0, 1000);
-        governorProxy.setProposalNumerator(proposalNumerator);
-        assertEq(governorProxy.proposalNumerator(), proposalNumerator);
-    }
-
-    function testFuzzSetProposalNumeratorRevertProposalNumeratorTooLarge(uint256 proposalNumerator) public {
-        proposalNumerator = bound(proposalNumerator, 1001, type(uint256).max);
-        vm.expectRevert(SeamGovernor.ProposalNumeratorTooLarge.selector);
-        governorProxy.setProposalNumerator(proposalNumerator);
-    }
-
     function testFuzzUpdateQuorumNumerator(uint256 quorumNumerator) public {
         quorumNumerator = bound(quorumNumerator, 0, 100);
         governorProxy.updateQuorumNumerator(quorumNumerator);
@@ -131,7 +118,7 @@ contract SeamGovernorTest is Test {
     function testProposalThreshold() public {
         uint256 totalSupply = 10 ether;
         vm.mockCall(_seam, abi.encodeWithSelector(Votes.getPastTotalSupply.selector, 0), abi.encode(totalSupply));
-        governorProxy.setProposalNumerator(100); // 10%
+        governorProxy.setProposalThreshold(100); // 10%
         assertEq(governorProxy.proposalThreshold(), totalSupply / 10);
     }
 
@@ -140,7 +127,7 @@ contract SeamGovernorTest is Test {
         proposalThreshold = bound(proposalThreshold, 0, 1000);
 
         vm.mockCall(_seam, abi.encodeWithSelector(Votes.getPastTotalSupply.selector, 0), abi.encode(totalSupply));
-        governorProxy.setProposalNumerator(proposalThreshold);
+        governorProxy.setProposalThreshold(proposalThreshold);
         assertEq(governorProxy.proposalThreshold(), (totalSupply * proposalThreshold) / 1000);
     }
 }

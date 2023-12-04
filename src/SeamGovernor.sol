@@ -89,19 +89,6 @@ contract SeamGovernor is
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address newImplementation) internal override onlyGovernance {}
 
-    /**
-     * @dev Changes the proposal numerator.
-     *
-     * Emits a {ProposalThresholdSet} event.
-     *
-     * Requirements:
-     *
-     * - New numerator must be smaller or equal to the denominator.
-     */
-    function setProposalNumerator(uint256 newProposalNumerator) external {
-        setProposalThreshold(newProposalNumerator);
-    }
-
     /// @inheritdoc GovernorSettingsUpgradeable
     function setProposalThreshold(uint256 newProposalThreshold) public override onlyGovernance {
         if (newProposalThreshold > proposalDenominator()) {
@@ -126,11 +113,7 @@ contract SeamGovernor is
         override(GovernorUpgradeable, GovernorSettingsUpgradeable)
         returns (uint256)
     {
-        return (token().getPastTotalSupply(clock() - 1) * proposalNumerator()) / proposalDenominator();
-    }
-
-    function proposalNumerator() public view virtual returns (uint256) {
-        return super.proposalThreshold();
+        return (token().getPastTotalSupply(clock() - 1) * super.proposalThreshold()) / proposalDenominator();
     }
 
     function proposalDenominator() public view virtual returns (uint256) {
