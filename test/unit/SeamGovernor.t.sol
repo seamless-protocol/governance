@@ -62,6 +62,7 @@ contract SeamGovernorTest is Test {
         assertEq(governorProxy.votingDelay(), VOTING_DELAY);
         assertEq(governorProxy.votingPeriod(), VOTING_PERIOD);
         assertEq(governorProxy.quorumNumerator(), QUORUM_NUMERATOR);
+        assertEq(governorProxy.proposalThreshold(), PROPOSAL_THRESHOLD);
         assertEq(address(governorProxy.token()), _seam);
         assertEq(address(governorProxy.timelock()), _timelockController);
         assertEq(governorProxy.owner(), address(this));
