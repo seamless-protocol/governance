@@ -40,13 +40,11 @@ contract SeamGovernor is
     OwnableUpgradeable,
     UUPSUpgradeable
 {
-    error ProposalNumeratorTooLarge();
-
     struct InitParams {
         string name;
         uint48 initialVotingDelay;
         uint32 initialVotingPeriod;
-        uint256 proposalNumeratorValue;
+        uint256 proposalThresholdValue;
         uint256 voteNumeratorValue;
         uint256 quorumNumeratorValue;
         IERC5805 seam;
@@ -73,7 +71,7 @@ contract SeamGovernor is
         __Governor_init(params.name);
         __GovernorVotes_init(params.seam);
         __GovernorStorage_init();
-        __GovernorSettings_init(params.initialVotingDelay, params.initialVotingPeriod, params.proposalNumeratorValue);
+        __GovernorSettings_init(params.initialVotingDelay, params.initialVotingPeriod, params.proposalThresholdValue);
         __GovernorCountingFraction_init(params.voteNumeratorValue);
         __GovernorVotesQuorumFraction_init(params.quorumNumeratorValue);
         __GovernorTimelockControl_init(params.timelock);
@@ -88,15 +86,6 @@ contract SeamGovernor is
 
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address newImplementation) internal override onlyGovernance {}
-
-    /// @inheritdoc GovernorSettingsUpgradeable
-    function setProposalThreshold(uint256 newProposalThreshold) public override onlyGovernance {
-        if (newProposalThreshold > proposalDenominator()) {
-            revert ProposalNumeratorTooLarge();
-        }
-
-        _setProposalThreshold(newProposalThreshold);
-    }
 
     /// @inheritdoc GovernorUpgradeable
     function relay(address target, uint256 value, bytes calldata data) external payable override onlyExecutor {
@@ -113,11 +102,7 @@ contract SeamGovernor is
         override(GovernorUpgradeable, GovernorSettingsUpgradeable)
         returns (uint256)
     {
-        return (token().getPastTotalSupply(clock() - 1) * super.proposalThreshold()) / proposalDenominator();
-    }
-
-    function proposalDenominator() public view virtual returns (uint256) {
-        return 1000;
+        return super.proposalThreshold();
     }
 
     function _getVotes(address account, uint256 timepoint, bytes memory /*params*/ )

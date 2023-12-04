@@ -76,7 +76,7 @@ contract GovernanceTest is Test, GovernorDeployer {
             Constants.GOVERNOR_SHORT_VOTING_DELAY,
             Constants.GOVERNOR_SHORT_VOTING_PERIOD,
             Constants.GOVERNOR_SHORT_VOTE_NUMERATOR,
-            Constants.GOVERNOR_SHORT_PROPOSAL_NUMERATOR,
+            Constants.GOVERNOR_SHORT_PROPOSAL_THRESHOLD,
             Constants.GOVERNOR_SHORT_NUMERATOR,
             address(seam),
             address(esSEAM),
@@ -91,7 +91,7 @@ contract GovernanceTest is Test, GovernorDeployer {
             Constants.GOVERNOR_LONG_VOTING_DELAY,
             Constants.GOVERNOR_LONG_VOTING_PERIOD,
             Constants.GOVERNOR_LONG_VOTE_NUMERATOR,
-            Constants.GOVERNOR_LONG_PROPOSAL_NUMERATOR,
+            Constants.GOVERNOR_LONG_PROPOSAL_THRESHOLD,
             Constants.GOVERNOR_LONG_NUMERATOR,
             address(seam),
             address(esSEAM),
@@ -252,7 +252,7 @@ contract GovernanceTest is Test, GovernorDeployer {
 
     function test_Propose_Revert_NotEnoughVotingPower() public {
         uint256 seamProposerBalance = seam.balanceOf(address(shortGovernorProposer));
-        seam.transferFrom(address(shortGovernorProposer), address(this), seamProposerBalance - 500_000 ether + 1);
+        seam.transferFrom(address(shortGovernorProposer), address(this), seamProposerBalance - 200_000 ether + 1);
 
         address[] memory targets = new address[](1);
         uint256[] memory values = new uint256[](1);
@@ -262,8 +262,8 @@ contract GovernanceTest is Test, GovernorDeployer {
             abi.encodeWithSelector(
                 IGovernor.GovernorInsufficientProposerVotes.selector,
                 address(shortGovernorProposer),
-                500_000 ether - 1,
-                500_000 ether
+                200_000 ether - 1,
+                200_000 ether
             )
         );
         shortGovernorProposer.propose(targets, values, calldatas, "Grant SEAM tokens");

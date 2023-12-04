@@ -12,7 +12,7 @@ library Constants {
     uint48 public constant GOVERNOR_SHORT_VOTING_DELAY = 2 days;
     uint32 public constant GOVERNOR_SHORT_VOTING_PERIOD = 3 days;
     uint256 public constant GOVERNOR_SHORT_VOTE_NUMERATOR = 500; // 50%
-    uint256 public constant GOVERNOR_SHORT_PROPOSAL_NUMERATOR = 5; // 0.5%
+    uint256 public constant GOVERNOR_SHORT_PROPOSAL_THRESHOLD = 200_000 ether; // 0.5%
     uint256 public constant GOVERNOR_SHORT_NUMERATOR = 4;
     uint256 public constant TIMELOCK_CONTROLLER_SHORT_MIN_DELAY = 2 days;
 
@@ -20,7 +20,7 @@ library Constants {
     uint48 public constant GOVERNOR_LONG_VOTING_DELAY = 2 days;
     uint32 public constant GOVERNOR_LONG_VOTING_PERIOD = 10 days;
     uint256 public constant GOVERNOR_LONG_VOTE_NUMERATOR = 666; // 66.6%
-    uint256 public constant GOVERNOR_LONG_PROPOSAL_NUMERATOR = 5; // 0.5%
+    uint256 public constant GOVERNOR_LONG_PROPOSAL_THRESHOLD = 200_000 ether; // 0.2%
     uint256 public constant GOVERNOR_LONG_NUMERATOR = 3;
     uint256 public constant TIMELOCK_CONTROLLER_LONG_MIN_DELAY = 5 days;
 
