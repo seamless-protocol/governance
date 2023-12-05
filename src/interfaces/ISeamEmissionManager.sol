@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 /// @title ISeamEmissionManager
@@ -17,7 +17,8 @@ interface ISeamEmissionManager {
     function getEmissionPerSecond() external view returns (uint256);
 
     /// @notice Sets emission per second.
-    function setEmissionPerSecond(uint256) external;
+    /// @param emissionPerSecond Emission per second
+    function setEmissionPerSecond(uint256 emissionPerSecond) external;
 
     /// @notice Claims SEAM tokens and sends them to given address.
     /// @param receiver Address to receive SEAM tokens

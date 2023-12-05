@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
@@ -13,12 +13,10 @@ import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol"
 import {IEscrowSeam} from "./interfaces/IEscrowSeam.sol";
 import {EscrowSeamStorage as Storage} from "./storage/EscrowSeamStorage.sol";
 
-/**
- * @title EscrowSeam
- * @author Seamless Protocol
- * @dev This contract is vesting contract for SEAM token.
- * @dev EscrowSeam token is not transferable.
- */
+/// @title EscrowSeam
+/// @author Seamless Protocol
+/// @dev This contract is vesting contract for SEAM token.
+/// @dev EscrowSeam token is not transferable.
 contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, ERC20VotesUpgradeable, OwnableUpgradeable, UUPSUpgradeable {
     uint256 private constant MULTIPLIER = 1e18;
 

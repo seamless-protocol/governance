@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
@@ -13,8 +13,6 @@ import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 /// @notice Airdrop contract that transfers SEAM tokens
 /// @dev New contract should be deployed for each airdrop
 contract SeamAirdrop is ISeamAirdrop, Ownable {
-    using SafeERC20 for IERC20;
-
     uint256 public constant MAX_VESTING_PERCENTAGE = 100_00;
 
     IEscrowSeam public escrowSeam;
@@ -77,6 +75,7 @@ contract SeamAirdrop is ISeamAirdrop, Ownable {
         emit Claim(recipient, seamAmount, esSeamAmount);
     }
 
+    /// @inheritdoc ISeamAirdrop
     function withdraw(IERC20 token, address recipient, uint256 amount) external onlyOwner {
         SafeERC20.safeTransfer(token, recipient, amount);
         emit Withdraw(address(token), recipient, amount);

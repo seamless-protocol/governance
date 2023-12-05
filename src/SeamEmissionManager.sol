@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import {Initializable} from "openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -13,8 +13,6 @@ import {SeamEmissionManagerStorage as Storage} from "./storage/SeamEmissionManag
 /// @author Seamless Protocol
 /// @notice This contract is responsible for managing SEAM token emission.
 contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessControlUpgradeable, UUPSUpgradeable {
-    using SafeERC20 for IERC20;
-
     bytes32 public constant CLAIMER_ROLE = keccak256("CLAIMER_ROLE");
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -73,7 +71,7 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
         uint64 currentTimestamp = uint64(block.timestamp);
         uint256 emissionAmount = (currentTimestamp - lastClaimedTimestamp) * emissionPerSecond;
 
-        $.seam.transfer(receiver, emissionAmount);
+        SafeERC20.safeTransfer($.seam, receiver, emissionAmount);
         $.lastClaimedTimestamp = currentTimestamp;
 
         emit Claim(receiver, emissionAmount);

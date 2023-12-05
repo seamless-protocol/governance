@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import {IERC5805} from "openzeppelin-contracts/interfaces/IERC5805.sol";

@@ -12,9 +12,9 @@ import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
 import {ISeamVestingWallet} from "src/interfaces/ISeamVestingWallet.sol";
 import {SeamVestingWalletStorage as Storage} from "src/storage/SeamVestingWalletStorage.sol";
 
-/// @title SeamGovernor
+/// @title SeamVestingWallet
 /// @author Seamless Protocol
-/// @notice Governor contract of the Seamless Protocol used for both short and long governors
+/// @notice Vesting wallet contract that holds SEAM tokens and releases them to the beneficiary.
 /// @dev VestingWallet implementation, modified from @openzeppelin implementation (https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/625fb3c2b2696f1747ba2e72d1e1113066e6c177/contracts/finance/VestingWalletUpgradeable.sol)
 /// Changes are:
 /// - beneficiary can claim vested ERC20 tokens, beneficiary cannot be transfered
