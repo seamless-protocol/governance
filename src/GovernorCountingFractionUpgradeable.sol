@@ -16,11 +16,15 @@ abstract contract GovernorCountingFractionUpgradeable is
     IGovernorCountingFraction,
     GovernorCountingSimpleUpgradeable
 {
+    /// @notice Initializes the contract.
+    /// @param voteNumeratorValue Initial vote numerator value
     function __GovernorCountingFraction_init(uint256 voteNumeratorValue) internal onlyInitializing {
         __GovernorCountingSimple_init();
         __GovernorCountingFraction_init_unchained(voteNumeratorValue);
     }
 
+    /// @notice Initializes the contract without initializing inherited contracts.
+    /// @param voteNumeratorValue Initial vote numerator value
     function __GovernorCountingFraction_init_unchained(uint256 voteNumeratorValue) internal onlyInitializing {
         _updateVoteCountNumerator(voteNumeratorValue);
     }

@@ -7,7 +7,7 @@ import {TimelockControllerUpgradeable} from
     "openzeppelin-contracts-upgradeable/governance/TimelockControllerUpgradeable.sol";
 import {SeamTimelockControllerStorage as Storage} from "./storage/SeamTimelockControllerStorage.sol";
 
-/// @title SeamTimelockControl
+/// @title SeamTimelockController
 /// @author Seamless Protocol
 /// @notice TimelockController contract for the Seamless Protocol used for both short and long timelock controllers
 contract SeamTimelockController is Initializable, TimelockControllerUpgradeable, UUPSUpgradeable {
