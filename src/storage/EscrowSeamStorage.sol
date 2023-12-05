@@ -14,7 +14,7 @@ library EscrowSeamStorage {
     struct Layout {
         IERC20 seam;
         uint256 vestingDuration;
-        mapping(address => VestingData) vestingInfo;
+        mapping(address account => VestingData) vestingInfo;
     }
 
     // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.EscrowSeam")) - 1)) & ~bytes32(uint256(0xff))

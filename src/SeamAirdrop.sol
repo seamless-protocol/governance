@@ -20,7 +20,7 @@ contract SeamAirdrop is ISeamAirdrop, Ownable {
     uint256 public vestingPercentage;
     bytes32 public merkleRoot;
 
-    mapping(address => bool) public hasClaimed;
+    mapping(address account => bool status) public hasClaimed;
 
     constructor(IERC20 _seam, IEscrowSeam _escrowSeam, uint256 _vestingPercentage, bytes32 _merkleRoot, address _owner)
         Ownable(_owner)

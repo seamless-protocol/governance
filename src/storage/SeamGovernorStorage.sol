@@ -6,7 +6,7 @@ import {IERC5805} from "openzeppelin-contracts/interfaces/IERC5805.sol";
 library SeamGovernorStorage {
     /// @custom:storage-location erc7201:seamless.contracts.storage.SeamGovernor
     struct Layout {
-        IERC5805 _esSEAM;
+        IERC5805 esSEAM;
     }
 
     // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.SeamGovernor")) - 1)) & ~bytes32(uint256(0xff))

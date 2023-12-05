@@ -61,10 +61,8 @@ contract SeamGovernor is
         _disableInitializers();
     }
 
-    /**
-     * @notice Initializes governor contract and inherited contracts.
-     * @param params InitParams
-     */
+    /// @notice Initializes governor contract and inherited contracts.
+    /// @param params InitParams
     function initialize(InitParams calldata params) external initializer {
         __Governor_init(params.name);
         __GovernorVotes_init(params.seam);
@@ -76,10 +74,10 @@ contract SeamGovernor is
         __Ownable_init(params.initialOwner);
         __UUPSUpgradeable_init();
 
-        Storage.Layout storage $ = Storage.layout();
-        $._esSEAM = params.esSEAM;
+        Storage.layout().esSEAM = params.esSEAM;
     }
 
+    /// @inheritdoc GovernorUpgradeable
     function _checkGovernance() internal override onlyOwner {}
 
     /// @inheritdoc UUPSUpgradeable
@@ -113,7 +111,7 @@ contract SeamGovernor is
         override(GovernorUpgradeable, GovernorVotesUpgradeable)
         returns (uint256)
     {
-        return token().getPastVotes(account, timepoint) + Storage.layout()._esSEAM.getPastVotes(account, timepoint);
+        return token().getPastVotes(account, timepoint) + Storage.layout().esSEAM.getPastVotes(account, timepoint);
     }
 
     /// @inheritdoc GovernorSettingsUpgradeable
