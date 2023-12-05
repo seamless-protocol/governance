@@ -1,14 +1,22 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 /// @title Transfer strategy Interface
 /// @notice Interface for the transfer strategy contract
 /// @dev This interface should be implemented by all transfer strategy contracts
 interface ITransferStrategyBase {
-    event EmergencyWithdrawal(address indexed caller, address indexed token, address indexed to, uint256 amount);
-
+    /// @notice Only incentives controller can perform transfer
     error NotIncentivesController();
+
+    /// @notice Only rewards admin can emergency withdraw
     error NotRewardsAdmin();
+
+    /// @notice Emitted when emergency withdrawal is called by rewards admin
+    /// @param caller Address of the caller
+    /// @param token Address of the token to withdraw funds from this contract
+    /// @param to Address of the recipient of the withdrawal
+    /// @param amount Amount to withdraw
+    event EmergencyWithdrawal(address indexed caller, address indexed token, address indexed to, uint256 amount);
 
     /// @notice Perform custom transfer logic via delegate call from source contract to a TransferStrategy implementation
     /// @param to Account to transfer rewards
