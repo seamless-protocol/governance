@@ -41,8 +41,8 @@ contract SeamTimelockController is Initializable, TimelockControllerUpgradeable,
 
     /// @inheritdoc TimelockControllerUpgradeable
     function updateDelay(uint256 newDelay) external override onlyRole(DEFAULT_ADMIN_ROLE) {
-        Storage.Layout storage layout = Storage.layout();
-        emit MinDelayChange(layout.minDelay, newDelay);
-        layout.minDelay = newDelay;
+        Storage.Layout storage $ = Storage.layout();
+        emit MinDelayChange($.minDelay, newDelay);
+        $.minDelay = newDelay;
     }
 }

@@ -34,9 +34,9 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, ERC20VotesUpgradeable, Own
         __Ownable_init(_initialOwner);
         __UUPSUpgradeable_init();
 
-        Storage.Layout storage layout = Storage.layout();
-        layout.seam = IERC20(_seam);
-        layout.vestingDuration = _vestingDuration;
+        Storage.Layout storage $ = Storage.layout();
+        $.seam = IERC20(_seam);
+        $.vestingDuration = _vestingDuration;
     }
 
     /// @inheritdoc UUPSUpgradeable
@@ -100,19 +100,19 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, ERC20VotesUpgradeable, Own
 
         _updateVesting(onBehalfOf);
 
-        Storage.Layout storage layout = Storage.layout();
-        Storage.VestingData storage vestingData = layout.vestingInfo[onBehalfOf];
+        Storage.Layout storage $ = Storage.layout();
+        Storage.VestingData storage vestingData = $.vestingInfo[onBehalfOf];
 
         uint256 timeUntilEnd = vestingData.vestingEndsAt - Math.min(block.timestamp, vestingData.vestingEndsAt);
         uint256 currVestingAmount = Math.mulDiv(vestingData.vestPerSecond, timeUntilEnd, MULTIPLIER);
         uint256 newVestingPeriodDuration =
-            ((currVestingAmount * timeUntilEnd) + (amount * layout.vestingDuration)) / (currVestingAmount + amount);
+            ((currVestingAmount * timeUntilEnd) + (amount * $.vestingDuration)) / (currVestingAmount + amount);
 
         vestingData.vestPerSecond = Math.mulDiv(currVestingAmount + amount, MULTIPLIER, newVestingPeriodDuration);
         vestingData.vestingEndsAt = block.timestamp + newVestingPeriodDuration;
 
         _mint(onBehalfOf, amount);
-        SafeERC20.safeTransferFrom(layout.seam, msg.sender, address(this), amount);
+        SafeERC20.safeTransferFrom($.seam, msg.sender, address(this), amount);
         emit Deposit(msg.sender, onBehalfOf, amount);
     }
 
@@ -120,10 +120,10 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, ERC20VotesUpgradeable, Own
     function claim(address account) external {
         _updateVesting(account);
 
-        Storage.Layout storage layout = Storage.layout();
-        Storage.VestingData storage vestingData = layout.vestingInfo[account];
+        Storage.Layout storage $ = Storage.layout();
+        Storage.VestingData storage vestingData = $.vestingInfo[account];
         _burn(account, vestingData.claimableAmount);
-        SafeERC20.safeTransfer(layout.seam, account, vestingData.claimableAmount);
+        SafeERC20.safeTransfer($.seam, account, vestingData.claimableAmount);
 
         emit Claim(account, vestingData.claimableAmount);
         vestingData.claimableAmount = 0;
