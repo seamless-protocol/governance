@@ -25,18 +25,21 @@ abstract contract TransferStrategyBase is ITransferStrategyBase {
         _;
     }
 
+    /// @notice Initializes the contract
+    /// @param _incentivesController IncentivesController contract address
+    /// @param _rewardsAdmin RewardsAdmin contract address
     constructor(address _incentivesController, address _rewardsAdmin) {
         incentivesController = _incentivesController;
         rewardsAdmin = _rewardsAdmin;
     }
 
     /// @inheritdoc ITransferStrategyBase
-    function getIncentivesController() external view override returns (address) {
+    function getIncentivesController() external view returns (address) {
         return incentivesController;
     }
 
     /// @inheritdoc ITransferStrategyBase
-    function getRewardsAdmin() external view override returns (address) {
+    function getRewardsAdmin() external view returns (address) {
         return rewardsAdmin;
     }
 

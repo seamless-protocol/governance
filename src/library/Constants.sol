@@ -35,6 +35,7 @@ library Constants {
     bytes32 public constant MERKLE_ROOT = bytes32(0x0);
     address public constant SHORT_TIMELOCK_ADDRESS = address(0);
 
+    // TODO: Change this to short timelock address
     address public constant INCENTIVES_CONTROLLER_ADDRESS = 0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780;
 
     // https://docs.base.org/base-contracts#ethereum-mainnet

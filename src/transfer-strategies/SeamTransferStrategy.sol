@@ -15,6 +15,11 @@ contract SeamTransferStrategy is ISeamTransferStrategy, TransferStrategyBase {
     IERC20 public immutable seam;
     IEscrowSeam public immutable escrowSeam;
 
+    /// @notice Initializes the contract
+    /// @param _seam SEAM token
+    /// @param _escrowSeam EscrowSeam contract
+    /// @param _incentivesController IncentivesController contract address
+    /// @param _rewardsAdmin RewardsAdmin contract address
     constructor(IERC20 _seam, IEscrowSeam _escrowSeam, address _incentivesController, address _rewardsAdmin)
         TransferStrategyBase(_incentivesController, _rewardsAdmin)
     {
