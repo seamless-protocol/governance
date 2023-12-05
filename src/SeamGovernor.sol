@@ -23,11 +23,9 @@ import {IERC5805} from "openzeppelin-contracts/interfaces/IERC5805.sol";
 import {SeamGovernorStorage as Storage} from "./storage/SeamGovernorStorage.sol";
 import {GovernorCountingFractionUpgradeable} from "./GovernorCountingFractionUpgradeable.sol";
 
-/**
- * @title SeamGovernor
- * @author Seamless Protocol
- * @notice Governor contract of the Seamless Protocol used for both short and long governors
- */
+/// @title SeamGovernor
+/// @author Seamless Protocol
+/// @notice Governor contract of the Seamless Protocol used for both short and long governors
 contract SeamGovernor is
     Initializable,
     GovernorUpgradeable,
@@ -98,9 +96,7 @@ contract SeamGovernor is
         return 1000;
     }
 
-    /**
-     * @dev See {IGovernor-proposalThreshold}.
-     */
+    /// @inheritdoc GovernorSettingsUpgradeable
     function proposalThreshold()
         public
         view
@@ -110,6 +106,7 @@ contract SeamGovernor is
         return super.proposalThreshold();
     }
 
+    /// @inheritdoc GovernorVotesUpgradeable
     function _getVotes(address account, uint256 timepoint, bytes memory /*params*/ )
         internal
         view
@@ -119,14 +116,17 @@ contract SeamGovernor is
         return token().getPastVotes(account, timepoint) + Storage.layout()._esSEAM.getPastVotes(account, timepoint);
     }
 
+    /// @inheritdoc GovernorSettingsUpgradeable
     function votingDelay() public view override(GovernorUpgradeable, GovernorSettingsUpgradeable) returns (uint256) {
         return super.votingDelay();
     }
 
+    /// @inheritdoc GovernorSettingsUpgradeable
     function votingPeriod() public view override(GovernorUpgradeable, GovernorSettingsUpgradeable) returns (uint256) {
         return super.votingPeriod();
     }
 
+    /// @inheritdoc GovernorVotesQuorumFractionUpgradeable
     function quorum(uint256 blockNumber)
         public
         view
@@ -136,6 +136,7 @@ contract SeamGovernor is
         return super.quorum(blockNumber);
     }
 
+    /// @inheritdoc GovernorTimelockControlUpgradeable
     function state(uint256 proposalId)
         public
         view
@@ -145,6 +146,7 @@ contract SeamGovernor is
         return super.state(proposalId);
     }
 
+    /// @inheritdoc GovernorTimelockControlUpgradeable
     function proposalNeedsQueuing(uint256 proposalId)
         public
         view
@@ -154,6 +156,7 @@ contract SeamGovernor is
         return super.proposalNeedsQueuing(proposalId);
     }
 
+    /// @inheritdoc GovernorStorageUpgradeable
     function _propose(
         address[] memory targets,
         uint256[] memory values,
@@ -164,6 +167,7 @@ contract SeamGovernor is
         return super._propose(targets, values, calldatas, description, proposer);
     }
 
+    /// @inheritdoc GovernorTimelockControlUpgradeable
     function _queueOperations(
         uint256 proposalId,
         address[] memory targets,
@@ -174,6 +178,7 @@ contract SeamGovernor is
         return super._queueOperations(proposalId, targets, values, calldatas, descriptionHash);
     }
 
+    /// @inheritdoc GovernorTimelockControlUpgradeable
     function _executeOperations(
         uint256 proposalId,
         address[] memory targets,
@@ -184,6 +189,7 @@ contract SeamGovernor is
         super._executeOperations(proposalId, targets, values, calldatas, descriptionHash);
     }
 
+    /// @inheritdoc GovernorTimelockControlUpgradeable
     function _cancel(
         address[] memory targets,
         uint256[] memory values,
@@ -193,6 +199,7 @@ contract SeamGovernor is
         return super._cancel(targets, values, calldatas, descriptionHash);
     }
 
+    /// @inheritdoc GovernorTimelockControlUpgradeable
     function _executor()
         internal
         view
