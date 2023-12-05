@@ -21,6 +21,13 @@ import {SeamVestingWalletStorage as Storage} from "src/storage/SeamVestingWallet
 /// - owner can upgrade contract, set vesting start time after deployment, withdraw tokens
 /// - remove ETH vesting logic, only vest a single ERC20 token
 contract SeamVestingWallet is ISeamVestingWallet, Initializable, OwnableUpgradeable, UUPSUpgradeable {
+    modifier onlyBeneficiary() {
+        if (msg.sender != beneficiary()) {
+            revert NotBeneficiary(msg.sender);
+        }
+        _;
+    }
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -46,13 +53,6 @@ contract SeamVestingWallet is ISeamVestingWallet, Initializable, OwnableUpgradea
 
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address) internal override onlyOwner {}
-
-    modifier onlyBeneficiary() {
-        if (msg.sender != beneficiary()) {
-            revert NotBeneficiary(msg.sender);
-        }
-        _;
-    }
 
     /// @inheritdoc ISeamVestingWallet
     function beneficiary() public view returns (address) {
