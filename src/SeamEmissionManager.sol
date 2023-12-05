@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import {Initializable} from "openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -13,8 +13,6 @@ import {SeamEmissionManagerStorage as Storage} from "./storage/SeamEmissionManag
 /// @author Seamless Protocol
 /// @notice This contract is responsible for managing SEAM token emission.
 contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessControlUpgradeable, UUPSUpgradeable {
-    using SafeERC20 for IERC20;
-
     bytes32 public constant CLAIMER_ROLE = keccak256("CLAIMER_ROLE");
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -23,21 +21,21 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
     }
 
     /// @notice Initializes the token storage and inherited contracts.
-    /// @param _seam SEAM token address
-    /// @param _emissionPerSecond Emission per second
-    /// @param _initialAdmin Initial admin of the contract
-    function initialize(address _seam, uint256 _emissionPerSecond, address _initialAdmin, address _claimer)
+    /// @param seam SEAM token address
+    /// @param emissionPerSecond Emission per second
+    /// @param initialAdmin Initial admin of the contract
+    function initialize(address seam, uint256 emissionPerSecond, address initialAdmin, address claimer)
         external
         initializer
     {
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
-        _grantRole(CLAIMER_ROLE, _claimer);
+        _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
+        _grantRole(CLAIMER_ROLE, claimer);
 
         Storage.Layout storage $ = Storage.layout();
-        $.seam = IERC20(_seam);
-        $.emissionPerSecond = _emissionPerSecond;
+        $.seam = IERC20(seam);
+        $.emissionPerSecond = emissionPerSecond;
         $.lastClaimedTimestamp = uint64(block.timestamp);
     }
 
@@ -73,7 +71,7 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
         uint64 currentTimestamp = uint64(block.timestamp);
         uint256 emissionAmount = (currentTimestamp - lastClaimedTimestamp) * emissionPerSecond;
 
-        $.seam.transfer(receiver, emissionAmount);
+        SafeERC20.safeTransfer($.seam, receiver, emissionAmount);
         $.lastClaimedTimestamp = currentTimestamp;
 
         emit Claim(receiver, emissionAmount);

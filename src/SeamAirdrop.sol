@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
@@ -13,8 +13,6 @@ import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 /// @notice Airdrop contract that transfers SEAM tokens
 /// @dev New contract should be deployed for each airdrop
 contract SeamAirdrop is ISeamAirdrop, Ownable {
-    using SafeERC20 for IERC20;
-
     uint256 public constant MAX_VESTING_PERCENTAGE = 100_00;
 
     IEscrowSeam public escrowSeam;
@@ -22,8 +20,14 @@ contract SeamAirdrop is ISeamAirdrop, Ownable {
     uint256 public vestingPercentage;
     bytes32 public merkleRoot;
 
-    mapping(address => bool) public hasClaimed;
+    mapping(address account => bool status) public hasClaimed;
 
+    /// @notice Initializes the contract
+    /// @param _seam SEAM token
+    /// @param _escrowSeam EscrowSeam contract
+    /// @param _vestingPercentage Percentage of tokens that will be vested on escrowSeam contract
+    /// @param _merkleRoot Merkle root
+    /// @param _owner Owner of the contract
     constructor(IERC20 _seam, IEscrowSeam _escrowSeam, uint256 _vestingPercentage, bytes32 _merkleRoot, address _owner)
         Ownable(_owner)
     {
@@ -77,6 +81,7 @@ contract SeamAirdrop is ISeamAirdrop, Ownable {
         emit Claim(recipient, seamAmount, esSeamAmount);
     }
 
+    /// @inheritdoc ISeamAirdrop
     function withdraw(IERC20 token, address recipient, uint256 amount) external onlyOwner {
         SafeERC20.safeTransfer(token, recipient, amount);
         emit Withdraw(address(token), recipient, amount);
