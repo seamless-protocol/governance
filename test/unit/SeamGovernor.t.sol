@@ -2,12 +2,12 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Votes} from "openzeppelin-contracts/governance/utils/Votes.sol";
+import {IERC5805} from "openzeppelin-contracts/interfaces/IERC5805.sol";
 import {TimelockControllerUpgradeable} from
     "openzeppelin-contracts-upgradeable/governance/TimelockControllerUpgradeable.sol";
 import {Seam} from "src/Seam.sol";
@@ -17,11 +17,12 @@ contract SeamGovernorTest is Test {
     string public constant NAME = "Governor name";
     uint48 public constant VOTING_DELAY = 1234;
     uint32 public constant VOTING_PERIOD = 5678;
-    uint256 public constant PROPOSAL_NUMERATOR = 10;
+    uint256 public constant PROPOSAL_THRESHOLD = 10;
     uint256 public constant QUORUM_NUMERATOR = 34;
     uint256 public constant VOTE_NUMERATOR = 666;
 
     address immutable _seam = makeAddr("SEAM");
+    address immutable _esSEAM = makeAddr("esSEAM");
     address immutable _timelockController = makeAddr("timelockController");
 
     SeamGovernor public governorImplementation;
@@ -37,15 +38,20 @@ contract SeamGovernorTest is Test {
             address(governorImplementation),
             abi.encodeWithSelector(
                 SeamGovernor.initialize.selector,
-                NAME,
-                VOTING_DELAY,
-                VOTING_PERIOD,
-                PROPOSAL_NUMERATOR,
-                VOTE_NUMERATOR,
-                QUORUM_NUMERATOR,
-                IVotes(_seam),
-                TimelockControllerUpgradeable(payable(_timelockController)),
-                address(this)
+                SeamGovernor.InitParams({
+                    name: NAME,
+                    initialVotingDelay: VOTING_DELAY,
+                    initialVotingPeriod: VOTING_PERIOD,
+                    proposalThresholdValue: PROPOSAL_THRESHOLD,
+                    voteNumeratorValue: VOTE_NUMERATOR,
+                    quorumNumeratorValue: QUORUM_NUMERATOR,
+                    seam: IERC5805(_seam),
+                    esSEAM: IERC5805(_esSEAM),
+                    timelock: TimelockControllerUpgradeable(
+                        payable(_timelockController)
+                    ),
+                    initialOwner: address(this)
+                })
             )
         );
         governorProxy = SeamGovernor(payable(proxy));
@@ -55,8 +61,8 @@ contract SeamGovernorTest is Test {
         assertEq(governorProxy.name(), NAME);
         assertEq(governorProxy.votingDelay(), VOTING_DELAY);
         assertEq(governorProxy.votingPeriod(), VOTING_PERIOD);
-        assertEq(governorProxy.proposalNumerator(), PROPOSAL_NUMERATOR);
         assertEq(governorProxy.quorumNumerator(), QUORUM_NUMERATOR);
+        assertEq(governorProxy.proposalThreshold(), PROPOSAL_THRESHOLD);
         assertEq(address(governorProxy.token()), _seam);
         assertEq(address(governorProxy.timelock()), _timelockController);
         assertEq(governorProxy.owner(), address(this));
@@ -93,25 +99,13 @@ contract SeamGovernorTest is Test {
         assertEq(governorProxy.votingPeriod(), votingPeriod);
     }
 
-    function testFuzzSetProposalNumerator(uint256 proposalNumerator) public {
-        proposalNumerator = bound(proposalNumerator, 0, 1000);
-        governorProxy.setProposalNumerator(proposalNumerator);
-        assertEq(governorProxy.proposalNumerator(), proposalNumerator);
-    }
-
-    function testFuzzSetProposalNumeratorRevertProposalNumeratorTooLarge(uint256 proposalNumerator) public {
-        proposalNumerator = bound(proposalNumerator, 1001, type(uint256).max);
-        vm.expectRevert(SeamGovernor.ProposalNumeratorTooLarge.selector);
-        governorProxy.setProposalNumerator(proposalNumerator);
-    }
-
     function testFuzzUpdateQuorumNumerator(uint256 quorumNumerator) public {
         quorumNumerator = bound(quorumNumerator, 0, 100);
         governorProxy.updateQuorumNumerator(quorumNumerator);
         assertEq(governorProxy.quorumNumerator(), quorumNumerator);
     }
 
-    function testFuzzupdateVoteCountNumerator(uint256 voteCountNumerator) public {
+    function testFuzzUpdateVoteCountNumerator(uint256 voteCountNumerator) public {
         voteCountNumerator = bound(voteCountNumerator, 0, 100);
         governorProxy.updateVoteCountNumerator(voteCountNumerator);
         assertEq(governorProxy.voteCountNumerator(), voteCountNumerator);
@@ -123,18 +117,12 @@ contract SeamGovernorTest is Test {
     }
 
     function testProposalThreshold() public {
-        uint256 totalSupply = 10 ether;
-        vm.mockCall(_seam, abi.encodeWithSelector(Votes.getPastTotalSupply.selector, 0), abi.encode(totalSupply));
-        governorProxy.setProposalNumerator(100); // 10%
-        assertEq(governorProxy.proposalThreshold(), totalSupply / 10);
+        governorProxy.setProposalThreshold(100);
+        assertEq(governorProxy.proposalThreshold(), 100);
     }
 
-    function testFuzzProposalThreshold(uint256 totalSupply, uint256 proposalThreshold) public {
-        totalSupply = bound(totalSupply, 0, type(uint256).max / 1000);
-        proposalThreshold = bound(proposalThreshold, 0, 1000);
-
-        vm.mockCall(_seam, abi.encodeWithSelector(Votes.getPastTotalSupply.selector, 0), abi.encode(totalSupply));
-        governorProxy.setProposalNumerator(proposalThreshold);
-        assertEq(governorProxy.proposalThreshold(), (totalSupply * proposalThreshold) / 1000);
+    function testFuzzProposalThreshold(uint256 proposalThreshold) public {
+        governorProxy.setProposalThreshold(proposalThreshold);
+        assertEq(governorProxy.proposalThreshold(), proposalThreshold);
     }
 }

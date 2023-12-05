@@ -6,6 +6,7 @@ import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.so
 import {SeamGovernor} from "../src/SeamGovernor.sol";
 import {SeamTimelockController} from "../src/SeamTimelockController.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
+import {EscrowSeam} from "../src/EscrowSeam.sol";
 import {Constants} from "../src/library/Constants.sol";
 import {GovernorDeployer} from "./common/GovernorDeployer.sol";
 import {EscrowSeamDeployer} from "./common/EscrowSeamDeployer.sol";
@@ -32,6 +33,8 @@ contract SeamFullGovernanceDeploy is GovernorDeployer, EscrowSeamDeployer {
 
         vm.startBroadcast(deployerPrivateKey);
 
+        EscrowSeam esSEAM = deployEscrowSeam(Constants.SEAM_ADDRESS, Constants.VESTING_DURATION, deployerAddress);
+
         console.log("Deploying short governor and timelock controller...");
 
         GovernorParams memory shortGovernorParams = GovernorParams(
@@ -39,9 +42,10 @@ contract SeamFullGovernanceDeploy is GovernorDeployer, EscrowSeamDeployer {
             Constants.GOVERNOR_SHORT_VOTING_DELAY,
             Constants.GOVERNOR_SHORT_VOTING_PERIOD,
             Constants.GOVERNOR_SHORT_VOTE_NUMERATOR,
-            Constants.GOVERNOR_SHORT_PROPOSAL_NUMERATOR,
-            Constants.GOVERNOR_SHORT_NUMERATOR,
-            Constants.VOTING_TOKEN,
+            Constants.GOVERNOR_SHORT_PROPOSAL_THRESHOLD,
+            Constants.GOVERNOR_SHORT_QUORUM_NUMERATOR,
+            Constants.SEAM_ADDRESS,
+            address(esSEAM),
             Constants.TIMELOCK_CONTROLLER_SHORT_MIN_DELAY,
             Constants.GUARDIAN_WALLET,
             deployerAddress
@@ -56,9 +60,10 @@ contract SeamFullGovernanceDeploy is GovernorDeployer, EscrowSeamDeployer {
             Constants.GOVERNOR_LONG_VOTING_DELAY,
             Constants.GOVERNOR_LONG_VOTING_PERIOD,
             Constants.GOVERNOR_LONG_VOTE_NUMERATOR,
-            Constants.GOVERNOR_LONG_PROPOSAL_NUMERATOR,
-            Constants.GOVERNOR_LONG_NUMERATOR,
-            Constants.VOTING_TOKEN,
+            Constants.GOVERNOR_LONG_PROPOSAL_THRESHOLD,
+            Constants.GOVERNOR_LONG_QUORUM_NUMERATOR,
+            Constants.SEAM_ADDRESS,
+            address(esSEAM),
             Constants.TIMELOCK_CONTROLLER_LONG_MIN_DELAY,
             Constants.GUARDIAN_WALLET,
             deployerAddress
@@ -82,7 +87,8 @@ contract SeamFullGovernanceDeploy is GovernorDeployer, EscrowSeamDeployer {
         governorLong.transferOwnership(address(timelockLong));
         console.log("Governor long ownership transferred to long timelock");
 
-        deployEscrowSeam(Constants.VOTING_TOKEN, Constants.VESTING_DURATION, address(timelockShort));
+        esSEAM.transferOwnership(address(timelockLong));
+        console.log("esSEAM ownership transferred to long timelock");
 
         vm.stopBroadcast();
     }

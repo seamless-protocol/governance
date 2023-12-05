@@ -6,14 +6,8 @@ solc = "0.8.20"
 
 # Must set evm version to paris since solc > 0.8.20 uses op code PUSH0
 evm_version = "paris"
-via_ir = true
-
-[rpc_endpoints]
-base = "${BASE_RPC_URL}"
-base-goerli = "${BASE_GOERLI_RPC_URL}"
-
-[etherscan]
-base = { key = "${ETHERSCAN_API_KEY}", url = "${BASE_VERIFIER_URL}" }
-base-goerli = { key = "${ETHERSCAN_API_KEY}", url = "${BASE_GOERLI_VERIFIER_URL}" }
+optimizer_runs = 100
+via_ir = false
+revert_strings = "strip"
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
