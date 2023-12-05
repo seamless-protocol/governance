@@ -125,13 +125,13 @@ contract SeamGovernor is
     }
 
     /// @inheritdoc GovernorVotesQuorumFractionUpgradeable
-    function quorum(uint256 blockNumber)
+    function quorum(uint256 timepoint)
         public
         view
         override(GovernorUpgradeable, GovernorVotesQuorumFractionUpgradeable)
         returns (uint256)
     {
-        return super.quorum(blockNumber);
+        return super.quorum(timepoint);
     }
 
     /// @inheritdoc GovernorTimelockControlUpgradeable

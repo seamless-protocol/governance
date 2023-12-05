@@ -13,11 +13,9 @@ import {Initializable} from "openzeppelin-contracts-upgradeable/proxy/utils/Init
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {VotesUpgradeable} from "openzeppelin-contracts-upgradeable/governance/utils/VotesUpgradeable.sol";
 
-/**
- * @title Seam
- * @author Seamless Protocol
- * @notice An ERC-20 token that is upgradeable.
- */
+/// @title Seam
+/// @author Seamless Protocol
+/// @notice An ERC-20 token that is upgradeable.
 contract Seam is
     Initializable,
     ERC20Upgradeable,
@@ -32,11 +30,10 @@ contract Seam is
         _disableInitializers();
     }
 
-    /**
-     * @notice Initializes the token and inherited contracts.
-     * @param name Token name
-     * @param symbol Token symbol
-     */
+    /// @notice Initializes the token and inherited contracts.
+    /// @param name Token name
+    /// @param symbol Token symbol
+    /// @param intialSupply Initial supply of the token
     function initialize(string calldata name, string calldata symbol, uint256 intialSupply) external initializer {
         __ERC20_init(name, symbol);
         __ERC20Permit_init(name);

@@ -21,21 +21,21 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
     }
 
     /// @notice Initializes the token storage and inherited contracts.
-    /// @param _seam SEAM token address
-    /// @param _emissionPerSecond Emission per second
-    /// @param _initialAdmin Initial admin of the contract
-    function initialize(address _seam, uint256 _emissionPerSecond, address _initialAdmin, address _claimer)
+    /// @param seam SEAM token address
+    /// @param emissionPerSecond Emission per second
+    /// @param initialAdmin Initial admin of the contract
+    function initialize(address seam, uint256 emissionPerSecond, address initialAdmin, address claimer)
         external
         initializer
     {
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
-        _grantRole(CLAIMER_ROLE, _claimer);
+        _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
+        _grantRole(CLAIMER_ROLE, claimer);
 
         Storage.Layout storage $ = Storage.layout();
-        $.seam = IERC20(_seam);
-        $.emissionPerSecond = _emissionPerSecond;
+        $.seam = IERC20(seam);
+        $.emissionPerSecond = emissionPerSecond;
         $.lastClaimedTimestamp = uint64(block.timestamp);
     }
 
