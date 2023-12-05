@@ -6,10 +6,21 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @title EscrowSeam Interface
 /// @notice Interface for EscrowSeam contract.
 interface IEscrowSeam is IERC20 {
+    /// @notice EscrowSeam: non-transferable
     error NonTransferable();
+
+    /// @notice Cannot vest zero amount
     error ZeroAmount();
 
+    /// @notice Emitted when SEAM token is deposited(vested) for user.
+    /// @param from Account that deposited(vested) SEAM token
+    /// @param onBehalfOf Account that SEAM token is deposited(vested) for
+    /// @param amount Amount of SEAM token deposited(vested)
     event Deposit(address indexed from, address indexed onBehalfOf, uint256 amount);
+
+    /// @notice Emitted when vested SEAM token is claimed for user.
+    /// @param user Account that SEAM tokens are claimed for.
+    /// @param amount Amount of SEAM token claimed.
     event Claim(address indexed user, uint256 amount);
 
     /// @notice Returns the SEAM token address.

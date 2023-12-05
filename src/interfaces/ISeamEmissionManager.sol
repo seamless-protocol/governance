@@ -4,7 +4,13 @@ pragma solidity ^0.8.20;
 /// @title ISeamEmissionManager
 /// @notice Interface for the SEAM emission manager contract.
 interface ISeamEmissionManager {
+    /// @notice Emitted when emission per second is updated.
+    /// @param emissionRate New emission per second
     event SetEmissionPerSecond(uint256 emissionRate);
+
+    /// @notice Emitted when SEAM tokens are claimed.
+    /// @param receiver Address that claimed SEAM tokens
+    /// @param amount Amount of SEAM tokens claimed
     event Claim(address indexed receiver, uint256 amount);
 
     /// @notice Returns SEAM token address.

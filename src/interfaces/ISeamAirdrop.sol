@@ -6,13 +6,33 @@ import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 /// @title Seam Airdrop Interface
 /// @notice Interface for the Seam Airdrop contract
 interface ISeamAirdrop {
+    /// @notice InvalidVestingPercentage: maximum vesting percentage is 10000
     error InvalidVestingPercentage();
+
+    /// @notice AlreadyClaimed: recipient already claimed tokens
     error AlreadyClaimed(address recipient);
+
+    /// @notice InvalidProof: invalid merkle proof
     error InvalidProof();
 
+    /// @notice Emitted when vesting percentage is set
+    /// @param vestingPercentage Vesting percentage
     event VestingPercentageSet(uint256 vestingPercentage);
+
+    /// @notice Emitted when merkle root is changed
+    /// @param merkleRoot New merkle root
     event MerkleRootSet(bytes32 merkleRoot);
+
+    /// @notice Emitted when tokens are claimed
+    /// @param recipient Address that claimed tokens
+    /// @param seamAmount Amount of SEAM tokens claimed
+    /// @param esSeamAmount Amount of esSEAM tokens claimed
     event Claim(address indexed recipient, uint256 seamAmount, uint256 esSeamAmount);
+
+    /// @notice Emitted when tokens are withdrawn
+    /// @param token Address of the token withdrawn
+    /// @param recipient Address that received tokens
+    /// @param amount Amount of tokens withdrawn
     event Withdraw(address indexed token, address indexed recipient, uint256 amount);
 
     /// @notice Sets the vesting percentage

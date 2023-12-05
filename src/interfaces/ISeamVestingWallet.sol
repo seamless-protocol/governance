@@ -4,8 +4,12 @@ pragma solidity ^0.8.20;
 /// @title Seam vesting Wallet Interface
 /// @notice Interface for the Seam vesting Wallet contract
 interface ISeamVestingWallet {
+    /// @notice NotBeneficiary: only beneficiary can claim tokens
     error NotBeneficiary(address account);
 
+    /// @notice Emitted when token are released and claimed
+    /// @param token Address of the token released
+    /// @param amount Amount of tokens released
     event ERC20Released(address indexed token, uint256 amount);
 
     /// @notice Getter for the beneficiary address.

@@ -4,8 +4,12 @@ pragma solidity ^0.8.20;
 /// @title GovernorCountingFraction Interface
 /// @notice Interface for GovernorCountingFraction contract.
 interface IGovernorCountingFraction {
+    /// @notice Invalid fractoin, maximum value is 1000.
     error GovernorInvalidVoteFraction(uint256 voteNumerator, uint256 voteDenominator);
 
+    /// @notice Emitted when the vote numerator is updated.
+    /// @param oldVoteNumerator Old vote numerator
+    /// @param newVoteNumerator New vote numerator
     event VoteNumeratorUpdated(uint256 oldVoteNumerator, uint256 newVoteNumerator);
 
     /// @notice Returns the count numerator of the governor.
