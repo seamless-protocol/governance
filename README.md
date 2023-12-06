@@ -38,11 +38,11 @@ Base Tenderly Fork: `make deploy-base-tenderly`
 | Contract       | Proxy address                                | Implementation address                       |
 | -------------- | -------------------------------------------- | -------------------------------------------- |
 | SEAM           | `0x8c0dE778f20e7D25E6E2AAc23d5Bee1d19Deb491` | `0x0F2B5682562E3743F68D106CDf9512a9cd70e62e` |
-| EscrowSEAM     | `0x43Fde98A596B26F3524c806C0BB75960CE7273Ff` | `0xCc8D5c51e022aEa830b6B1f63Bc84dF449F692F5` |
-| Timelock short | `0x965bb7cB17ef3685366AF223924C545AaFB2baEE` | `0x802D5Bea8e1c49eA458622C6CBB4cc5accf0128c` |
-| Governor short | `0x4D008d500013e180e48791a2A8Aa767EEf662aa0` | `0x7F9576436Dc83E42b500ECA45f1Dc673B0257B42` |
-| Timelock long  | `0x80faf3A9202De4FFa6E8849021181252370e5052` | `0x04277F591C8c6876a96898d7e99B3D8f5Fe2cbd9` |
-| Governor long  | `0x2A4CC3F5FF8d25086BB493B5c0d1d50c4037c461` | `0x2a8491354b023da5378b3Fe1Da86F1cd2089412d` |
+| EscrowSEAM     | `0xcAFf1eb3eF39D665340c94c4C20660613D66c691` | `0x38405c502676152d4D4b9c04177b2b500b53202E` |
+| Timelock short | `0x3456B1781A86df123aa9dCEeFA818E1E68a25a4E` | `0x341e372C091c93f73b451BDa20A3147A776fB3eb` |
+| Governor short | `0xa83325c6c4E4D8FC07b1d79E93ff66Af7533B2Bf` | `0xE66d871C14af041cd7a77bfBc4E372dd1ec62BB8` |
+| Timelock long  | `0x565504FcD4A1552990CFC5569548e0929571A9E4` | `0x80e887428cCa630F75a2452D27AA9805E9D5a1d8` |
+| Governor long  | `0x42159A640De060a36fe574c2b336Ef2a752B1e88` | `0x28a43359BD4aB030d5884b3074B3d3418697Ab03` |
 
 ### Ethereum Testnet (Goerli)
 
