@@ -31,7 +31,7 @@ abstract contract GovernorCountingFractionUpgradeable is
 
     // solhint-disable-next-line func-name-mixedcase
     function COUNTING_MODE() public pure virtual override returns (string memory) {
-        return "support=bravo&quorum=for,abstain,no";
+        return "support=bravo&quorum=for,abstain,against";
     }
 
     /// @inheritdoc IGovernorCountingFraction

@@ -23,6 +23,8 @@ interface ISeamEmissionManager {
     function getEmissionPerSecond() external view returns (uint256);
 
     /// @notice Sets emission per second.
+    /// @dev Every time before calling this function claim function should be called to update last claimed timestamp,
+    ///      otherwise new emission rate will be applied from the last claimed timestamp.
     /// @param emissionPerSecond Emission per second
     function setEmissionPerSecond(uint256 emissionPerSecond) external;
 
