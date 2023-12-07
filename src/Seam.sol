@@ -53,6 +53,7 @@ contract Seam is
         _mint(msg.sender, intialSupply);
     }
 
+    ///@notice Performs necessary initialization of the contract upgrade.
     function initializeV2() external reinitializer(2) {
         Checkpoints.push(_getVotesStorageLayout()._totalCheckpoints, 1701924576, SafeCast.toUint208(totalSupply()));
     }
