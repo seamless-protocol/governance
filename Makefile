@@ -28,6 +28,9 @@ deploy-vesting-wallet-base-tenderly :; forge script script/SeamVestingWallet.s.s
 deploy-full-gov-base-testnet	:; forge script script/SeamFullGovernanceDeploy.s.sol:SeamFullGovernanceDeploy --force --rpc-url ${BASE_GOERLI_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url ${BASE_GOERLI_VERIFIER_URL} -vvvv
 deploy-full-gov-base-mainnet	:; forge script script/SeamFullGovernanceDeploy.s.sol:SeamFullGovernanceDeploy --force --rpc-url ${BASE_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
 
+deploy-emission-manager-base-testnet	:; forge script script/SeamEmissionManagerDeploy.s.sol:SeamEmissionManagerDeploy --force --rpc-url ${BASE_GOERLI_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url ${BASE_GOERLI_VERIFIER_URL} -vvvv
+deploy-emission-manager-base-mainnet	:; forge script script/SeamEmissionManagerDeploy.s.sol:SeamEmissionManagerDeploy --force --rpc-url ${BASE_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
+
 deploy-seam-l1-eth-testnet		:; forge script script/SeamL1Deploy.s.sol:SeamL1DeployScript --force --evm-version shanghai --rpc-url ${ETH_TESTNET_RPC_URL} --slow --broadcast --verify --delay 5 -vvvv
 deploy-seam-l1-eth-mainnet		:; forge script script/SeamL1Deploy.s.sol:SeamL1DeployScript --force --evm-version shanghai --rpc-url ${ETH_RPC_URL} --slow --broadcast --verify --delay 5 -vvvv
 

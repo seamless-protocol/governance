@@ -28,12 +28,15 @@ library Constants {
 
     uint256 public constant VESTING_DURATION = 365 days;
 
-    //TODO: Change this addresses to the correct ones when deploying airdrop contracts
     address public constant SEAM_ADDRESS = 0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85;
     address public constant ESCROW_SEAM_ADDRESS = 0x998e44232BEF4F8B033e5A5175BDC97F2B10d5e5;
     uint256 public constant VESTING_PERCENTAGE = 10_00; // 10%
     bytes32 public constant MERKLE_ROOT = bytes32(0x0);
     address public constant SHORT_TIMELOCK_ADDRESS = 0x639d2dD24304aC2e6A691d8c1cFf4a2665925fee;
+
+    address public constant LONG_TIMELOCK_ADDRESS = 0xA96448469520666EDC351eff7676af2247b16718;
+    //TODO: Change this when emissions are known
+    uint256 public constant SEAM_EMISSION_PER_SECOND = 0.000000001 ether;
 
     address public constant INCENTIVES_CONTROLLER_ADDRESS = 0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780;
 
