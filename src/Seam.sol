@@ -53,7 +53,9 @@ contract Seam is
 
     ///@notice Performs necessary initialization of the contract upgrade.
     function initializeV2() external reinitializer(2) {
-        Checkpoints.push(VotesUpgradeableStorage.layout()._totalCheckpoints, 1701924576, SafeCast.toUint208(totalSupply()));
+        Checkpoints.push(
+            VotesUpgradeableStorage.layout()._totalCheckpoints, 1701924576, SafeCast.toUint208(totalSupply())
+        );
     }
 
     /// @inheritdoc VotesUpgradeable
