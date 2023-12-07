@@ -34,6 +34,7 @@ library Constants {
     uint256 public constant VESTING_PERCENTAGE = 10_00; // 10%
     bytes32 public constant MERKLE_ROOT = bytes32(0x0);
     address public constant SHORT_TIMELOCK_ADDRESS = 0x639d2dD24304aC2e6A691d8c1cFf4a2665925fee;
+    address public constant GOVERNOR_SHORT_ADDRESS = 0x8768c789C6df8AF1a92d96dE823b4F80010Db294;
 
     address public constant INCENTIVES_CONTROLLER_ADDRESS = 0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780;
 

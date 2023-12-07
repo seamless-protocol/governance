@@ -54,7 +54,7 @@ contract Seam is
     }
 
     function initializeV2() external reinitializer(2) {
-        Checkpoints.push(_getVotesStorageLayout()._totalCheckpoints, clock(), SafeCast.toUint208(totalSupply()));
+        Checkpoints.push(_getVotesStorageLayout()._totalCheckpoints, 1701924576, SafeCast.toUint208(totalSupply()));
     }
 
     /// @inheritdoc VotesUpgradeable
