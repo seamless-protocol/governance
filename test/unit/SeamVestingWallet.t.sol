@@ -187,7 +187,7 @@ contract SeamVestingWalletTest is Test {
 
         ERC20Mock(_token).mint(address(_proxy), addedAmount);
 
-        assertEq(_proxy.releasable(), expectedVestedAmountAfterTransfer);
+        assertEq(_proxy.releasable(), expectedVestedAmountAfterTransfer - expectedVestedAmount);
         assertEq(_proxy.vestedAmount(uint64(block.timestamp)), expectedVestedAmountAfterTransfer);
         assertEq(_proxy.released(), expectedVestedAmount);
 

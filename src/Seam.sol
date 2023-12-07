@@ -12,6 +12,9 @@ import {ERC20VotesUpgradeable} from
 import {Initializable} from "openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {VotesUpgradeable} from "openzeppelin-contracts-upgradeable/governance/utils/VotesUpgradeable.sol";
+import {Checkpoints} from "openzeppelin-contracts/utils/structs/Checkpoints.sol";
+import {SafeCast} from "openzeppelin-contracts/utils/math/SafeCast.sol";
+import {VotesUpgradeableStorage} from "./storage/VotesUpgradeableStorage.sol";
 
 /// @title Seam
 /// @author Seamless Protocol
@@ -46,6 +49,13 @@ contract Seam is
         _grantRole(UPGRADER_ROLE, msg.sender);
 
         _mint(msg.sender, intialSupply);
+    }
+
+    ///@notice Performs necessary initialization of the contract upgrade.
+    function initializeV2() external reinitializer(2) {
+        Checkpoints.push(
+            VotesUpgradeableStorage.layout()._totalCheckpoints, 1701924576, SafeCast.toUint208(totalSupply())
+        );
     }
 
     /// @inheritdoc VotesUpgradeable
