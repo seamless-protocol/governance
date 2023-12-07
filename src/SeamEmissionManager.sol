@@ -31,6 +31,7 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
         __AccessControl_init();
         __UUPSUpgradeable_init();
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
+        _grantRole(CLAIMER_ROLE, initialAdmin);
         _grantRole(CLAIMER_ROLE, claimer);
 
         Storage.Layout storage $ = Storage.layout();
