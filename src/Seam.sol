@@ -12,6 +12,7 @@ import {ERC20VotesUpgradeable} from
 import {Initializable} from "openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {VotesUpgradeable} from "openzeppelin-contracts-upgradeable/governance/utils/VotesUpgradeable.sol";
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
 /// @title Seam
 /// @author Seamless Protocol
@@ -25,6 +26,9 @@ contract Seam is
     UUPSUpgradeable
 {
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Votes")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant VotesStorageLocation = 0xe8b26c30fad74198956032a3533d903385d56dd795af560196f9c78d4af40d00;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -46,6 +50,10 @@ contract Seam is
         _grantRole(UPGRADER_ROLE, msg.sender);
 
         _mint(msg.sender, intialSupply);
+    }
+
+    function initializeV2() external reinitializer(2) {
+        Checkpoints.push(_getVotesStorage()._totalCheckpoints, clock(), totalSupply());
     }
 
     /// @inheritdoc VotesUpgradeable
@@ -74,4 +82,10 @@ contract Seam is
 
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {}
+
+    function _getVotesStorage() private pure returns (VotesStorage storage $) {
+        assembly {
+            $.slot := VotesStorageLocation
+        }
+    }
 }
