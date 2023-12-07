@@ -36,6 +36,8 @@ jobs:
         id: build
 
       - name: Run Forge Tests
+        env: 
+          FORK_URL: ${{ secrets.FORK_URL }}
         run: |
           forge test -vvv --gas-report
         id: test
