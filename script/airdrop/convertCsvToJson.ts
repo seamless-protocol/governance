@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
+import { toChecksumAddress } from "ethereumjs-util";
 import { logger } from "./utils/logger";
+import { ethers } from "ethers";
 
 // Input CSV file path
 const csvFilePath: string = path.join(__dirname, "./input/addresses.csv");
@@ -33,6 +35,9 @@ function throwErrorAndExit(error: string): void {
   csvFile.forEach((line: string) => {
     const [address, amount] = line.split(",");
 
+    if (!ethers.isAddress(address)) {
+      throwErrorAndExit(`Invalid address found: ${address}`);
+    }
     if (jsonFile[address]) {
       throwErrorAndExit(`Duplicate address found: ${address}`);
     }
@@ -40,7 +45,7 @@ function throwErrorAndExit(error: string): void {
       throwErrorAndExit(`Invalid amount found for address: ${address}`);
     }
 
-    jsonFile[address] = Number(amount);
+    jsonFile[toChecksumAddress(address)] = amount.toString();
   });
 
   const output = {

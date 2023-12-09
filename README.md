@@ -44,6 +44,7 @@ Base Tenderly Fork: `make deploy-base-tenderly`
 | Timelock long    | `0x565504FcD4A1552990CFC5569548e0929571A9E4` | `0x80e887428cCa630F75a2452D27AA9805E9D5a1d8` |
 | Governor long    | `0x42159A640De060a36fe574c2b336Ef2a752B1e88` | `0x28a43359BD4aB030d5884b3074B3d3418697Ab03` |
 | Emission manager | `0xB1EcA5e7541574798A9e4a58BfE9c78b622138e6` | `0x747e86e46e3E2a87B76da1D87D7E571C6f3D3E04` |
+| Airdrop          |                                              | `0xB402A4472103ce81195aEBD68237AbdFDfb8891b` |
 
 ### Ethereum Testnet (Goerli)
 
@@ -59,6 +60,7 @@ SEAML1: `0x4a46Ebdd35B12703717d6F4DfbF5db91E6Ac0660`
 | Governor short | `0x8768c789C6df8AF1a92d96dE823b4F80010Db294` | `0xC8A0E02878A4EF18fa260F0968cEcde8Eb607BFc` |
 | Timelock long  | `0xA96448469520666EDC351eff7676af2247b16718` | `0xBe170D7D3Cda6E9db39E012D0fE25aB83Fff790d` |
 | Governor long  | `0x04faA2826DbB38a7A4E9a5E3dB26b9E389E761B6` | `0x5acB96aAc90BF545500251D1eED10Bf47e996317` |
+| Airdrop        |                                              | `0xB7A6531665c5e2B2d5b9Aa04636847c8F45c702B` |
 
 ### Ethereum Mainnet
 
