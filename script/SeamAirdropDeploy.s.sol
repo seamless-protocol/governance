@@ -34,7 +34,7 @@ contract SeamAirdropDeploy is Script {
             IEscrowSeam(Constants.ESCROW_SEAM_ADDRESS),
             Constants.VESTING_PERCENTAGE,
             Constants.MERKLE_ROOT,
-            Constants.SHORT_TIMELOCK_ADDRESS
+            Constants.AIRDROP_OWNER
         );
         console.log("Deployed SeamAirdrop to: ", address(seamAirdrop));
 

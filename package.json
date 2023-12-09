@@ -9,11 +9,12 @@
   },
   "devDependencies": {
     "@types/node": "^20.9.0",
+    "ethereumjs-util": "^7.1.5",
+    "ethers": "^6.9.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "ethers": "^6.8.1",
     "keccak256": "^1.0.6",
     "merkletreejs": "^0.3.11",
     "prettier": "^3.0.3",

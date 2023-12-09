@@ -30,8 +30,9 @@ library Constants {
 
     address public constant SEAM_ADDRESS = 0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85;
     address public constant ESCROW_SEAM_ADDRESS = 0x998e44232BEF4F8B033e5A5175BDC97F2B10d5e5;
-    uint256 public constant VESTING_PERCENTAGE = 10_00; // 10%
-    bytes32 public constant MERKLE_ROOT = bytes32(0x0);
+    uint256 public constant VESTING_PERCENTAGE = 0; // 10%
+    bytes32 public constant MERKLE_ROOT = 0x7ae45307af70d32c01b2e278d7b49bc9926ef348ff5a5d75620157a14ae7863d;
+    address public constant AIRDROP_OWNER = 0x814767222A9DcEA379dFBacD1B98E86539F3C6Bb;
     address public constant SHORT_TIMELOCK_ADDRESS = 0x639d2dD24304aC2e6A691d8c1cFf4a2665925fee;
     address public constant GOVERNOR_SHORT_ADDRESS = 0x8768c789C6df8AF1a92d96dE823b4F80010Db294;
 
