@@ -32,8 +32,6 @@ function throwErrorAndExit(error: string): void {
     .split("\n");
 
   let jsonFile: any = {};
-  let sum = 0;
-  let count = 0;
   csvFile.forEach((line: string) => {
     const [address, amount] = line.split(",");
 
@@ -48,11 +46,7 @@ function throwErrorAndExit(error: string): void {
     }
 
     jsonFile[toChecksumAddress(address)] = amount.toString();
-    count++;
-    sum += Number(amount);
   });
-  console.log("Total addresses: ", count);
-  console.log("Total amount: ", sum);
 
   const output = {
     decimals: 18,
