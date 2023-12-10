@@ -3,21 +3,23 @@ pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {IEscrowSeam} from "src/interfaces/IEscrowSeam.sol";
 import {ITransferStrategyBase} from "src/interfaces/ITransferStrategyBase.sol";
-import {SeamTransferStrategy} from "src/transfer-strategies/SeamTransferStrategy.sol";
+import {EscrowSeamTransferStrategy} from "src/transfer-strategies/EscrowSeamTransferStrategy.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 
-contract SeamTransferStrategyTest is Test {
+contract EscrowSeamTransferStrategyTest is Test {
     address immutable incentivesController = makeAddr("incentivesController");
     address immutable rewardsAdmin = makeAddr("rewardsAdmin");
     address immutable escrowSeam = makeAddr("escrowSeam");
     ERC20Mock immutable seam = new ERC20Mock();
 
-    SeamTransferStrategy strategy;
+    EscrowSeamTransferStrategy strategy;
 
     function setUp() public {
-        strategy = new SeamTransferStrategy(
+        strategy = new EscrowSeamTransferStrategy(
             IERC20(seam),
+            IEscrowSeam(escrowSeam),
             incentivesController,
             rewardsAdmin
         );
@@ -27,11 +29,15 @@ contract SeamTransferStrategyTest is Test {
         assertEq(strategy.getIncentivesController(), incentivesController);
         assertEq(strategy.getRewardsAdmin(), rewardsAdmin);
         assertEq(address(strategy.seam()), address(seam));
+        assertEq(address(strategy.escrowSeam()), escrowSeam);
     }
 
     function testFuzz_PerformTransfer(address user, uint256 amount) public {
         deal(address(seam), address(strategy), type(uint256).max);
-        vm.expectCall(address(seam), abi.encodeWithSelector(IERC20.transfer.selector, user, amount));
+        vm.mockCall(
+            address(escrowSeam), abi.encodeWithSelector(IEscrowSeam.deposit.selector, user, amount), abi.encode()
+        );
+        vm.expectCall(address(escrowSeam), abi.encodeWithSelector(IEscrowSeam.deposit.selector, user, amount));
         vm.startPrank(incentivesController);
         strategy.performTransfer(user, address(0), amount);
         vm.stopPrank();

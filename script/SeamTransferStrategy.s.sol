@@ -31,7 +31,6 @@ contract SeamTransferStrategyScript is Script {
 
         SeamTransferStrategy strategy = new SeamTransferStrategy(
             IERC20(Constants.SEAM_ADDRESS),
-            IEscrowSeam(Constants.ESCROW_SEAM_ADDRESS),
             Constants.INCENTIVES_CONTROLLER_ADDRESS,
             Constants.SHORT_TIMELOCK_ADDRESS
         );
