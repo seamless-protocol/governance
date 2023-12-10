@@ -34,27 +34,27 @@ contract SeamEmissionManagerTest is Test {
     function test_SetUp() public {
         assertEq(emissionManager.getSeam(), seam);
         assertEq(emissionManager.getEmissionPerSecond(), emissionPerSecond);
-        assertEq(emissionManager.getClaimStartTimestamp(), block.timestamp);
+        assertEq(emissionManager.getEmissionStartTimestamp(), block.timestamp);
         assertEq(emissionManager.getLastClaimedTimestamp(), block.timestamp);
         assertTrue(emissionManager.hasRole(emissionManager.DEFAULT_ADMIN_ROLE(), address(this)));
         assertTrue(emissionManager.hasRole(emissionManager.CLAIMER_ROLE(), address(this)));
     }
 
-    function test_SetClaimStartTimestamp() public {
-        uint64 claimStartTimestamp = uint64(block.timestamp) + 1;
-        emissionManager.setClaimStartTimestamp(claimStartTimestamp);
-        assertEq(emissionManager.getClaimStartTimestamp(), claimStartTimestamp);
+    function test_SetEmissionStartTimestamp() public {
+        uint64 emissionStartTimestamp = uint64(block.timestamp) + 1;
+        emissionManager.setEmissionStartTimestamp(emissionStartTimestamp);
+        assertEq(emissionManager.getEmissionStartTimestamp(), emissionStartTimestamp);
         assertEq(emissionManager.getLastClaimedTimestamp(), 0);
     }
 
-    function testFuzz_SetClaimStartTimestamp(uint64 claimStartTimestamp) public {
-        claimStartTimestamp = uint64(bound(claimStartTimestamp, uint64(block.timestamp) + 1, type(uint64).max));
-        emissionManager.setClaimStartTimestamp(claimStartTimestamp);
-        assertEq(emissionManager.getClaimStartTimestamp(), claimStartTimestamp);
+    function testFuzz_SetEmissionStartTimestamp(uint64 emissionStartTimestamp) public {
+        emissionStartTimestamp = uint64(bound(emissionStartTimestamp, uint64(block.timestamp) + 1, type(uint64).max));
+        emissionManager.setEmissionStartTimestamp(emissionStartTimestamp);
+        assertEq(emissionManager.getEmissionStartTimestamp(), emissionStartTimestamp);
         assertEq(emissionManager.getLastClaimedTimestamp(), 0);
     }
 
-    function testFuzz_SetClaimStartTimestamp_RevertIf_NotDefaultAdmin(address caller, uint48 claimStartTimestamp)
+    function testFuzz_SetEmissionStartTimestamp_RevertIf_NotDefaultAdmin(address caller, uint48 emissionStartTimestamp)
         public
     {
         vm.assume(caller != address(this));
@@ -64,7 +64,7 @@ contract SeamEmissionManagerTest is Test {
                 IAccessControl.AccessControlUnauthorizedAccount.selector, caller, emissionManager.DEFAULT_ADMIN_ROLE()
             )
         );
-        emissionManager.setClaimStartTimestamp(claimStartTimestamp);
+        emissionManager.setEmissionStartTimestamp(emissionStartTimestamp);
         vm.stopPrank();
     }
 
@@ -111,11 +111,11 @@ contract SeamEmissionManagerTest is Test {
     function test_Claim_RevertIf_NotStarted() public {
         deal(seam, address(emissionManager), type(uint256).max);
 
-        emissionManager.setClaimStartTimestamp(uint64(block.timestamp) + 1);
+        emissionManager.setEmissionStartTimestamp(uint64(block.timestamp) + 1);
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ISeamEmissionManager.ClaimingNotStarted.selector, block.timestamp + 1
+                ISeamEmissionManager.EmissionsNotStarted.selector, block.timestamp + 1
             )
         );
         emissionManager.claim(address(this));

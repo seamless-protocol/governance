@@ -4,13 +4,13 @@ pragma solidity ^0.8.20;
 /// @title ISeamEmissionManager
 /// @notice Interface for the SEAM emission manager contract.
 interface ISeamEmissionManager {
-    /// @notice ClaimingNotStarted: claiming cannot start yet.
-    /// @param claimStartTimestamp When claiming can begin
-    error ClaimingNotStarted(uint64 claimStartTimestamp);
+    /// @notice EmissionsNotStarted: emissions have not started, claiming cannot happen yet.
+    /// @param emissionStartTimestamp When emissions begin
+    error EmissionsNotStarted(uint64 emissionStartTimestamp);
 
-    /// @notice Emitted when claim start timestamp is updated.
-    /// @param claimStartTimestamp When claiming can begin
-    event SetClaimStartTimestamp(uint256 claimStartTimestamp);
+    /// @notice Emitted when emission start timestamp is updated.
+    /// @param emissionStartTimestamp When emissions begin
+    event SetEmissionStartTimestamp(uint256 emissionStartTimestamp);
 
     /// @notice Emitted when emission per second is updated.
     /// @param emissionRate New emission per second
@@ -24,12 +24,12 @@ interface ISeamEmissionManager {
     /// @notice Returns SEAM token address.
     function getSeam() external view returns (address);
 
-    /// @notice Returns the timestamp after which claiming can start.
-    function getClaimStartTimestamp() external view returns (uint64);
+    /// @notice Returns the timestamp when emissions start and claiming can begin.
+    function getEmissionStartTimestamp() external view returns (uint64);
 
-    /// @notice Sets emission per second.
-    /// @param claimStartTimestamp When claiming can begin
-    function setClaimStartTimestamp(uint64 claimStartTimestamp) external;
+    /// @notice Sets the emissions start timestamp.
+    /// @param emissionStartTimestamp When emissions should begin
+    function setEmissionStartTimestamp(uint64 emissionStartTimestamp) external;
 
     /// @notice Returns last claimed timestamp.
     function getLastClaimedTimestamp() external view returns (uint64);
