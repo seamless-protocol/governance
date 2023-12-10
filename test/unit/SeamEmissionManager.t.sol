@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {SeamEmissionManager} from "src/SeamEmissionManager.sol";
+import {ISeamEmissionManager} from "src/interfaces/ISeamEmissionManager.sol";
 import {IAccessControl} from "openzeppelin-contracts/access/IAccessControl.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 
@@ -23,7 +24,8 @@ contract SeamEmissionManagerTest is Test {
                 seam,
                 emissionPerSecond,
                 address(this),
-                address(this)
+                address(this),
+                block.timestamp
             )
         );
         emissionManager = SeamEmissionManager(address(proxy));
@@ -32,9 +34,38 @@ contract SeamEmissionManagerTest is Test {
     function test_SetUp() public {
         assertEq(emissionManager.getSeam(), seam);
         assertEq(emissionManager.getEmissionPerSecond(), emissionPerSecond);
+        assertEq(emissionManager.getClaimStartTimestamp(), block.timestamp);
         assertEq(emissionManager.getLastClaimedTimestamp(), block.timestamp);
         assertTrue(emissionManager.hasRole(emissionManager.DEFAULT_ADMIN_ROLE(), address(this)));
         assertTrue(emissionManager.hasRole(emissionManager.CLAIMER_ROLE(), address(this)));
+    }
+
+    function test_SetClaimStartTimestamp() public {
+        uint64 claimStartTimestamp = uint64(block.timestamp) + 1;
+        emissionManager.setClaimStartTimestamp(claimStartTimestamp);
+        assertEq(emissionManager.getClaimStartTimestamp(), claimStartTimestamp);
+        assertEq(emissionManager.getLastClaimedTimestamp(), 0);
+    }
+
+    function testFuzz_SetClaimStartTimestamp(uint64 claimStartTimestamp) public {
+        claimStartTimestamp = uint64(bound(claimStartTimestamp, uint64(block.timestamp) + 1, type(uint64).max));
+        emissionManager.setClaimStartTimestamp(claimStartTimestamp);
+        assertEq(emissionManager.getClaimStartTimestamp(), claimStartTimestamp);
+        assertEq(emissionManager.getLastClaimedTimestamp(), 0);
+    }
+
+    function testFuzz_SetClaimStartTimestamp_RevertIf_NotDefaultAdmin(address caller, uint48 claimStartTimestamp)
+        public
+    {
+        vm.assume(caller != address(this));
+        vm.startPrank(caller);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, caller, emissionManager.DEFAULT_ADMIN_ROLE()
+            )
+        );
+        emissionManager.setClaimStartTimestamp(claimStartTimestamp);
+        vm.stopPrank();
     }
 
     function test_SetEmissionPerSecond() public {
@@ -75,6 +106,19 @@ contract SeamEmissionManagerTest is Test {
         assertEq(
             IERC20(seam).balanceOf(address(emissionManager)), emissionManagerBalanceBefore - emissionPerSecond * 5000
         );
+    }
+
+    function test_Claim_RevertIf_NotStarted() public {
+        deal(seam, address(emissionManager), type(uint256).max);
+
+        emissionManager.setClaimStartTimestamp(uint64(block.timestamp) + 1);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISeamEmissionManager.ClaimingNotStarted.selector, block.timestamp + 1
+            )
+        );
+        emissionManager.claim(address(this));
     }
 
     function testFuzz_Claim(address receiver, uint256 timeElapsed) public {
