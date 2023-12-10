@@ -24,10 +24,13 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
     /// @param seam SEAM token address
     /// @param emissionPerSecond Emission per second
     /// @param initialAdmin Initial admin of the contract
-    function initialize(address seam, uint256 emissionPerSecond, address initialAdmin, address claimer)
-        external
-        initializer
-    {
+    function initialize(
+        address seam,
+        uint256 emissionPerSecond,
+        address initialAdmin,
+        address claimer,
+        uint64 emissionStart
+    ) external initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
@@ -37,7 +40,8 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
         Storage.Layout storage $ = Storage.layout();
         $.seam = IERC20(seam);
         $.emissionPerSecond = emissionPerSecond;
-        $.lastClaimedTimestamp = uint64(block.timestamp);
+        $.emissionStartTimestamp = uint64(emissionStart);
+        $.lastClaimedTimestamp = uint64(emissionStart);
     }
 
     /// @inheritdoc UUPSUpgradeable
@@ -49,8 +53,22 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
     }
 
     /// @inheritdoc ISeamEmissionManager
-    function getLastClaimedTimestamp() external view returns (uint256) {
-        return Storage.layout().lastClaimedTimestamp;
+    function getEmissionStartTimestamp() external view returns (uint64) {
+        return Storage.layout().emissionStartTimestamp;
+    }
+
+    /// @inheritdoc ISeamEmissionManager
+    function setEmissionStartTimestamp(uint64 emissionStartTimestamp) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        Storage.Layout storage $ = Storage.layout();
+        $.emissionStartTimestamp = emissionStartTimestamp;
+        $.lastClaimedTimestamp = emissionStartTimestamp;
+        emit SetEmissionStartTimestamp(emissionStartTimestamp);
+    }
+
+    /// @inheritdoc ISeamEmissionManager
+    function getLastClaimedTimestamp() external view returns (uint64) {
+        uint64 lastClaimedTimestamp = Storage.layout().lastClaimedTimestamp;
+        return lastClaimedTimestamp > block.timestamp ? 0 : lastClaimedTimestamp;
     }
 
     /// @inheritdoc ISeamEmissionManager
@@ -67,6 +85,12 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
     /// @inheritdoc ISeamEmissionManager
     function claim(address receiver) external onlyRole(CLAIMER_ROLE) {
         Storage.Layout storage $ = Storage.layout();
+
+        uint64 emissionStartTimestamp = $.emissionStartTimestamp;
+        if (emissionStartTimestamp > block.timestamp) {
+            revert EmissionsNotStarted(emissionStartTimestamp);
+        }
+
         uint256 emissionPerSecond = $.emissionPerSecond;
         uint64 lastClaimedTimestamp = $.lastClaimedTimestamp;
         uint64 currentTimestamp = uint64(block.timestamp);

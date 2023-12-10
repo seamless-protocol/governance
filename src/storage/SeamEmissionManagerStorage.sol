@@ -7,6 +7,7 @@ library SeamEmissionManagerStorage {
     struct Layout {
         IERC20 seam;
         uint256 emissionPerSecond;
+        uint64 emissionStartTimestamp;
         uint64 lastClaimedTimestamp;
     }
 
