@@ -24,10 +24,13 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
     /// @param seam SEAM token address
     /// @param emissionPerSecond Emission per second
     /// @param initialAdmin Initial admin of the contract
-    function initialize(address seam, uint256 emissionPerSecond, address initialAdmin, address claimer, uint64 emissionStart)
-        external
-        initializer
-    {
+    function initialize(
+        address seam,
+        uint256 emissionPerSecond,
+        address initialAdmin,
+        address claimer,
+        uint64 emissionStart
+    ) external initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);

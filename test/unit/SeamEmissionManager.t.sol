@@ -113,11 +113,7 @@ contract SeamEmissionManagerTest is Test {
 
         emissionManager.setEmissionStartTimestamp(uint64(block.timestamp) + 1);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ISeamEmissionManager.EmissionsNotStarted.selector, block.timestamp + 1
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(ISeamEmissionManager.EmissionsNotStarted.selector, block.timestamp + 1));
         emissionManager.claim(address(this));
     }
 
