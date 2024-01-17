@@ -17,12 +17,8 @@ contract EscrowSeamTransferStrategyTest is Test {
     EscrowSeamTransferStrategy strategy;
 
     function setUp() public {
-        strategy = new EscrowSeamTransferStrategy(
-            IERC20(seam),
-            IEscrowSeam(escrowSeam),
-            incentivesController,
-            rewardsAdmin
-        );
+        strategy =
+            new EscrowSeamTransferStrategy(IERC20(seam), IEscrowSeam(escrowSeam), incentivesController, rewardsAdmin);
     }
 
     function test_SetUp() public {
