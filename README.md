@@ -52,15 +52,17 @@ SEAML1: `0x4a46Ebdd35B12703717d6F4DfbF5db91E6Ac0660`
 
 ### Base Mainnet
 
-| Contract       | Proxy address                                | Implementation address                       |
-| -------------- | -------------------------------------------- | -------------------------------------------- |
-| SEAM           | `0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85` | `0x57b4b7f830244FC854cD1123ff14AFd4C1AEfd3F` |
-| EscrowSEAM     | `0x998e44232BEF4F8B033e5A5175BDC97F2B10d5e5` | `0x2c1f4bBFb944DF2ff7cE636fd3122fd0Fe9a69c1` |
-| Timelock short | `0x639d2dD24304aC2e6A691d8c1cFf4a2665925fee` | `0x13F5B49217f330167D6350530F6185A75Ab35e6F` |
-| Governor short | `0x8768c789C6df8AF1a92d96dE823b4F80010Db294` | `0xC8A0E02878A4EF18fa260F0968cEcde8Eb607BFc` |
-| Timelock long  | `0xA96448469520666EDC351eff7676af2247b16718` | `0xBe170D7D3Cda6E9db39E012D0fE25aB83Fff790d` |
-| Governor long  | `0x04faA2826DbB38a7A4E9a5E3dB26b9E389E761B6` | `0x5acB96aAc90BF545500251D1eED10Bf47e996317` |
-| Airdrop        |                                              | `0xB7A6531665c5e2B2d5b9Aa04636847c8F45c702B` |
+| Contract                   | Proxy address                                | Implementation address                       |
+| -------------------------- | -------------------------------------------- | -------------------------------------------- |
+| SEAM                       | `0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85` | `0x57b4b7f830244FC854cD1123ff14AFd4C1AEfd3F` |
+| EscrowSEAM                 | `0x998e44232BEF4F8B033e5A5175BDC97F2B10d5e5` | `0x2c1f4bBFb944DF2ff7cE636fd3122fd0Fe9a69c1` |
+| Timelock short             | `0x639d2dD24304aC2e6A691d8c1cFf4a2665925fee` | `0x13F5B49217f330167D6350530F6185A75Ab35e6F` |
+| Governor short             | `0x8768c789C6df8AF1a92d96dE823b4F80010Db294` | `0xC8A0E02878A4EF18fa260F0968cEcde8Eb607BFc` |
+| Timelock long              | `0xA96448469520666EDC351eff7676af2247b16718` | `0xBe170D7D3Cda6E9db39E012D0fE25aB83Fff790d` |
+| Governor long              | `0x04faA2826DbB38a7A4E9a5E3dB26b9E389E761B6` | `0x5acB96aAc90BF545500251D1eED10Bf47e996317` |
+| Airdrop                    |                                              | `0xB7A6531665c5e2B2d5b9Aa04636847c8F45c702B` |
+| SeamTransferStrategy       |                                              | `0x2b1bdeFCe33f34128759f71076eBd62637FD154C` |
+| EscrowSeamTransferStrategy |                                              | `0x2181be388ced00754E7c1Ee33DBcF78397DD89aC` |
 
 ### Ethereum Mainnet
 
