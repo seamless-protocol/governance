@@ -37,4 +37,5 @@ deploy-airdrop-base-mainnet	:; forge script script/SeamAirdropDeploy.s.sol:SeamA
 deploy-seam-l1-eth-testnet		:; forge script script/SeamL1Deploy.s.sol:SeamL1DeployScript --force --evm-version shanghai --rpc-url ${ETH_TESTNET_RPC_URL} --slow --broadcast --verify --delay 5 -vvvv
 deploy-seam-l1-eth-mainnet		:; forge script script/SeamL1Deploy.s.sol:SeamL1DeployScript --force --evm-version shanghai --rpc-url ${ETH_RPC_URL} --slow --broadcast --verify --delay 5 -vvvv
 
-# verify-contract					:; forge verify-contract {address} SeamL1 --watch --chain-id 1 --constructor-args 
+deploy-escrow-seam-transfer-strategy-base-mainnet	:; forge script script/EscrowSeamTransferStrategy.s.sol:EscrowSeamTransferStrategyScript --force --rpc-url ${BASE_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
+deploy-escrow-seam-transfer-strategy-tenderly	:; forge script script/EscrowSeamTransferStrategy.s.sol:EscrowSeamTransferStrategyScript --force --rpc-url ${TENDERLY_FORK_RPC_URL} --slow --broadcast -vvvv
