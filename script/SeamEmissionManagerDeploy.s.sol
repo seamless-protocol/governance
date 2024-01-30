@@ -35,8 +35,9 @@ contract SeamEmissionManagerDeploy is Script {
                 SeamEmissionManager.initialize.selector,
                 Constants.SEAM_ADDRESS,
                 Constants.SEAM_EMISSION_PER_SECOND,
-                Constants.LONG_TIMELOCK_ADDRESS, 
-                Constants.SHORT_TIMELOCK_ADDRESS)
+                Constants.LONG_TIMELOCK_ADDRESS,
+                Constants.SHORT_TIMELOCK_ADDRESS
+            )
         );
         console.log(
             "Deployed SeamEmissionManager proxy to: ", address(proxy), " implementation: ", address(implementation)

@@ -30,13 +30,8 @@ contract SeamAirdropTest is Test {
     bytes32 immutable user2Proof = 0xceeae64152a2deaf8c661fccd5645458ba20261b16d2f6e090fe908b0ac9ca88;
 
     function setUp() public {
-        seamAirdrop = new SeamAirdrop(
-            IERC20(token),
-            IEscrowSeam(escrowSeamAddress),
-            vestingPercentage,
-            merkleRoot,
-            address(this)
-        );
+        seamAirdrop =
+            new SeamAirdrop(IERC20(token), IEscrowSeam(escrowSeamAddress), vestingPercentage, merkleRoot, address(this));
     }
 
     function test_SetUp() public {

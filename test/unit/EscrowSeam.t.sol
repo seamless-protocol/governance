@@ -19,12 +19,7 @@ contract EscrowSeamTest is Test {
         EscrowSeam implementation = new EscrowSeam();
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(implementation),
-            abi.encodeWithSelector(
-                EscrowSeam.initialize.selector,
-                address(seam),
-                VESTING_DURATION,
-                address(this)
-            )
+            abi.encodeWithSelector(EscrowSeam.initialize.selector, address(seam), VESTING_DURATION, address(this))
         );
         esSEAM = EscrowSeam(address(proxy));
     }

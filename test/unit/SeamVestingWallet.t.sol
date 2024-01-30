@@ -29,11 +29,7 @@ contract SeamVestingWalletTest is Test {
         ERC1967Proxy proxy_ = new ERC1967Proxy(
             address(_implementation),
             abi.encodeWithSelector(
-                SeamVestingWallet.initialize.selector,
-                address(this),
-                _beneficiary,
-                _token,
-                _duration
+                SeamVestingWallet.initialize.selector, address(this), _beneficiary, _token, _duration
             )
         );
         _proxy = SeamVestingWallet(address(proxy_));

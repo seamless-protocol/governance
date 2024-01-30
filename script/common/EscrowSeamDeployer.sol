@@ -10,12 +10,7 @@ contract EscrowSeamDeployer {
         EscrowSeam implementation = new EscrowSeam();
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(implementation),
-            abi.encodeWithSelector(
-                EscrowSeam.initialize.selector,
-                seam,
-                vestingDuration,
-                admin
-            )
+            abi.encodeWithSelector(EscrowSeam.initialize.selector, seam, vestingDuration, admin)
         );
         console.log("EscrowSeamProxy deployed to: ", address(proxy), " implementation: ", address(implementation));
 

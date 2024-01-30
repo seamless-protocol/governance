@@ -16,11 +16,7 @@ contract SeamTransferStrategyTest is Test {
     SeamTransferStrategy strategy;
 
     function setUp() public {
-        strategy = new SeamTransferStrategy(
-            IERC20(seam),
-            incentivesController,
-            rewardsAdmin
-        );
+        strategy = new SeamTransferStrategy(IERC20(seam), incentivesController, rewardsAdmin);
     }
 
     function test_SetUp() public {

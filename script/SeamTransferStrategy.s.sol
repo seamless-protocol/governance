@@ -30,9 +30,7 @@ contract SeamTransferStrategyScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         SeamTransferStrategy strategy = new SeamTransferStrategy(
-            IERC20(Constants.SEAM_ADDRESS),
-            Constants.INCENTIVES_CONTROLLER_ADDRESS,
-            Constants.SHORT_TIMELOCK_ADDRESS
+            IERC20(Constants.SEAM_ADDRESS), Constants.INCENTIVES_CONTROLLER_ADDRESS, Constants.SHORT_TIMELOCK_ADDRESS
         );
         console.log("Seam transfer strategy deployed to: ", address(strategy));
 
