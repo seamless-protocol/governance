@@ -50,6 +50,16 @@ Base Tenderly Fork: `make deploy-base-tenderly`
 
 SEAML1: `0x4a46Ebdd35B12703717d6F4DfbF5db91E6Ac0660`
 
+### Base Testnet (Sepolia)
+
+| Contract         | Proxy address                                | Implementation address                       |
+| ---------------- | -------------------------------------------- | -------------------------------------------- |
+| SEAM             | `0x178898686F23a50CCAC17962df41395484804a6B` | `0x4a46Ebdd35B12703717d6F4DfbF5db91E6Ac0660` |
+
+### Ethereum Testnet (Sepolia)
+
+SEAML1: `0xF01901ad15fcd248a7175E03c0ecCC0fD1D943Eb`
+
 ### Base Mainnet
 
 | Contract                   | Proxy address                                | Implementation address                       |
