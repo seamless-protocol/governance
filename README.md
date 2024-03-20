@@ -73,6 +73,7 @@ SEAML1: `0xF01901ad15fcd248a7175E03c0ecCC0fD1D943Eb`
 | Airdrop                    |                                              | `0xB7A6531665c5e2B2d5b9Aa04636847c8F45c702B` |
 | SeamTransferStrategy       |                                              | `0x2b1bdeFCe33f34128759f71076eBd62637FD154C` |
 | EscrowSeamTransferStrategy |                                              | `0x2181be388ced00754E7c1Ee33DBcF78397DD89aC` |
+| ERC20TransferStrategy      |                                              | `0x003D47ddDdb070822B35ae5cc4F0066Cf9E89753` |
 
 ### Ethereum Mainnet
 
