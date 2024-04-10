@@ -75,6 +75,11 @@ contract SeamVestingWallet is ISeamVestingWallet, Initializable, OwnableUpgradea
     }
 
     /// @inheritdoc ISeamVestingWallet
+    function setDuration(uint64 _duration) external onlyOwner {
+        Storage.layout().duration = _duration;
+    }
+
+    /// @inheritdoc ISeamVestingWallet
     function end() public view returns (uint256) {
         Storage.Layout storage $ = Storage.layout();
         uint256 start_ = $.start;

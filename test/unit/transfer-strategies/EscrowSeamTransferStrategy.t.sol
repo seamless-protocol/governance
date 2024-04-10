@@ -29,6 +29,8 @@ contract EscrowSeamTransferStrategyTest is Test {
     }
 
     function testFuzz_PerformTransfer(address user, uint256 amount) public {
+        vm.assume(user != address(0));
+
         deal(address(seam), address(strategy), type(uint256).max);
         vm.mockCall(
             address(escrowSeam), abi.encodeWithSelector(IEscrowSeam.deposit.selector, user, amount), abi.encode()
@@ -64,7 +66,7 @@ contract EscrowSeamTransferStrategyTest is Test {
 
     function testFuzz_EmergencyTransfer_RevertIf_NotRewardsAdmin(address caller, address to, uint256 amount) public {
         vm.assume(caller != rewardsAdmin);
-        vm.startPrank(to);
+        vm.startPrank(caller);
         vm.expectRevert(ITransferStrategyBase.NotRewardsAdmin.selector);
         strategy.emergencyWithdrawal(address(seam), to, amount);
         vm.stopPrank();

@@ -25,6 +25,8 @@ contract ERC20TransferStrategyTest is Test {
     }
 
     function testFuzz_PerformTransfer(address user, uint256 amount) public {
+        vm.assume(user != address(0));
+
         deal(address(rewardToken), address(strategy), type(uint256).max);
         vm.expectCall(address(rewardToken), abi.encodeWithSelector(IERC20.transfer.selector, user, amount));
         vm.startPrank(incentivesController);
@@ -36,7 +38,7 @@ contract ERC20TransferStrategyTest is Test {
         public
     {
         vm.assume(caller != incentivesController);
-        vm.startPrank(user);
+        vm.startPrank(caller);
         vm.expectRevert(ITransferStrategyBase.NotIncentivesController.selector);
         strategy.performTransfer(user, address(0), amount);
         vm.stopPrank();
@@ -48,6 +50,7 @@ contract ERC20TransferStrategyTest is Test {
         uint256 strategyBalanceBefore = type(uint256).max;
         deal(address(rewardToken), address(strategy), strategyBalanceBefore);
         vm.startPrank(rewardsAdmin);
+        vm.expectCall(address(rewardToken), abi.encodeWithSelector(IERC20.transfer.selector, to, amount));
         strategy.emergencyWithdrawal(address(rewardToken), to, amount);
         vm.stopPrank();
 
@@ -57,7 +60,7 @@ contract ERC20TransferStrategyTest is Test {
 
     function testFuzz_EmergencyTransfer_RevertIf_NotRewardsAdmin(address caller, address to, uint256 amount) public {
         vm.assume(caller != rewardsAdmin);
-        vm.startPrank(to);
+        vm.startPrank(caller);
         vm.expectRevert(ITransferStrategyBase.NotRewardsAdmin.selector);
         strategy.emergencyWithdrawal(address(rewardToken), to, amount);
         vm.stopPrank();

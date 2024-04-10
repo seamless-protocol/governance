@@ -83,6 +83,20 @@ contract SeamVestingWalletTest is Test {
         vm.stopPrank();
     }
 
+    function test_SetDuration() public {
+        _proxy.setDuration(1);
+        assertEq(_proxy.duration(), 1);
+    }
+
+    function test_SetDuration_RevertIf_NotOwner() public {
+        vm.startPrank(_beneficiary);
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _beneficiary));
+        _proxy.setDuration(1);
+
+        vm.stopPrank();
+    }
+
     /// forge-config: default.fuzz.runs = 1
     function testFuzz_Transfer(uint256 withdrawAmount) public {
         deal(_token, address(_proxy), type(uint256).max);

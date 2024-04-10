@@ -77,7 +77,7 @@ contract SeamAirdropTest is Test {
     }
 
     function testFuzz_Withdraw(address recipient, uint256 amount) public {
-        vm.assume(recipient != address(0));
+        vm.assume(recipient != address(0) && recipient != address(seamAirdrop));
         vm.assume(amount != 0);
         deal(token, address(seamAirdrop), amount);
         seamAirdrop.withdraw(IERC20(token), recipient, amount);
