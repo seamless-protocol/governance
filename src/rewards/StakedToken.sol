@@ -9,6 +9,7 @@ import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol"
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IStakedToken} from "../interfaces/IStakedToken.sol";
 import {StakedTokenStorage as Storage} from "../storage/StakedTokenStorage.sol";
+import "forge-std/console.sol";
 
 /// @title StakedToken contract
 /// @notice Contract for staking tokens and earning multiple tokens as rewards
@@ -225,5 +226,58 @@ contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPS
 
         rewardTokenData.rewardPerStakedToken += Math.mulDiv(tokenRewards, REWARD_PER_STAKED_TOKEN_BASE, totalStaked);
         rewardTokenData.lastUpdatedTimestamp = block.timestamp;
+    }
+
+    function transfer(address to, uint256 value) public override(ERC20Upgradeable, IERC20) returns (bool) {
+        Storage.Layout storage $ = Storage.layout();
+        address[] memory rewardTokens = $.rewardTokens;
+
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            address token = rewardTokens[i];
+
+            console.log("1");
+            _updateRewards(token);
+
+            uint256 senderStakedBalance = balanceOf(msg.sender);
+            uint256 recipientStakedBalance = balanceOf(to);
+
+            Storage.RewardTokenData storage rewardTokenData = $.rewardTokenData[token];
+
+            console.log("2");
+
+            // Calculate how much rewards sender has accrued until now
+            uint256 senderAccruedRewards = Math.mulDiv(
+                senderStakedBalance, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
+            ) - $.rewardDebt[msg.sender][token];
+
+            $.accruedRewards[msg.sender][token] += senderAccruedRewards;
+
+            console.log("3");
+
+            // Update reward debt of sender the same way as in withdraw function
+            $.rewardDebt[msg.sender][token] = Math.mulDiv(
+                senderStakedBalance - value, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
+            );
+
+            console.log("4");
+
+            // Calculate how much rewards recipient has accrued until now
+            uint256 recipientAccruedRewards = Math.mulDiv(
+                recipientStakedBalance, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
+            ) - $.rewardDebt[to][token];
+
+            console.log("5");
+
+            $.accruedRewards[to][token] += recipientAccruedRewards;
+
+            // Update reward debt of recipient the same way as in deposit function
+            $.rewardDebt[to][token] = Math.mulDiv(
+                recipientStakedBalance + value, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
+            );
+
+            console.log("6");
+        }
+
+        return super.transfer(to, value);
     }
 }

@@ -128,4 +128,57 @@ contract StakedTokenTest is Test {
             ABS_TOLERANCE
         );
     }
+
+    function testFuzz_Transfer(uint256 depositAmount, uint256 transferAmount, uint256 timeToPass, address recipient)
+        public
+    {
+        vm.assume(recipient != address(0));
+        depositAmount = bound(depositAmount, 1, 1_000_000_000 ether);
+        transferAmount = bound(transferAmount, 1, depositAmount);
+        timeToPass = bound(timeToPass, 1, 365 days);
+
+        token.mint(address(user), depositAmount);
+        user.deposit(depositAmount);
+
+        vm.warp(block.timestamp + timeToPass);
+
+        user.transfer(recipient, transferAmount);
+
+        assertEq(token.balanceOf(address(user)), 0);
+        assertEq(token.balanceOf(recipient), 0);
+        assertEq(token.balanceOf(address(stakedToken)), depositAmount);
+        assertEq(stakedToken.balanceOf(address(user)), depositAmount - transferAmount);
+        assertEq(stakedToken.balanceOf(recipient), transferAmount);
+        assertEq(stakedToken.totalSupply(), depositAmount);
+
+        uint256 accruedRewards = EMISSION_PER_SECOND * timeToPass;
+        assertApproxEqAbs(
+            stakedToken.getUserTotalRewardsForToken(address(user), address(rewardToken)), accruedRewards, ABS_TOLERANCE
+        );
+        assertApproxEqAbs(
+            stakedToken.getUserAccruedRewards(address(user), address(rewardToken)), accruedRewards, ABS_TOLERANCE
+        );
+
+        vm.warp(block.timestamp + timeToPass);
+        uint256 newAccruedRewards = EMISSION_PER_SECOND * timeToPass;
+        uint256 expectedAccruedRewardsUser1 =
+            accruedRewards + newAccruedRewards * (depositAmount - transferAmount) / depositAmount;
+        uint256 expectedAccruedRewardsUser2 = newAccruedRewards * transferAmount / depositAmount;
+
+        assertApproxEqAbs(
+            stakedToken.getUserTotalRewardsForToken(address(user), address(rewardToken)),
+            expectedAccruedRewardsUser1,
+            ABS_TOLERANCE
+        );
+        assertApproxEqAbs(
+            stakedToken.getUserAccruedRewards(address(user), address(rewardToken)), accruedRewards, ABS_TOLERANCE
+        );
+
+        assertApproxEqAbs(
+            stakedToken.getUserTotalRewardsForToken(recipient, address(rewardToken)),
+            expectedAccruedRewardsUser2,
+            ABS_TOLERANCE
+        );
+        assertApproxEqAbs(stakedToken.getUserAccruedRewards(recipient, address(rewardToken)), 0, ABS_TOLERANCE);
+    }
 }

@@ -26,4 +26,8 @@ contract User is Test {
     function claimRewards() external {
         stakedToken.claimRewards(address(this));
     }
+
+    function transfer(address to, uint256 amount) external {
+        stakedToken.transfer(to, amount);
+    }
 }
