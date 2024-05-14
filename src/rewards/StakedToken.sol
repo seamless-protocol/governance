@@ -10,8 +10,6 @@ import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IStakedToken} from "../interfaces/IStakedToken.sol";
 import {StakedTokenStorage as Storage} from "../storage/StakedTokenStorage.sol";
 
-import "forge-std/console.sol";
-
 /// @title StakedToken contract
 /// @notice Contract for staking tokens and earning multiple tokens as rewards
 /// @dev For each new staking token new contract should be deployed
