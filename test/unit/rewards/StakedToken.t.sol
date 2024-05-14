@@ -181,4 +181,15 @@ contract StakedTokenTest is Test {
         );
         assertApproxEqAbs(stakedToken.getUserAccruedRewards(recipient, address(rewardToken)), 0, ABS_TOLERANCE);
     }
+
+    // TODO: Copy this test to scenario tests and check if RewardTokenData is updated correctly
+    function testFuzz_ConfigureRewardToken(address asset, uint256 emissionPerSecond1, uint256 emissionPerSecond2)
+        public
+    {
+        stakedToken.configureRewardToken(asset, emissionPerSecond1);
+        assertEq(stakedToken.getEmissionPerSecondForToken(asset), emissionPerSecond1);
+
+        stakedToken.configureRewardToken(asset, emissionPerSecond2);
+        assertEq(stakedToken.getEmissionPerSecondForToken(asset), emissionPerSecond2);
+    }
 }

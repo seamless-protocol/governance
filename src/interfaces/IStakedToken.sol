@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {StakedTokenStorage as Storage} from "../storage/StakedTokenStorage.sol";
 
 interface IStakedToken is IERC20 {
     /// @notice Error emitted when user tries to deposit or withdraw zero amount
@@ -33,6 +34,14 @@ interface IStakedToken is IERC20 {
 
     /// @notice Returns list of reward tokens
     function getRewardTokens() external view returns (address[] memory);
+
+    /// @notice Returns configured emission per second for given reward token
+    /// @param rewardToken Token to get emission for
+    function getEmissionPerSecondForToken(address rewardToken) external view returns (uint256);
+
+    /// @notice Returns reward token data for given reward token, last updated timestamp and reward per staked token
+    /// @param rewardToken Token to get data for
+    function getRewardTokenData(address rewardToken) external view returns (Storage.RewardTokenData memory);
 
     /// @notice Returns accrued rewards for given account and reward token
     /// @param user Account to get rewards for

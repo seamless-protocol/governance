@@ -9,7 +9,6 @@ import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol"
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IStakedToken} from "../interfaces/IStakedToken.sol";
 import {StakedTokenStorage as Storage} from "../storage/StakedTokenStorage.sol";
-import "forge-std/console.sol";
 
 /// @title StakedToken contract
 /// @notice Contract for staking tokens and earning multiple tokens as rewards
@@ -51,6 +50,12 @@ contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPS
         return Storage.layout().rewardTokens;
     }
 
+    /// @inheritdoc IStakedToken
+    function getEmissionPerSecondForToken(address rewardToken) external view returns (uint256) {
+        return Storage.layout().emissionPerSecond[rewardToken];
+    }
+
+    /// @inheritdoc IStakedToken
     function getRewardTokenData(address rewardToken)
         external
         view
@@ -235,15 +240,12 @@ contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPS
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             address token = rewardTokens[i];
 
-            console.log("1");
             _updateRewards(token);
 
             uint256 senderStakedBalance = balanceOf(msg.sender);
             uint256 recipientStakedBalance = balanceOf(to);
 
             Storage.RewardTokenData storage rewardTokenData = $.rewardTokenData[token];
-
-            console.log("2");
 
             // Calculate how much rewards sender has accrued until now
             uint256 senderAccruedRewards = Math.mulDiv(
@@ -252,21 +254,15 @@ contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPS
 
             $.accruedRewards[msg.sender][token] += senderAccruedRewards;
 
-            console.log("3");
-
             // Update reward debt of sender the same way as in withdraw function
             $.rewardDebt[msg.sender][token] = Math.mulDiv(
                 senderStakedBalance - value, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
             );
 
-            console.log("4");
-
             // Calculate how much rewards recipient has accrued until now
             uint256 recipientAccruedRewards = Math.mulDiv(
                 recipientStakedBalance, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
             ) - $.rewardDebt[to][token];
-
-            console.log("5");
 
             $.accruedRewards[to][token] += recipientAccruedRewards;
 
@@ -274,8 +270,6 @@ contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPS
             $.rewardDebt[to][token] = Math.mulDiv(
                 recipientStakedBalance + value, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
             );
-
-            console.log("6");
         }
 
         return super.transfer(to, value);
