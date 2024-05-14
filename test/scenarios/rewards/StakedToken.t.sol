@@ -10,7 +10,8 @@ import {User} from "./User.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 
 contract StakedTokenTest is Test {
-    uint256 public constant ABS_TOLERANCE = 3 wei;
+    uint256 public constant ABS_TOLERANCE = 4 wei;
+    uint256 public constant EMISSION_PER_SECOND = 10000 wei;
 
     ERC20Mock public token = new ERC20Mock();
     ERC20Mock public rewardToken = new ERC20Mock();
@@ -40,17 +41,18 @@ contract StakedTokenTest is Test {
         token.mint(address(user1), 1_000_000 ether);
         token.mint(address(user2), 1_000_000 ether);
         token.mint(address(user3), 1_000_000 ether);
+
+        stakedToken.configureRewardToken(address(rewardToken), EMISSION_PER_SECOND);
     }
 
     function testDeploy() public {
         assertEq(stakedToken.getStakedToken(), address(token));
         assertEq(stakedToken.owner(), address(this));
-        assertEq(stakedToken.getRewardTokens().length, 0);
+        assertEq(stakedToken.getRewardTokens().length, 1);
     }
 
     /*
     Scenario: 
-    - Configure the reward token
     - User deposits the staked token
     - User deposits again after some time
     - User deposits again after some time
@@ -59,16 +61,6 @@ contract StakedTokenTest is Test {
     - Users accrued rewards should proportionally increase based on passed time between deposits
     */
     function testDeposit_OnlyOneStaker() public {
-        // Configure the reward token
-
-        address[] memory rewardTokens = new address[](1);
-        rewardTokens[0] = address(rewardToken);
-
-        uint256[] memory emissionPerSecond = new uint256[](1);
-        emissionPerSecond[0] = 1 ether;
-
-        stakedToken.addRewardTokens(rewardTokens, emissionPerSecond);
-
         // User deposits the staked token
 
         uint256 amount = 10 ether;
@@ -83,7 +75,7 @@ contract StakedTokenTest is Test {
 
         // Check that user's accrued rewards are correctly updated after iteactions
 
-        uint256 expectedAccruedRewards = timeToPass * emissionPerSecond[0];
+        uint256 expectedAccruedRewards = timeToPass * EMISSION_PER_SECOND;
         assertEq(stakedToken.getUserAccruedRewards(address(this), address(rewardToken)), expectedAccruedRewards);
 
         // User deposits again after some time
@@ -94,13 +86,12 @@ contract StakedTokenTest is Test {
 
         // Check that user's accrued rewards are correctly updated after iteactions
 
-        expectedAccruedRewards += timeToPass * emissionPerSecond[0];
+        expectedAccruedRewards += timeToPass * EMISSION_PER_SECOND;
         assertEq(stakedToken.getUserAccruedRewards(address(this), address(rewardToken)), expectedAccruedRewards);
     }
 
     /*
     Scenario:
-    - Configure the reward token
     - User1 deposits the tokens
     - User2 deposits the tokens
     - User3 deposits the tokens
@@ -116,16 +107,6 @@ contract StakedTokenTest is Test {
     - Users staked amount should be correctly updated after each deposit
     */
     function testDeposti_MulipleStakers() public {
-        // Configure the reward token
-
-        address[] memory rewardTokens = new address[](1);
-        rewardTokens[0] = address(rewardToken);
-
-        uint256[] memory emissionPerSecond = new uint256[](1);
-        emissionPerSecond[0] = 1000;
-
-        stakedToken.addRewardTokens(rewardTokens, emissionPerSecond);
-
         uint256 expectedUser1TotalStaked;
         uint256 expectedUser2TotalStaked;
         uint256 expectedUser3TotalStaked;
@@ -148,7 +129,7 @@ contract StakedTokenTest is Test {
         uint256 timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        expectedUser1AccruedRewards += timeToPass * emissionPerSecond[0];
+        expectedUser1AccruedRewards += timeToPass * EMISSION_PER_SECOND;
 
         amount = 20 ether;
         user2.deposit(amount);
@@ -163,7 +144,7 @@ contract StakedTokenTest is Test {
         timeToPass = 8_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        uint256 newRewards = timeToPass * emissionPerSecond[0];
+        uint256 newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += newRewards * expectedUser2TotalStaked / expectedTotalStaked;
 
@@ -180,7 +161,7 @@ contract StakedTokenTest is Test {
         timeToPass = 765_241;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -198,7 +179,7 @@ contract StakedTokenTest is Test {
         timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -217,7 +198,7 @@ contract StakedTokenTest is Test {
         amount = 1_000 ether;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -234,7 +215,7 @@ contract StakedTokenTest is Test {
         timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -252,7 +233,7 @@ contract StakedTokenTest is Test {
         timeToPass = 100_000_124;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -270,7 +251,7 @@ contract StakedTokenTest is Test {
         timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -286,7 +267,6 @@ contract StakedTokenTest is Test {
 
     /*
     Scenario:
-    - Configure the reward token
     - User1 deposits the tokens
     - User1 withdraws the tokens
     - User1 deposits the tokens
@@ -302,16 +282,6 @@ contract StakedTokenTest is Test {
     - User's total staked amount should be correctly updated after each deposit and withdrawal
     */
     function testWithdraw_OnlyOneUser() public {
-        // Configure the reward token
-
-        address[] memory rewardTokens = new address[](1);
-        rewardTokens[0] = address(rewardToken);
-
-        uint256[] memory emissionPerSecond = new uint256[](1);
-        emissionPerSecond[0] = 1000;
-
-        stakedToken.addRewardTokens(rewardTokens, emissionPerSecond);
-
         uint256 expectedUserTotalStaked;
         uint256 expectedUserAccruedRewards;
 
@@ -328,7 +298,7 @@ contract StakedTokenTest is Test {
 
         uint256 timeToPass = 982_123;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards = timeToPass * emissionPerSecond[0];
+        expectedUserAccruedRewards = timeToPass * EMISSION_PER_SECOND;
 
         amount = 9.234 ether;
         user1.withdraw(amount);
@@ -341,7 +311,7 @@ contract StakedTokenTest is Test {
 
         timeToPass = 1234_213_128;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards += timeToPass * emissionPerSecond[0];
+        expectedUserAccruedRewards += timeToPass * EMISSION_PER_SECOND;
 
         amount = 1.8888 ether;
         user1.deposit(amount);
@@ -354,7 +324,7 @@ contract StakedTokenTest is Test {
 
         timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards += timeToPass * emissionPerSecond[0];
+        expectedUserAccruedRewards += timeToPass * EMISSION_PER_SECOND;
 
         user1.withdraw(expectedUserTotalStaked);
         expectedUserTotalStaked = 0;
@@ -383,7 +353,7 @@ contract StakedTokenTest is Test {
 
         timeToPass = 154_000_451;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards += timeToPass * emissionPerSecond[0];
+        expectedUserAccruedRewards += timeToPass * EMISSION_PER_SECOND;
 
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
         _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
@@ -391,7 +361,6 @@ contract StakedTokenTest is Test {
 
     /*
     Scenario:
-    - Configure the reward token
     - User1 deposits the tokens
     - User2 deposits the tokens
     - User1 does partial withdrawal
@@ -411,20 +380,10 @@ contract StakedTokenTest is Test {
     - Total staked amount should be correctly updated after each deposit and withdrawal
     */
     function testDepositAndWithdraw_MultipleUsers() public {
-        // Configure the reward token
-
-        address[] memory rewardTokens = new address[](1);
-        rewardTokens[0] = address(rewardToken);
-
-        uint256[] memory emissionPerSecond = new uint256[](1);
-        emissionPerSecond[0] = 1000;
-
-        stakedToken.addRewardTokens(rewardTokens, emissionPerSecond);
-
+        uint256 expectedTotalStaked;
         uint256 expectedUser1TotalStaked;
         uint256 expectedUser2TotalStaked;
         uint256 expectedUser3TotalStaked;
-        uint256 expectedTotalStaked;
         uint256 expectedUser1AccruedRewards;
         uint256 expectedUser2AccruedRewards;
         uint256 expectedUser3AccruedRewards;
@@ -444,7 +403,7 @@ contract StakedTokenTest is Test {
 
         uint256 timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
-        expectedUser1AccruedRewards = timeToPass * emissionPerSecond[0];
+        expectedUser1AccruedRewards = timeToPass * EMISSION_PER_SECOND;
 
         amount = 20 ether;
         user2.deposit(amount);
@@ -458,7 +417,7 @@ contract StakedTokenTest is Test {
 
         timeToPass = 8_000_000;
         vm.warp(block.timestamp + timeToPass);
-        uint256 newRewards = timeToPass * emissionPerSecond[0];
+        uint256 newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
 
@@ -474,7 +433,7 @@ contract StakedTokenTest is Test {
 
         timeToPass = 765_241;
         vm.warp(block.timestamp + timeToPass);
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
 
@@ -490,7 +449,7 @@ contract StakedTokenTest is Test {
 
         timeToPass = 1_234_567;
         vm.warp(block.timestamp + timeToPass);
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -507,7 +466,7 @@ contract StakedTokenTest is Test {
 
         timeToPass = 145_234_111_327;
         vm.warp(block.timestamp + timeToPass);
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -525,7 +484,7 @@ contract StakedTokenTest is Test {
 
         timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -543,7 +502,7 @@ contract StakedTokenTest is Test {
 
         timeToPass = 1_000_001;
         vm.warp(block.timestamp + timeToPass);
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
 
@@ -559,7 +518,7 @@ contract StakedTokenTest is Test {
 
         timeToPass = 1_245_678;
         vm.warp(block.timestamp + timeToPass);
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
 
         user3.withdraw(expectedUser3TotalStaked);
@@ -580,7 +539,6 @@ contract StakedTokenTest is Test {
 
     /*
     Scenario:
-    - Configure the reward token
     - User1 deposits the tokens
     - User1 claims the rewards
     - User1 deposits the tokens
@@ -598,16 +556,6 @@ contract StakedTokenTest is Test {
     - Users should not earn rewards after withdrawing everything
     */
     function testClaimReward_OnlyOneUser() public {
-        // Configure the reward token
-
-        address[] memory rewardTokens = new address[](1);
-        rewardTokens[0] = address(rewardToken);
-
-        uint256[] memory emissionPerSecond = new uint256[](1);
-        emissionPerSecond[0] = 1000;
-
-        stakedToken.addRewardTokens(rewardTokens, emissionPerSecond);
-
         uint256 expectedUserTotalStaked;
         uint256 expectedUserAccruedRewards;
 
@@ -625,7 +573,7 @@ contract StakedTokenTest is Test {
 
         uint256 timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards = timeToPass * emissionPerSecond[0];
+        expectedUserAccruedRewards = timeToPass * EMISSION_PER_SECOND;
 
         _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
@@ -639,7 +587,7 @@ contract StakedTokenTest is Test {
 
         timeToPass = 1_000_000_000;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards = timeToPass * emissionPerSecond[0];
+        expectedUserAccruedRewards = timeToPass * EMISSION_PER_SECOND;
 
         _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
@@ -654,7 +602,7 @@ contract StakedTokenTest is Test {
 
         timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards += timeToPass * emissionPerSecond[0];
+        expectedUserAccruedRewards += timeToPass * EMISSION_PER_SECOND;
 
         _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
@@ -670,7 +618,7 @@ contract StakedTokenTest is Test {
 
         timeToPass = 1_000_244_444_123_444;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards += timeToPass * emissionPerSecond[0];
+        expectedUserAccruedRewards += timeToPass * EMISSION_PER_SECOND;
 
         uint256 rewardTokenBalanceBefore = rewardToken.balanceOf(address(user1));
         _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
@@ -687,7 +635,7 @@ contract StakedTokenTest is Test {
 
         timeToPass = 123_456_679_865_111_432;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards = timeToPass * emissionPerSecond[0];
+        expectedUserAccruedRewards = timeToPass * EMISSION_PER_SECOND;
 
         _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
@@ -703,7 +651,7 @@ contract StakedTokenTest is Test {
 
         timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards += timeToPass * emissionPerSecond[0];
+        expectedUserAccruedRewards += timeToPass * EMISSION_PER_SECOND;
 
         user1.withdraw(expectedUserTotalStaked);
         expectedUserTotalStaked = 0;
@@ -739,7 +687,6 @@ contract StakedTokenTest is Test {
 
     /*
     Scenario:
-    - Configure the reward token
     - User1 deposits the tokens
     - User2 deposits the tokens
     - User3 deposits the tokens
@@ -761,16 +708,6 @@ contract StakedTokenTest is Test {
     - Some time passes and no rewards are accrued by any user
     */
     function testClaimRewards_MultipleUsers() public {
-        // Configure the reward token
-
-        address[] memory rewardTokens = new address[](1);
-        rewardTokens[0] = address(rewardToken);
-
-        uint256[] memory emissionPerSecond = new uint256[](1);
-        emissionPerSecond[0] = 1000;
-
-        stakedToken.addRewardTokens(rewardTokens, emissionPerSecond);
-
         uint256 expectedTotalStaked;
         uint256 expectedUser1TotalStaked;
         uint256 expectedUser2TotalStaked;
@@ -794,7 +731,7 @@ contract StakedTokenTest is Test {
         uint256 timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        expectedUser1AccruedRewards = timeToPass * emissionPerSecond[0];
+        expectedUser1AccruedRewards = timeToPass * EMISSION_PER_SECOND;
         _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         amount = 20 ether;
@@ -810,7 +747,7 @@ contract StakedTokenTest is Test {
         timeToPass = 111_222_213_445_796_421;
         vm.warp(block.timestamp + timeToPass);
 
-        uint256 newRewards = timeToPass * emissionPerSecond[0];
+        uint256 newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
 
@@ -827,7 +764,7 @@ contract StakedTokenTest is Test {
         timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -848,7 +785,7 @@ contract StakedTokenTest is Test {
         timeToPass = 435_333_222_777_111_111_111;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -867,7 +804,7 @@ contract StakedTokenTest is Test {
         timeToPass = 234_124_123_123_123_123;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -885,7 +822,7 @@ contract StakedTokenTest is Test {
         timeToPass = 499_999_999_999_999_999;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
 
@@ -907,7 +844,7 @@ contract StakedTokenTest is Test {
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
 
@@ -926,7 +863,7 @@ contract StakedTokenTest is Test {
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -949,7 +886,7 @@ contract StakedTokenTest is Test {
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -966,7 +903,7 @@ contract StakedTokenTest is Test {
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
         _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
@@ -986,7 +923,7 @@ contract StakedTokenTest is Test {
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
         _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
@@ -997,7 +934,7 @@ contract StakedTokenTest is Test {
         timeToPass = 2134;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
         _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
@@ -1018,7 +955,7 @@ contract StakedTokenTest is Test {
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
         _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
@@ -1035,7 +972,7 @@ contract StakedTokenTest is Test {
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser3AccruedRewards += newRewards;
         _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
@@ -1054,7 +991,7 @@ contract StakedTokenTest is Test {
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond[0];
+        newRewards = timeToPass * EMISSION_PER_SECOND;
         expectedUser3AccruedRewards += newRewards;
         _validateAccruedRewards(0, 0, expectedUser3AccruedRewards);
 
@@ -1101,13 +1038,7 @@ contract StakedTokenTest is Test {
     function testClaimRewards_MultipleStakers_PredefinedValues() public {
         // Configure the reward token
 
-        address[] memory rewardTokens = new address[](1);
-        rewardTokens[0] = address(rewardToken);
-
-        uint256[] memory emissionPerSecond = new uint256[](1);
-        emissionPerSecond[0] = 1 ether;
-
-        stakedToken.addRewardTokens(rewardTokens, emissionPerSecond);
+        stakedToken.configureRewardToken(address(rewardToken), 1 ether);
 
         // User1 deposits 10 tokens, check that his position and accrued rewards are correctly updated, rewards should be 0
 

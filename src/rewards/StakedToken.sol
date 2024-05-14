@@ -88,20 +88,26 @@ contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPS
         return $.accruedRewards[user][rewardToken] + pendingRewards - $.rewardDebt[user][rewardToken];
     }
 
-    function addRewardTokens(address[] calldata rewardTokens, uint256[] calldata emissionPerSecond)
-        external
-        onlyOwner
-    {
+    /// @inheritdoc IStakedToken
+    function configureRewardToken(address rewardToken, uint256 emissionPerSecond) external onlyOwner {
         Storage.Layout storage $ = Storage.layout();
+        address[] storage rewardTokenList = $.rewardTokens;
 
-        for (uint256 i = 0; i < rewardTokens.length; i++) {
-            address token = rewardTokens[i];
+        for (uint256 i = 0; i < rewardTokenList.length; i++) {
+            if (rewardTokenList[i] == rewardToken) {
+                _updateRewards(rewardToken);
 
-            _updateRewards(token);
-
-            $.emissionPerSecond[token] = emissionPerSecond[i];
-            $.rewardTokens.push(token);
+                $.emissionPerSecond[rewardToken] = emissionPerSecond;
+                return;
+            }
         }
+
+        rewardTokenList.push(rewardToken);
+
+        Storage.RewardTokenData storage rewardTokenData = $.rewardTokenData[rewardToken];
+        rewardTokenData.lastUpdatedTimestamp = block.timestamp;
+
+        $.emissionPerSecond[rewardToken] = emissionPerSecond;
     }
 
     /// @inheritdoc IStakedToken

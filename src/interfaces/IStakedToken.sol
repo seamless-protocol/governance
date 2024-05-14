@@ -45,6 +45,13 @@ interface IStakedToken {
     /// @dev This function is used internally to calculate rewards for user when claiming rewards and externaly to show total rewards for user
     function getUserTotalRewardsForToken(address user, address rewardToken) external view returns (uint256);
 
+    /// @notice Configures emission per second for given reward token
+    /// @param rewardToken Token to configure emission for
+    /// @param emissionPerSecond Emission per second for given token
+    /// @dev This function can be called only by owner
+    /// @dev If reward token is not in the list it will be added to the list otherwise emission per second will be updated and reward per staked token will be recalculated
+    function configureRewardToken(address rewardToken, uint256 emissionPerSecond) external;
+
     /// @notice Stakes tokens from sender on behalf of given account, given account will staked tokens
     /// @param amount Amount to stake
     /// @param onBehalfOf Account to stake for
