@@ -7,7 +7,7 @@ import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.so
 import {StakedToken} from "src/rewards/StakedToken.sol";
 import {IStakedToken} from "src/interfaces/IStakedToken.sol";
 import {User} from "../../scenarios/rewards/User.sol";
-import {StakedTokenStorage as Storage} from "../../../src/storage/StakedTokenStorage.sol";
+import {RewardTokenData} from "../../../src/types/DataTypes.sol";
 
 contract StakedTokenTest is Test {
     uint256 public constant ABS_TOLERANCE = 3 wei;
@@ -49,7 +49,7 @@ contract StakedTokenTest is Test {
         assertEq(stakedToken.getUserTotalRewardsForToken(address(user), address(rewardToken)), 0);
         assertEq(stakedToken.getUserAccruedRewards(address(user), address(rewardToken)), 0);
 
-        Storage.RewardTokenData memory rewardTokenData = stakedToken.getRewardTokenData(address(rewardToken));
+        RewardTokenData memory rewardTokenData = stakedToken.getRewardTokenData(address(rewardToken));
 
         assertEq(rewardTokenData.rewardPerStakedToken, 0);
         assertEq(rewardTokenData.lastUpdatedTimestamp, block.timestamp);

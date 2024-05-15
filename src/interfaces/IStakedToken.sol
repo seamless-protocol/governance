@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {RewardTokenData} from "../types/DataTypes.sol";
 import {StakedTokenStorage as Storage} from "../storage/StakedTokenStorage.sol";
 
 interface IStakedToken is IERC20 {
@@ -45,10 +46,7 @@ interface IStakedToken is IERC20 {
     /// @notice Returns reward token data for given reward token, last updated timestamp and reward per staked token
     /// @param rewardToken Token to get data for
     /// @param rewardTokenData Data for given reward token
-    function getRewardTokenData(address rewardToken)
-        external
-        view
-        returns (Storage.RewardTokenData memory rewardTokenData);
+    function getRewardTokenData(address rewardToken) external view returns (RewardTokenData memory rewardTokenData);
 
     /// @notice Returns accrued rewards for given account and reward token
     /// @param user Account to get rewards for

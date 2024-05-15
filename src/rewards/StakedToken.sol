@@ -8,6 +8,7 @@ import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IStakedToken} from "../interfaces/IStakedToken.sol";
+import {RewardTokenData} from "../types/DataTypes.sol";
 import {StakedTokenStorage as Storage} from "../storage/StakedTokenStorage.sol";
 
 /// @title StakedToken contract
@@ -55,11 +56,7 @@ contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPS
     }
 
     /// @inheritdoc IStakedToken
-    function getRewardTokenData(address rewardToken)
-        external
-        view
-        returns (Storage.RewardTokenData memory rewardTokenData)
-    {
+    function getRewardTokenData(address rewardToken) external view returns (RewardTokenData memory rewardTokenData) {
         return Storage.layout().rewardTokenData[rewardToken];
     }
 
@@ -71,12 +68,11 @@ contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPS
     /// @inheritdoc IStakedToken
     function getUserTotalRewardsForToken(address user, address rewardToken) public view returns (uint256) {
         Storage.Layout storage $ = Storage.layout();
+        RewardTokenData memory rewardTokenData = $.rewardTokenData[rewardToken];
 
         uint256 totalStaked = totalSupply();
         uint256 userStakedBalance = balanceOf(user);
-        uint256 rewardPerStakedToken = $.rewardTokenData[rewardToken].rewardPerStakedToken;
-
-        Storage.RewardTokenData storage rewardTokenData = $.rewardTokenData[rewardToken];
+        uint256 rewardPerStakedToken = rewardTokenData.rewardPerStakedToken;
 
         if (rewardTokenData.lastUpdatedTimestamp < block.timestamp && totalStaked > 0) {
             uint256 emissionPerSecond = $.emissionPerSecond[rewardToken];
@@ -107,7 +103,7 @@ contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPS
 
         rewardTokenList.push(rewardToken);
 
-        Storage.RewardTokenData storage rewardTokenData = $.rewardTokenData[rewardToken];
+        RewardTokenData storage rewardTokenData = $.rewardTokenData[rewardToken];
         rewardTokenData.lastUpdatedTimestamp = block.timestamp;
 
         $.emissionPerSecond[rewardToken] = emissionPerSecond;
@@ -177,7 +173,7 @@ contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPS
         SafeERC20.safeTransfer(IERC20(rewardToken), onBehalfOf, userTotalRewards);
 
         Storage.Layout storage $ = Storage.layout();
-        Storage.RewardTokenData storage rewardTokenData = $.rewardTokenData[rewardToken];
+        RewardTokenData memory rewardTokenData = $.rewardTokenData[rewardToken];
         uint256 userStakedBalance = balanceOf(msg.sender);
 
         $.rewardDebt[msg.sender][rewardToken] =
@@ -189,7 +185,7 @@ contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPS
 
     function _updateRewards(address rewardToken) internal {
         Storage.Layout storage $ = Storage.layout();
-        Storage.RewardTokenData storage rewardTokenData = $.rewardTokenData[rewardToken];
+        RewardTokenData storage rewardTokenData = $.rewardTokenData[rewardToken];
 
         if (rewardTokenData.lastUpdatedTimestamp >= block.timestamp) {
             return;
@@ -236,7 +232,7 @@ contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPS
         uint256 userFutureBalance
     ) internal {
         Storage.Layout storage $ = Storage.layout();
-        Storage.RewardTokenData storage rewardTokenData = $.rewardTokenData[rewardToken];
+        RewardTokenData memory rewardTokenData = $.rewardTokenData[rewardToken];
 
         if (userCurrentBalance > 0) {
             // Calculate how much rewards user has accrued until now

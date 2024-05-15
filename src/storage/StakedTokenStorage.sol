@@ -1,16 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-library StakedTokenStorage {
-    struct RewardTokenData {
-        /// @dev Reward per staked token, value is not neccessary on 18 decimals, base value is determined by REWARD_PER_STAKED_TOKEN_BASE constant
-        /// @dev This value is used to calculate rewards for each user, the more decimals this value has the more precision rewards will have
-        uint256 rewardPerStakedToken;
-        /// @dev Last updated timestamp of rewards for this token, used to calculate accrued rewards in next interaction
-        /// @dev This value can be different between reward tokens if no interaction happened after reward token is configured
-        uint256 lastUpdatedTimestamp;
-    }
+import {RewardTokenData} from "../types/DataTypes.sol";
 
+library StakedTokenStorage {
     /// @dev Storage layout of the contract
     struct Layout {
         /// @dev Address of staking token, only one token can be staked
