@@ -16,7 +16,7 @@ import {StakedTokenStorage as Storage} from "../storage/StakedTokenStorage.sol";
 contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @dev Constant that determines on how many decimals rewardPerStakedToken will be calculated and saved in storage
     /// @dev The more decimals this value has the more precision rewards will have
-    /// @dev Nothing more that changing this value is needed in order to change precision
+    /// @dev Nothing more than changing this value is needed in order to change precision
     uint256 public constant REWARD_PER_STAKED_TOKEN_BASE = 1e36;
 
     constructor() {
@@ -28,9 +28,8 @@ contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPS
         external
         initializer
     {
-        __ERC20_init_unchained(name, symbol);
+        __ERC20_init(name, symbol);
         __Ownable_init(initialOwner);
-        __UUPSUpgradeable_init();
 
         Storage.Layout storage $ = Storage.layout();
         $.stakedToken = stakeToken;
@@ -122,25 +121,12 @@ contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPS
 
         Storage.Layout storage $ = Storage.layout();
         address[] memory rewardTokens = $.rewardTokens;
+        uint256 userStakedBalance = balanceOf(onBehalfOf);
 
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             address rewardToken = rewardTokens[i];
             _updateRewards(rewardToken);
-
-            Storage.RewardTokenData storage rewardTokenData = $.rewardTokenData[rewardToken];
-            uint256 userStakedBalance = balanceOf(onBehalfOf);
-
-            if (userStakedBalance > 0) {
-                uint256 accruedRewards = Math.mulDiv(
-                    userStakedBalance, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
-                ) - $.rewardDebt[onBehalfOf][rewardToken];
-
-                $.accruedRewards[onBehalfOf][rewardToken] += accruedRewards;
-            }
-
-            $.rewardDebt[onBehalfOf][rewardToken] = Math.mulDiv(
-                userStakedBalance + amount, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
-            );
+            _updateUserRewards(onBehalfOf, rewardToken, userStakedBalance, userStakedBalance + amount);
         }
 
         SafeERC20.safeTransferFrom(IERC20($.stakedToken), msg.sender, address(this), amount);
@@ -166,17 +152,7 @@ contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPS
         for (uint256 i = 0; i < $.rewardTokens.length; i++) {
             address rewardToken = $.rewardTokens[i];
             _updateRewards(rewardToken);
-
-            Storage.RewardTokenData storage rewardTokenData = $.rewardTokenData[rewardToken];
-
-            uint256 accruedRewards = Math.mulDiv(
-                userStakedBalance, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
-            ) - $.rewardDebt[msg.sender][rewardToken];
-
-            $.accruedRewards[msg.sender][rewardToken] += accruedRewards;
-            $.rewardDebt[msg.sender][rewardToken] = Math.mulDiv(
-                userStakedBalance - amount, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
-            );
+            _updateUserRewards(msg.sender, rewardToken, userStakedBalance, userStakedBalance - amount);
         }
 
         _burn(msg.sender, amount);
@@ -233,45 +209,46 @@ contract StakedToken is IStakedToken, ERC20Upgradeable, OwnableUpgradeable, UUPS
         rewardTokenData.lastUpdatedTimestamp = block.timestamp;
     }
 
-    function transfer(address to, uint256 value) public override(ERC20Upgradeable, IERC20) returns (bool) {
+    function transfer(address recipient, uint256 value) public override(ERC20Upgradeable, IERC20) returns (bool) {
         Storage.Layout storage $ = Storage.layout();
         address[] memory rewardTokens = $.rewardTokens;
+
+        uint256 senderCurrentBalance = balanceOf(msg.sender);
+        uint256 recipientCurrentBalance = balanceOf(recipient);
+        uint256 senderFutureBalance = senderCurrentBalance - value;
+        uint256 recipientFutureBalance = recipientCurrentBalance + value;
 
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             address token = rewardTokens[i];
 
             _updateRewards(token);
-
-            uint256 senderStakedBalance = balanceOf(msg.sender);
-            uint256 recipientStakedBalance = balanceOf(to);
-
-            Storage.RewardTokenData storage rewardTokenData = $.rewardTokenData[token];
-
-            // Calculate how much rewards sender has accrued until now
-            uint256 senderAccruedRewards = Math.mulDiv(
-                senderStakedBalance, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
-            ) - $.rewardDebt[msg.sender][token];
-
-            $.accruedRewards[msg.sender][token] += senderAccruedRewards;
-
-            // Update reward debt of sender the same way as in withdraw function
-            $.rewardDebt[msg.sender][token] = Math.mulDiv(
-                senderStakedBalance - value, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
-            );
-
-            // Calculate how much rewards recipient has accrued until now
-            uint256 recipientAccruedRewards = Math.mulDiv(
-                recipientStakedBalance, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
-            ) - $.rewardDebt[to][token];
-
-            $.accruedRewards[to][token] += recipientAccruedRewards;
-
-            // Update reward debt of recipient the same way as in deposit function
-            $.rewardDebt[to][token] = Math.mulDiv(
-                recipientStakedBalance + value, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
-            );
+            _updateUserRewards(msg.sender, token, senderCurrentBalance, senderFutureBalance);
+            _updateUserRewards(recipient, token, recipientCurrentBalance, recipientFutureBalance);
         }
 
-        return super.transfer(to, value);
+        return super.transfer(recipient, value);
+    }
+
+    function _updateUserRewards(
+        address user,
+        address rewardToken,
+        uint256 userCurrentBalance,
+        uint256 userFutureBalance
+    ) internal {
+        Storage.Layout storage $ = Storage.layout();
+        Storage.RewardTokenData storage rewardTokenData = $.rewardTokenData[rewardToken];
+
+        if (userCurrentBalance > 0) {
+            // Calculate how much rewards user has accrued until now
+            uint256 userAccruedRewards = Math.mulDiv(
+                userCurrentBalance, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
+            ) - $.rewardDebt[user][rewardToken];
+
+            $.accruedRewards[user][rewardToken] += userAccruedRewards;
+        }
+
+        // Update reward debt of user
+        $.rewardDebt[user][rewardToken] =
+            Math.mulDiv(userFutureBalance, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE);
     }
 }

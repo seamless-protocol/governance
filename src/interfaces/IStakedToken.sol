@@ -30,31 +30,43 @@ interface IStakedToken is IERC20 {
     event ClaimRewardsForToken(address indexed from, address indexed onBehalfOf, address indexed rewardToken);
 
     /// @notice Returns address of staking token
-    function getStakedToken() external view returns (address);
+    /// @param token Address of staking token
+    function getStakedToken() external view returns (address token);
 
     /// @notice Returns list of reward tokens
-    function getRewardTokens() external view returns (address[] memory);
+    /// @param rewardTokens List of reward tokens
+    function getRewardTokens() external view returns (address[] memory rewardTokens);
 
     /// @notice Returns configured emission per second for given reward token
     /// @param rewardToken Token to get emission for
-    function getEmissionPerSecondForToken(address rewardToken) external view returns (uint256);
+    /// @param emissionPerSecond Emission per second for given token
+    function getEmissionPerSecondForToken(address rewardToken) external view returns (uint256 emissionPerSecond);
 
     /// @notice Returns reward token data for given reward token, last updated timestamp and reward per staked token
     /// @param rewardToken Token to get data for
-    function getRewardTokenData(address rewardToken) external view returns (Storage.RewardTokenData memory);
+    /// @param rewardTokenData Data for given reward token
+    function getRewardTokenData(address rewardToken)
+        external
+        view
+        returns (Storage.RewardTokenData memory rewardTokenData);
 
     /// @notice Returns accrued rewards for given account and reward token
     /// @param user Account to get rewards for
     /// @param rewardToken Token to get rewards for
+    /// @param accruedRewards Accrued rewards for given account and reward token
     /// @dev Returned value does not represent total rewards, but only rewards that user had at the time of last user interaction with the contract
-    function getUserAccruedRewards(address user, address rewardToken) external view returns (uint256);
+    function getUserAccruedRewards(address user, address rewardToken) external view returns (uint256 accruedRewards);
 
     /// @notice Returns total rewards for given account and reward token
     /// @param user Account to get rewards for
     /// @param rewardToken Token to get rewards for
+    /// @param totalRewards Total rewards for given account and reward token
     /// @dev Returned value represents total rewards that user has in the moment of calling this function
     /// @dev This function is used internally to calculate rewards for user when claiming rewards and externaly to show total rewards for user
-    function getUserTotalRewardsForToken(address user, address rewardToken) external view returns (uint256);
+    function getUserTotalRewardsForToken(address user, address rewardToken)
+        external
+        view
+        returns (uint256 totalRewards);
 
     /// @notice Configures emission per second for given reward token
     /// @param rewardToken Token to configure emission for
