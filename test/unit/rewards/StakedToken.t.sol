@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/*
 import "forge-std/Test.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {StakedToken} from "src/rewards/StakedToken.sol";
-import {IStakedToken} from "src/interfaces/IStakedToken.sol";
+import {Staking} from "src/rewards/Staking.sol";
+import {IStaking} from "src/interfaces/IStaking.sol";
 import {User} from "../../scenarios/rewards/User.sol";
 import {RewardTokenData} from "../../../src/types/DataTypes.sol";
 
@@ -17,22 +16,22 @@ contract StakedTokenTest is Test {
     ERC20Mock public token = new ERC20Mock();
     ERC20Mock public rewardToken = new ERC20Mock();
 
-    StakedToken public stakedToken;
+    Staking public staking;
 
     User public user;
 
     function setUp() public {
-        StakedToken stakedTokenImplementation = new StakedToken();
+        Staking stakingImplementation = new Staking();
         ERC1967Proxy proxy = new ERC1967Proxy(
-            address(stakedTokenImplementation),
-            abi.encodeWithSelector(StakedToken.initialize.selector, address(token), "Staked Token", "ST", address(this))
+            address(stakingImplementation), abi.encodeWithSelector(Staking.initialize.selector, address(this))
         );
 
-        stakedToken = StakedToken(address(proxy));
-        user = new User(token, stakedToken);
+        staking = Staking(address(proxy));
+        user = new User(token, staking);
 
-        stakedToken.configureRewardToken(address(rewardToken), EMISSION_PER_SECOND);
-        rewardToken.mint(address(stakedToken), type(uint256).max);
+        staking.whitelistAsset(address(token));
+        staking.configureRewardToken(address(token), address(rewardToken), EMISSION_PER_SECOND);
+        rewardToken.mint(address(staking), type(uint256).max);
     }
 
     function testFuzz_Deposit(uint256 amount1, uint256 amount2, uint256 timePassed) public {
@@ -44,13 +43,13 @@ contract StakedTokenTest is Test {
         user.deposit(amount1);
 
         assertEq(token.balanceOf(address(user)), 0);
-        assertEq(token.balanceOf(address(stakedToken)), amount1);
-        assertEq(stakedToken.balanceOf(address(user)), amount1);
-        assertEq(stakedToken.totalSupply(), amount1);
-        assertEq(stakedToken.getUserTotalRewardsForToken(address(user), address(rewardToken)), 0);
-        assertEq(stakedToken.getUserAccruedRewards(address(user), address(rewardToken)), 0);
+        assertEq(token.balanceOf(address(staking)), amount1);
+        assertEq(staking.getUserStakedBalance(address(user), address(token)), amount1);
+        assertEq(staking.getTotalStaked(address(token)), amount1);
+        assertEq(staking.getUserTotalRewardsForToken(address(user), address(token), address(rewardToken)), 0);
+        assertEq(staking.getUserAccruedRewardsForToken(address(user), address(token), address(rewardToken)), 0);
 
-        RewardTokenData memory rewardTokenData = stakedToken.getRewardTokenData(address(rewardToken));
+        RewardTokenData memory rewardTokenData = staking.getRewardTokenData(address(token), address(rewardToken));
 
         assertEq(rewardTokenData.rewardPerStakedToken, 0);
         assertEq(rewardTokenData.lastUpdatedTimestamp, block.timestamp);
@@ -61,18 +60,20 @@ contract StakedTokenTest is Test {
         user.deposit(amount2);
 
         assertEq(token.balanceOf(address(user)), 0);
-        assertEq(token.balanceOf(address(stakedToken)), amount1 + amount2);
-        assertEq(stakedToken.balanceOf(address(user)), amount1 + amount2);
-        assertEq(stakedToken.totalSupply(), amount1 + amount2);
+        assertEq(token.balanceOf(address(staking)), amount1 + amount2);
+        assertEq(staking.getUserStakedBalance(address(user), address(token)), amount1 + amount2);
+        assertEq(staking.getTotalStaked(address(token)), amount1 + amount2);
 
         uint256 totalAccruedRewards = EMISSION_PER_SECOND * timePassed;
         assertApproxEqAbs(
-            stakedToken.getUserTotalRewardsForToken(address(user), address(rewardToken)),
+            staking.getUserTotalRewardsForToken(address(user), address(token), address(rewardToken)),
             totalAccruedRewards,
             ABS_TOLERANCE
         );
         assertApproxEqAbs(
-            stakedToken.getUserAccruedRewards(address(user), address(rewardToken)), totalAccruedRewards, ABS_TOLERANCE
+            staking.getUserAccruedRewardsForToken(address(user), address(token), address(rewardToken)),
+            totalAccruedRewards,
+            ABS_TOLERANCE
         );
     }
 
@@ -89,16 +90,20 @@ contract StakedTokenTest is Test {
         user.withdraw(withdrawAmount);
 
         assertEq(token.balanceOf(address(user)), withdrawAmount);
-        assertEq(token.balanceOf(address(stakedToken)), depositAmount - withdrawAmount);
-        assertEq(stakedToken.balanceOf(address(user)), depositAmount - withdrawAmount);
-        assertEq(stakedToken.totalSupply(), depositAmount - withdrawAmount);
+        assertEq(token.balanceOf(address(staking)), depositAmount - withdrawAmount);
+        assertEq(staking.getUserStakedBalance(address(user), address(token)), depositAmount - withdrawAmount);
+        assertEq(staking.getTotalStaked(address(token)), depositAmount - withdrawAmount);
 
         uint256 accruedRewards = EMISSION_PER_SECOND * timePassed;
         assertApproxEqAbs(
-            stakedToken.getUserTotalRewardsForToken(address(user), address(rewardToken)), accruedRewards, ABS_TOLERANCE
+            staking.getUserTotalRewardsForToken(address(user), address(token), address(rewardToken)),
+            accruedRewards,
+            ABS_TOLERANCE
         );
         assertApproxEqAbs(
-            stakedToken.getUserAccruedRewards(address(user), address(rewardToken)), accruedRewards, ABS_TOLERANCE
+            staking.getUserAccruedRewardsForToken(address(user), address(token), address(rewardToken)),
+            accruedRewards,
+            ABS_TOLERANCE
         );
     }
 
@@ -111,22 +116,20 @@ contract StakedTokenTest is Test {
 
         vm.warp(block.timestamp + timePassed);
 
-        uint256 rewardAmountOnContractBeforeClaim = rewardToken.balanceOf(address(stakedToken));
+        uint256 rewardAmountOnContractBeforeClaim = rewardToken.balanceOf(address(staking));
         user.claimRewards();
 
         uint256 accruedRewards = EMISSION_PER_SECOND * timePassed;
         assertEq(token.balanceOf(address(user)), 0);
-        assertEq(token.balanceOf(address(stakedToken)), depositAmount);
-        assertEq(stakedToken.balanceOf(address(user)), depositAmount);
-        assertEq(stakedToken.totalSupply(), depositAmount);
+        assertEq(token.balanceOf(address(staking)), depositAmount);
+        assertEq(staking.getUserStakedBalance(address(user), address(token)), depositAmount);
+        assertEq(staking.getTotalStaked(address(token)), depositAmount);
 
-        assertEq(stakedToken.getUserTotalRewardsForToken(address(user), address(rewardToken)), 0);
-        assertEq(stakedToken.getUserAccruedRewards(address(user), address(rewardToken)), 0);
+        assertEq(staking.getUserTotalRewardsForToken(address(user), address(token), address(rewardToken)), 0);
+        assertEq(staking.getUserAccruedRewardsForToken(address(user), address(token), address(rewardToken)), 0);
         assertApproxEqAbs(rewardToken.balanceOf(address(user)), accruedRewards, ABS_TOLERANCE);
         assertApproxEqAbs(
-            rewardToken.balanceOf(address(stakedToken)),
-            rewardAmountOnContractBeforeClaim - accruedRewards,
-            ABS_TOLERANCE
+            rewardToken.balanceOf(address(staking)), rewardAmountOnContractBeforeClaim - accruedRewards, ABS_TOLERANCE
         );
     }
 
@@ -147,17 +150,21 @@ contract StakedTokenTest is Test {
 
         assertEq(token.balanceOf(address(user)), 0);
         assertEq(token.balanceOf(recipient), 0);
-        assertEq(token.balanceOf(address(stakedToken)), depositAmount);
-        assertEq(stakedToken.balanceOf(address(user)), depositAmount - transferAmount);
-        assertEq(stakedToken.balanceOf(recipient), transferAmount);
-        assertEq(stakedToken.totalSupply(), depositAmount);
+        assertEq(token.balanceOf(address(staking)), depositAmount);
+        assertEq(staking.getUserStakedBalance(address(user), address(token)), depositAmount - transferAmount);
+        assertEq(staking.getUserStakedBalance(recipient, address(token)), transferAmount);
+        assertEq(staking.getTotalStaked(address(token)), depositAmount);
 
         uint256 accruedRewards = EMISSION_PER_SECOND * timeToPass;
         assertApproxEqAbs(
-            stakedToken.getUserTotalRewardsForToken(address(user), address(rewardToken)), accruedRewards, ABS_TOLERANCE
+            staking.getUserTotalRewardsForToken(address(user), address(token), address(rewardToken)),
+            accruedRewards,
+            ABS_TOLERANCE
         );
         assertApproxEqAbs(
-            stakedToken.getUserAccruedRewards(address(user), address(rewardToken)), accruedRewards, ABS_TOLERANCE
+            staking.getUserAccruedRewardsForToken(address(user), address(token), address(rewardToken)),
+            accruedRewards,
+            ABS_TOLERANCE
         );
 
         vm.warp(block.timestamp + timeToPass);
@@ -167,32 +174,34 @@ contract StakedTokenTest is Test {
         uint256 expectedAccruedRewardsUser2 = newAccruedRewards * transferAmount / depositAmount;
 
         assertApproxEqAbs(
-            stakedToken.getUserTotalRewardsForToken(address(user), address(rewardToken)),
+            staking.getUserTotalRewardsForToken(address(user), address(token), address(rewardToken)),
             expectedAccruedRewardsUser1,
             ABS_TOLERANCE
         );
         assertApproxEqAbs(
-            stakedToken.getUserAccruedRewards(address(user), address(rewardToken)), accruedRewards, ABS_TOLERANCE
+            staking.getUserAccruedRewardsForToken(address(user), address(token), address(rewardToken)),
+            accruedRewards,
+            ABS_TOLERANCE
         );
 
         assertApproxEqAbs(
-            stakedToken.getUserTotalRewardsForToken(recipient, address(rewardToken)),
+            staking.getUserTotalRewardsForToken(recipient, address(token), address(rewardToken)),
             expectedAccruedRewardsUser2,
             ABS_TOLERANCE
         );
-        assertApproxEqAbs(stakedToken.getUserAccruedRewards(recipient, address(rewardToken)), 0, ABS_TOLERANCE);
+        assertApproxEqAbs(
+            staking.getUserAccruedRewardsForToken(recipient, address(token), address(rewardToken)), 0, ABS_TOLERANCE
+        );
     }
 
     // TODO: Copy this test to scenario tests and check if RewardTokenData is updated correctly
     function testFuzz_ConfigureRewardToken(address asset, uint256 emissionPerSecond1, uint256 emissionPerSecond2)
         public
     {
-        stakedToken.configureRewardToken(asset, emissionPerSecond1);
-        assertEq(stakedToken.getEmissionPerSecondForToken(asset), emissionPerSecond1);
+        staking.configureRewardToken(address(token), asset, emissionPerSecond1);
+        assertEq(staking.getEmissionPerSecond(address(token), asset), emissionPerSecond1);
 
-        stakedToken.configureRewardToken(asset, emissionPerSecond2);
-        assertEq(stakedToken.getEmissionPerSecondForToken(asset), emissionPerSecond2);
+        staking.configureRewardToken(address(token), asset, emissionPerSecond2);
+        assertEq(staking.getEmissionPerSecond(address(token), asset), emissionPerSecond2);
     }
 }
-
-*/

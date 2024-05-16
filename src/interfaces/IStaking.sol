@@ -13,12 +13,6 @@ interface IStaking {
     /// @dev Transfer hook should be called only by StakedToken contract
     error NotStakedToken();
 
-    /// @notice Error emitted when user tries to deposit or withdraw zero amount
-    error ZeroAmount();
-
-    /// @notice Error emitted when user tries to withdraw more than he staked
-    error WithdrawalExceedsBalance();
-
     /// @notice Emitted when asset is whitelisted
     /// @param asset Token that was whitelisted
     event WhitelistAsset(address indexed asset);

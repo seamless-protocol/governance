@@ -12,8 +12,6 @@ import {StakedToken} from "./StakedToken.sol";
 import {IStakedToken} from "../interfaces/IStakedToken.sol";
 import {StakingStorage as Storage} from "../storage/StakingStorage.sol";
 
-import "forge-std/console.sol";
-
 /// @title Staking contract
 /// @notice Contract for staking tokens and earning multiple tokens as rewards
 /// @dev One contract handles multiple staking tokens and multiple reward tokens for each staking token
@@ -170,20 +168,6 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         external
         onlyWhitelistedAsset(stakingToken)
     {
-        // Storage.Layout storage $ = Storage.layout();
-        // Storage.TokenInfo storage tokenInfo = $.tokenInfo[stakingToken];
-
-        // address[] memory rewardTokens = tokenInfo.rewardTokens;
-        // uint256 userStakedBalance = getUserStakedBalance(onBehalfOf, stakingToken);
-
-        // for (uint256 i = 0; i < rewardTokens.length; i++) {
-        //     address rewardToken = rewardTokens[i];
-        //     _updateRewards(stakingToken, rewardToken);
-        //     _updateUserRewards(onBehalfOf, stakingToken, rewardToken, userStakedBalance, userStakedBalance + amount);
-        // }
-
-        // TODO: Rethink to send tokens to staked token
-
         IStakedToken(getStakedToken(stakingToken)).mint(onBehalfOf, amount);
         SafeERC20.safeTransferFrom(IERC20(stakingToken), msg.sender, address(this), amount);
 
@@ -195,26 +179,6 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         external
         onlyWhitelistedAsset(stakingToken)
     {
-        if (amount == 0) {
-            revert ZeroAmount();
-        }
-
-        // uint256 userStakedBalance = getUserStakedBalance(msg.sender, stakingToken);
-
-        // if (amount > userStakedBalance) {
-        //     revert WithdrawalExceedsBalance();
-        // }
-
-        // Storage.Layout storage $ = Storage.layout();
-        // Storage.TokenInfo storage tokenInfo = $.tokenInfo[stakingToken];
-
-        // for (uint256 i = 0; i < tokenInfo.rewardTokens.length; i++) {
-        //     address rewardToken = tokenInfo.rewardTokens[i];
-        //     _updateRewards(stakingToken, rewardToken);
-        //     _updateUserRewards(msg.sender, stakingToken, rewardToken, userStakedBalance, userStakedBalance - amount);
-        // }
-
-        // TODO: rethink also this
         IStakedToken(getStakedToken(stakingToken)).burn(msg.sender, amount);
         SafeERC20.safeTransfer(IERC20(stakingToken), onBehalfOf, amount);
 
@@ -258,10 +222,6 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         external
         onlyStakedToken(stakingToken)
     {
-        if (value == 0) {
-            revert ZeroAmount();
-        }
-
         Storage.Layout storage $ = Storage.layout();
         Storage.TokenInfo storage tokenInfo = $.tokenInfo[stakingToken];
         address[] memory rewardTokens = tokenInfo.rewardTokens;
@@ -269,21 +229,19 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         uint256 senderCurrentBalance = getUserStakedBalance(sender, stakingToken);
         uint256 recipientCurrentBalance = getUserStakedBalance(recipient, stakingToken);
 
-        if (senderCurrentBalance < value && sender != address(0)) {
-            revert WithdrawalExceedsBalance();
-        }
-
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             address rewardToken = rewardTokens[i];
 
             _updateRewards(stakingToken, rewardToken);
 
+            // If sender is zero addrees, it means that this is mint operation which means that user is depositing so we don't need to update rewards for sender
             if (sender != address(0)) {
                 _updateUserRewards(
                     sender, stakingToken, rewardToken, senderCurrentBalance, senderCurrentBalance - value
                 );
             }
 
+            // If recipient is zero address, it means that this is burn operation which means that user is withdrawing so we don't need to update rewards for recipient
             if (recipient != address(0)) {
                 _updateUserRewards(
                     recipient, stakingToken, rewardToken, recipientCurrentBalance, recipientCurrentBalance + value

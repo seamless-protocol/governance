@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
+import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 import {IStaking} from "src/interfaces/IStaking.sol";
 
@@ -27,7 +28,7 @@ contract User is Test {
         staking.claimRewards(address(token), address(this));
     }
 
-    // function transfer(address to, uint256 amount) external {
-    // staking.transfer(to, amount);
-    // }
+    function transfer(address to, uint256 amount) external {
+        IERC20(staking.getStakedToken(address(token))).transfer(to, amount);
+    }
 }
