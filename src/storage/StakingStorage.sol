@@ -3,10 +3,12 @@ pragma solidity ^0.8.20;
 
 import {RewardTokenData} from "../types/DataTypes.sol";
 
-library StakedTokenStorage {
-    /// @dev Storage layout of the contract
-    struct Layout {
-        /// @dev Address of staking token, only one token can be staked
+library StakingStorage {
+    /// @dev Data structure for token info
+    struct TokenInfo {
+        /// @dev Address of staked token smart contract that is ERC20 representation of position in the pool
+        /// @dev Staking tokens are hold in Staking smart contract
+        /// @dev StakedToken is minted when user deposits tokens and burned when user withdraws tokens, user can transfer StakedToken to other users
         address stakedToken;
         /// @dev List of reward tokens, rewards are distributed for each token in the list
         /// @dev When new reward token is added, it is appended to the list, but it is not removed when reward token is removed
@@ -30,6 +32,16 @@ library StakedTokenStorage {
         /// @dev MasterChef contract sends rewards to user on each interaction, but this contract does not send rewards to user, user must claim rewards
         /// @dev Account => reward token => accrued rewards
         mapping(address => mapping(address => uint256)) accruedRewards;
+    }
+
+    /// @dev Storage layout of the contract
+    struct Layout {
+        /// @dev Mapping of whitelisted tokens, used to check if token is whitelisted for staking
+        mapping(address => bool) isAssetWhitelisted;
+        /// @dev Mapping of token info for each staking token
+        mapping(address => TokenInfo) tokenInfo;
+        /// @dev Array of staking tokens, used to iterate over all staking tokens
+        address[] stakingTokens;
     }
 
     // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.StakedToken")) - 1)) & ~bytes32(uint256(0xff))
