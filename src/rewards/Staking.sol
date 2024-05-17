@@ -57,6 +57,11 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc IStaking
+    function getStakingTokens() external view returns (address[] memory) {
+        return Storage.layout().stakingTokens;
+    }
+
+    /// @inheritdoc IStaking
     function getRewardTokens(address stakingToken) external view returns (address[] memory) {
         return Storage.layout().tokenInfo[stakingToken].rewardTokens;
     }
@@ -122,23 +127,44 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc IStaking
-    function whitelistAsset(address asset) external onlyOwner {
+    function addStakingToken(address asset) external onlyOwner {
         Storage.Layout storage $ = Storage.layout();
 
-        $.isAssetWhitelisted[asset] = true;
-        $.stakingTokens.push(asset);
+        if (isAssetWhitelisted(asset)) {
+            revert StakingTokenAlreadyAdded();
+        }
 
         // TODO: Beacon Proxy
         address stakedToken = address(new StakedToken(address(this), asset, address(this), "Ime", "symbol"));
-        $.tokenInfo[asset].stakedToken = stakedToken;
 
-        emit WhitelistAsset(asset);
+        $.tokenInfo[asset].stakedToken = stakedToken;
+        $.isAssetWhitelisted[asset] = true;
+        $.stakingTokens.push(asset);
+
+        emit AddStakingToken(asset);
+    }
+
+    /// @inheritdoc IStaking
+    function removeStakingToken(address asset) external onlyOwner {
+        Storage.Layout storage $ = Storage.layout();
+        address[] storage stakingTokens = $.stakingTokens;
+
+        for (uint256 i = 0; i < stakingTokens.length; i++) {
+            if (stakingTokens[i] == asset) {
+                delete stakingTokens[i];
+            }
+        }
+
+        $.isAssetWhitelisted[asset] = false;
+
+        emit RemoveStakingToken(asset);
     }
 
     /// @inheritdoc IStaking
     function configureRewardToken(address stakingToken, address rewardToken, uint256 emissionPerSecond)
         external
         onlyOwner
+        onlyWhitelistedAsset(stakingToken)
     {
         Storage.Layout storage $ = Storage.layout();
         Storage.TokenInfo storage tokenInfo = $.tokenInfo[stakingToken];
@@ -164,46 +190,44 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc IStaking
-    function deposit(address stakingToken, uint256 amount, address onBehalfOf)
+    function stake(address stakingToken, uint256 amount, address recipient)
         external
         onlyWhitelistedAsset(stakingToken)
     {
-        IStakedToken(getStakedToken(stakingToken)).mint(onBehalfOf, amount);
+        // This contract will call mint on StakedToken contract
+        // StakedToken contract has override for _update function which will can updateHook on this contract where logic is placed
         SafeERC20.safeTransferFrom(IERC20(stakingToken), msg.sender, address(this), amount);
+        IStakedToken(getStakedToken(stakingToken)).mint(recipient, amount);
 
-        emit Deposit(stakingToken, msg.sender, onBehalfOf, amount);
+        emit Stake(stakingToken, msg.sender, recipient, amount);
     }
 
     /// @inheritdoc IStaking
-    function withdraw(address stakingToken, uint256 amount, address onBehalfOf)
-        external
-        onlyWhitelistedAsset(stakingToken)
-    {
+    function unstake(address stakingToken, uint256 amount, address recipient) external {
+        // This contract will call mint on StakedToken contract
+        // StakedToken contract has override for _update function which will can updateHook on this contract where logic is placed
         IStakedToken(getStakedToken(stakingToken)).burn(msg.sender, amount);
-        SafeERC20.safeTransfer(IERC20(stakingToken), onBehalfOf, amount);
+        SafeERC20.safeTransfer(IERC20(stakingToken), recipient, amount);
 
-        emit Withdraw(stakingToken, msg.sender, onBehalfOf, amount);
+        emit Unstake(stakingToken, msg.sender, recipient, amount);
     }
 
     /// @inheritdoc IStaking
-    function claimRewards(address stakingToken, address onBehalfOf) external onlyWhitelistedAsset(stakingToken) {
+    function claimRewards(address stakingToken, address recipient) external {
         Storage.Layout storage $ = Storage.layout();
         Storage.TokenInfo storage tokenInfo = $.tokenInfo[stakingToken];
 
         for (uint256 i = 0; i < tokenInfo.rewardTokens.length; i++) {
-            claimRewardsForToken(stakingToken, tokenInfo.rewardTokens[i], onBehalfOf);
+            claimRewardsForToken(stakingToken, tokenInfo.rewardTokens[i], recipient);
         }
     }
 
     /// @inheritdoc IStaking
-    function claimRewardsForToken(address stakingToken, address rewardToken, address onBehalfOf)
-        public
-        onlyWhitelistedAsset(stakingToken)
-    {
+    function claimRewardsForToken(address stakingToken, address rewardToken, address recipient) public {
         _updateRewards(stakingToken, rewardToken);
 
         uint256 userTotalRewards = getUserTotalRewardsForToken(msg.sender, stakingToken, rewardToken);
-        SafeERC20.safeTransfer(IERC20(rewardToken), onBehalfOf, userTotalRewards);
+        SafeERC20.safeTransfer(IERC20(rewardToken), recipient, userTotalRewards);
 
         Storage.Layout storage $ = Storage.layout();
         Storage.TokenInfo storage tokenInfo = $.tokenInfo[stakingToken];
@@ -214,9 +238,10 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
             Math.mulDiv(userStakedBalance, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE);
         tokenInfo.accruedRewards[msg.sender][rewardToken] = 0;
 
-        emit ClaimRewardsForToken(msg.sender, onBehalfOf, stakingToken, rewardToken);
+        emit ClaimRewardsForToken(msg.sender, recipient, stakingToken, rewardToken);
     }
 
+    //TODO: Should user be able to transfer token if deposit is paused
     /// @inheritdoc IStaking
     function updateHook(address stakingToken, address sender, address recipient, uint256 value)
         external

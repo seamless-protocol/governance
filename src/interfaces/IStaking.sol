@@ -9,13 +9,21 @@ interface IStaking {
     /// @dev Token must be whitelisted to be able to stake it, if user tries to deposit, withdraw or claim rewards for token that is not supported error will be emitted
     error AssetNotWhitelisted();
 
+    /// @notice Error emitted when token is already whitelisted
+    /// @dev Token can be whitelisted only once, if token is already whitelisted and someone tries to whitelist it again error will be emitted
+    error StakingTokenAlreadyAdded();
+
     /// @notice Error emitted when someone tries to call transfer hook
     /// @dev Transfer hook should be called only by StakedToken contract
     error NotStakedToken();
 
     /// @notice Emitted when asset is whitelisted
     /// @param asset Token that was whitelisted
-    event WhitelistAsset(address indexed asset);
+    event AddStakingToken(address indexed asset);
+
+    /// @notice Emitted when asset is removed from staking
+    /// @param asset Token that was removed
+    event RemoveStakingToken(address indexed asset);
 
     /// @notice Emitted when reward token is configured for specific staking token
     /// @param stakingToken Staking token for which reward token is configured
@@ -23,27 +31,27 @@ interface IStaking {
     /// @param emissionPerSecond Emission per second for given token
     event ConfigureRewardToken(address indexed stakingToken, address indexed rewardToken, uint256 emissionPerSecond);
 
-    /// @notice Emitted when deposit happens
-    /// @param stakingToken Token that was deposited
-    /// @param from Account that deposited
-    /// @param onBehalfOf Account that deposited for
-    /// @param amount Amount deposited
-    event Deposit(address indexed stakingToken, address indexed from, address indexed onBehalfOf, uint256 amount);
+    /// @notice Emitted when stake happens
+    /// @param stakingToken Token that was staked
+    /// @param from Account that staked
+    /// @param recipient Account that staked for
+    /// @param amount Amount staked
+    event Stake(address indexed stakingToken, address indexed from, address indexed recipient, uint256 amount);
 
     /// @notice Emitted when withdraw happens
     /// @param stakingToken Token that was withdrawn
     /// @param from Account that withdrew
-    /// @param onBehalfOf Account received the withdrawal
+    /// @param recipient Account received the withdrawal
     /// @param amount Amount withdrawn
-    event Withdraw(address indexed stakingToken, address indexed from, address indexed onBehalfOf, uint256 amount);
+    event Unstake(address indexed stakingToken, address indexed from, address indexed recipient, uint256 amount);
 
     /// @notice Emitted when rewards are claimed for specific token
     /// @param from Account that claimed the rewards
-    /// @param onBehalfOf Account that claimed the rewards for
+    /// @param recipient Account that claimed the rewards for
     /// @param stakingToken Staking token for which rewards are claimed
     /// @param rewardToken Token for which rewards are claimed
     event ClaimRewardsForToken(
-        address indexed from, address indexed onBehalfOf, address indexed stakingToken, address rewardToken
+        address indexed from, address indexed recipient, address indexed stakingToken, address rewardToken
     );
 
     /// @notice Returns staked token for given staking token
@@ -55,6 +63,10 @@ interface IStaking {
     /// @param asset Token to check if whitelisted
     /// @param isWhitelisted Is token whitelisted
     function isAssetWhitelisted(address asset) external view returns (bool isWhitelisted);
+
+    /// @notice Returns list of all staking tokens
+    /// @param stakingTokens List of all staking tokens
+    function getStakingTokens() external view returns (address[] memory stakingTokens);
 
     /// @notice Returns list of reward tokens for given staking token
     /// @param stakingToken Staking token to get reward tokens for
@@ -116,7 +128,13 @@ interface IStaking {
     /// @notice Whitelists asset for staking
     /// @param asset Token to whitelist
     /// @dev This function can be called only by owner
-    function whitelistAsset(address asset) external;
+    function addStakingToken(address asset) external;
+
+    /// @notice Removes asset from staking
+    /// @param asset Token to remove
+    /// @dev This function can be called only by owner
+    /// @dev After removing token users will not be able to stake but will be able to withdraw and claim rewards
+    function removeStakingToken(address asset) external;
 
     /// @notice Configures emission per second for given reward token for given staking token
     /// @param stakingToken Staking token to configure emission for
@@ -129,31 +147,31 @@ interface IStaking {
     /// @notice Stakes tokens from sender on behalf of given account, given account will staked tokens
     /// @param stakingToken Staking token to stake
     /// @param amount Amount to stake
-    /// @param onBehalfOf Account to stake for
-    function deposit(address stakingToken, uint256 amount, address onBehalfOf) external;
+    /// @param recipient Account to stake for
+    function stake(address stakingToken, uint256 amount, address recipient) external;
 
-    /// @notice Withdraws tokens from sender on behalf of given account, given account will receive tokens
-    /// @param stakingToken Staking token to withdraw
-    /// @param amount Amount to withdraw
-    /// @param onBehalfOf Account to withdraw for
-    function withdraw(address stakingToken, uint256 amount, address onBehalfOf) external;
+    /// @notice Unstakes tokens from sender on behalf of given account, given account will receive tokens
+    /// @param stakingToken Staking token to unstake
+    /// @param amount Amount to unstake
+    /// @param recipient Account to receive tokens
+    function unstake(address stakingToken, uint256 amount, address recipient) external;
 
-    /// @notice Claims rewards for sender on behalf of given account for given staking token
+    /// @notice Claims rewards for sender on given recipient account for given staking token
     /// @param stakingToken Staking token to claim rewards for
-    /// @param onBehalfOf Account to claim rewards for
-    function claimRewards(address stakingToken, address onBehalfOf) external;
+    /// @param recipient Account to receive rewards
+    function claimRewards(address stakingToken, address recipient) external;
 
-    /// @notice Claims rewards for sender on behalf of given account for specific token
+    /// @notice Claims rewards for sender on given recipient account for specific token
     /// @param stakingToken Staking token to claim rewards for
     /// @param rewardToken Token to claim rewards for
-    /// @param onBehalfOf Account to claim rewards for
-    function claimRewardsForToken(address stakingToken, address rewardToken, address onBehalfOf) external;
+    /// @param recipient Account to receive rewards
+    function claimRewardsForToken(address stakingToken, address rewardToken, address recipient) external;
 
     /// @notice Update hook for StakedToken smart contract
     /// @notice When user transfers, mints or burns staked tokens this hook is called and position is transfered to new owner
     /// @param stakingToken Staking token that is transfered
-    /// @param from Account that is transferring
-    /// @param to Account that is receiving
+    /// @param sender Account that is transferring
+    /// @param recipient Account that is receiving
     /// @param amount Amount that is transferred
-    function updateHook(address stakingToken, address from, address to, uint256 amount) external;
+    function updateHook(address stakingToken, address sender, address recipient, uint256 amount) external;
 }

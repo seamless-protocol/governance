@@ -17,11 +17,11 @@ contract User is Test {
 
     function deposit(uint256 amount) external {
         token.approve(address(staking), amount);
-        staking.deposit(address(token), amount, address(this));
+        staking.stake(address(token), amount, address(this));
     }
 
     function withdraw(uint256 amount) external {
-        staking.withdraw(address(token), amount, address(this));
+        staking.unstake(address(token), amount, address(this));
     }
 
     function claimRewards() external {

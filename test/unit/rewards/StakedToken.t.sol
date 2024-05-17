@@ -9,7 +9,7 @@ import {IStaking} from "src/interfaces/IStaking.sol";
 import {User} from "../../scenarios/rewards/User.sol";
 import {RewardTokenData} from "../../../src/types/DataTypes.sol";
 
-contract StakedTokenTest is Test {
+contract StakingTest is Test {
     uint256 public constant ABS_TOLERANCE = 3 wei;
     uint256 public constant EMISSION_PER_SECOND = 10000 wei;
 
@@ -29,9 +29,41 @@ contract StakedTokenTest is Test {
         staking = Staking(address(proxy));
         user = new User(token, staking);
 
-        staking.whitelistAsset(address(token));
+        staking.addStakingToken(address(token));
         staking.configureRewardToken(address(token), address(rewardToken), EMISSION_PER_SECOND);
         rewardToken.mint(address(staking), type(uint256).max);
+    }
+
+    function testFuzz_AddStakingToken(address newToken) public {
+        vm.assume(newToken != address(token));
+        staking.addStakingToken(newToken);
+
+        assertEq(staking.getStakingTokens().length, 2);
+        assertEq(staking.getStakingTokens()[1], newToken);
+        assertEq(staking.getEmissionPerSecond(newToken, address(rewardToken)), 0);
+        assertEq(staking.getRewardTokens(newToken).length, 0);
+        assertNotEq(staking.getStakedToken(newToken), address(0));
+    }
+
+    function testFuzz_AddStakingToken_RevertStakingTokenAlreadyAdded(address newToken) public {
+        vm.assume(newToken != address(token));
+        staking.addStakingToken(newToken);
+
+        vm.expectRevert(IStaking.StakingTokenAlreadyAdded.selector);
+        staking.addStakingToken(newToken);
+    }
+
+    function testFuzz_RemoveStakingToken(address newToken, uint256 emissionPerSecond) public {
+        vm.assume(newToken != address(token));
+        staking.addStakingToken(newToken);
+        staking.configureRewardToken(newToken, address(rewardToken), emissionPerSecond);
+
+        staking.removeStakingToken(newToken);
+
+        assertEq(staking.getStakingTokens().length, 1);
+        assertEq(staking.getEmissionPerSecond(newToken, address(rewardToken)), emissionPerSecond);
+        assertEq(staking.getRewardTokens(newToken).length, 0);
+        assertEq(staking.getStakedToken(newToken), address(0));
     }
 
     function testFuzz_Deposit(uint256 amount1, uint256 amount2, uint256 timePassed) public {
