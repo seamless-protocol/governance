@@ -9,6 +9,7 @@ library StakingStorage {
         /// @dev Address of staked token smart contract that is ERC20 representation of position in the pool
         /// @dev Staking tokens are hold in Staking smart contract
         /// @dev StakedToken is minted when user deposits tokens and burned when user withdraws tokens, user can transfer StakedToken to other users
+        /// @dev If stakedToken is not zero address this means that staking token has already been whitelisted
         address stakedToken;
         /// @dev List of reward tokens, rewards are distributed for each token in the list
         /// @dev When new reward token is added, it is appended to the list, but it is not removed when reward token is removed
@@ -17,10 +18,8 @@ library StakingStorage {
         /// @dev This data is used to calculate rewards for each user and is updated on each interaction with the contract
         /// @dev Reward token address => reward token data
         mapping(address => RewardTokenData) rewardTokenData;
-        /// @dev Emission rate for each reward token, rate is in tokens per second
-        /// @dev This value is used to calculate rewards for each user
-        /// @dev When token is removed from rewardTokens list, emission rate is set to 0
-        /// @dev Reward token address => emission rate
+        /// @dev Emission per second for each reward token
+        /// @dev Reward token address => emission per second
         mapping(address => uint256) emissionPerSecond;
         /// @dev Reward debt for each user and reward token
         /// @dev Reward debt is used when calculating rewards for user, logic is copied from MasterChef contract
@@ -36,12 +35,14 @@ library StakingStorage {
 
     /// @dev Storage layout of the contract
     struct Layout {
-        /// @dev Mapping of whitelisted tokens, used to check if token is whitelisted for staking
-        mapping(address => bool) isAssetWhitelisted;
         /// @dev Mapping of token info for each staking token
         mapping(address => TokenInfo) tokenInfo;
         /// @dev Array of staking tokens, used to iterate over all staking tokens
         address[] stakingTokens;
+        /// @dev Address of SEAM token, contract has special logic for staking SEAM token
+        address seam;
+        /// @dev Address of esSEAM token, contract has special logic for esSEAM distribution
+        address esSeam;
     }
 
     // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.StakedToken")) - 1)) & ~bytes32(uint256(0xff))

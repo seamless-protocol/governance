@@ -5,25 +5,19 @@ import {RewardTokenData} from "../types/DataTypes.sol";
 import {StakingStorage as Storage} from "../storage/StakingStorage.sol";
 
 interface IStaking {
-    /// @notice Error emitted when token is not supported on staking contract
-    /// @dev Token must be whitelisted to be able to stake it, if user tries to deposit, withdraw or claim rewards for token that is not supported error will be emitted
-    error AssetNotWhitelisted();
+    /// @notice Error emitted when staking for token is not started
+    error StakingNotStarted();
 
-    /// @notice Error emitted when token is already whitelisted
-    /// @dev Token can be whitelisted only once, if token is already whitelisted and someone tries to whitelist it again error will be emitted
-    error StakingTokenAlreadyAdded();
+    /// @notice Error emitted when staking for token has already started
+    error StakingAlreadyStarted();
 
     /// @notice Error emitted when someone tries to call transfer hook
     /// @dev Transfer hook should be called only by StakedToken contract
     error NotStakedToken();
 
-    /// @notice Emitted when asset is whitelisted
-    /// @param asset Token that was whitelisted
-    event AddStakingToken(address indexed asset);
-
-    /// @notice Emitted when asset is removed from staking
-    /// @param asset Token that was removed
-    event RemoveStakingToken(address indexed asset);
+    /// @notice Emitted when staking for given token is started
+    /// @param asset Token that staking has started for
+    event StartStaking(address indexed asset);
 
     /// @notice Emitted when reward token is configured for specific staking token
     /// @param stakingToken Staking token for which reward token is configured
@@ -54,15 +48,23 @@ interface IStaking {
         address indexed from, address indexed recipient, address indexed stakingToken, address rewardToken
     );
 
+    /// @notice Gets address of SEAM token configured for this contract
+    /// @param seam Address of SEAM token
+    function getSeam() external view returns (address seam);
+
+    /// @notice Gets address of esSEAM token configured for this contract
+    /// @param esSeam Address of esSEAM token
+    function getEsSeam() external view returns (address esSeam);
+
     /// @notice Returns staked token for given staking token
     /// @param stakingToken Staking token to get staked token for
     /// @param stakedToken Staked token for given staking token
     function getStakedToken(address stakingToken) external view returns (address stakedToken);
 
-    /// @notice Returns is given token whitelisted for staking
-    /// @param asset Token to check if whitelisted
-    /// @param isWhitelisted Is token whitelisted
-    function isAssetWhitelisted(address asset) external view returns (bool isWhitelisted);
+    /// @notice Returns is staking for given token started
+    /// @param asset Token to check if staking has started for
+    /// @param isStarted Is staking started
+    function isStakingStarted(address asset) external view returns (bool isStarted);
 
     /// @notice Returns list of all staking tokens
     /// @param stakingTokens List of all staking tokens
@@ -73,10 +75,10 @@ interface IStaking {
     /// @param rewardTokens List of reward tokens
     function getRewardTokens(address stakingToken) external view returns (address[] memory rewardTokens);
 
-    /// @notice Returns configured emission per second for given staking token and given reward token
+    /// @notice Returns emission per second for given token
     /// @param stakingToken Staking token to get emission for
     /// @param rewardToken Reward token to get emission for
-    /// @param emissionPerSecond Emission per second for given token
+    /// @param emissionPerSecond Emission per second
     function getEmissionPerSecond(address stakingToken, address rewardToken)
         external
         view
@@ -125,23 +127,18 @@ interface IStaking {
         view
         returns (uint256 totalRewards);
 
-    /// @notice Whitelists asset for staking
-    /// @param asset Token to whitelist
+    /// @notice Starts staking for given token
+    /// @param asset Token to start staking for
     /// @dev This function can be called only by owner
-    function addStakingToken(address asset) external;
+    /// @dev If this is the first time staking is started for given token, staked token will be deployed and added to the list
+    function startStaking(address asset) external;
 
-    /// @notice Removes asset from staking
-    /// @param asset Token to remove
-    /// @dev This function can be called only by owner
-    /// @dev After removing token users will not be able to stake but will be able to withdraw and claim rewards
-    function removeStakingToken(address asset) external;
-
-    /// @notice Configures emission per second for given reward token for given staking token
+    /// @notice Configures emission per second for given reward token for specific staking token
     /// @param stakingToken Staking token to configure emission for
     /// @param rewardToken Reward token to configure emission for
-    /// @param emissionPerSecond Emission per second for given token
+    /// @param emissionPerSecond Emission per second
     /// @dev This function can be called only by owner
-    /// @dev If reward token is not in the list it will be added to the list otherwise emission per second will be updated and reward per staked token will be recalculated
+    /// @dev If reward token is not in the list it will be added to the list otherwise config will be updated
     function configureRewardToken(address stakingToken, address rewardToken, uint256 emissionPerSecond) external;
 
     /// @notice Stakes tokens from sender on behalf of given account, given account will staked tokens

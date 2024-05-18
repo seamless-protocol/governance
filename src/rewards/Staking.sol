@@ -6,11 +6,14 @@ import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UU
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {IEscrowSeam} from "../interfaces/IEscrowSeam.sol";
 import {IStaking} from "../interfaces/IStaking.sol";
 import {RewardTokenData} from "../types/DataTypes.sol";
 import {StakedToken} from "./StakedToken.sol";
 import {IStakedToken} from "../interfaces/IStakedToken.sol";
 import {StakingStorage as Storage} from "../storage/StakingStorage.sol";
+
+import "forge-std/console.sol";
 
 /// @title Staking contract
 /// @notice Contract for staking tokens and earning multiple tokens as rewards
@@ -21,9 +24,9 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
     /// @dev Nothing more than changing this value is needed in order to change precision
     uint256 public constant REWARD_PER_STAKED_TOKEN_BASE = 1e36;
 
-    modifier onlyWhitelistedAsset(address asset) {
-        if (!isAssetWhitelisted(asset)) {
-            revert AssetNotWhitelisted();
+    modifier onlyActiveStaking(address asset) {
+        if (!isStakingStarted(asset)) {
+            revert StakingNotStarted();
         }
         _;
     }
@@ -39,12 +42,26 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         _disableInitializers();
     }
 
-    function initialize(address initialOwner) external initializer {
+    function initialize(address seam, address esSeam, address initialOwner) external initializer {
         __Ownable_init(initialOwner);
+
+        Storage.Layout storage $ = Storage.layout();
+        $.seam = seam;
+        $.esSeam = esSeam;
     }
 
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
+    /// @inheritdoc IStaking
+    function getSeam() public view returns (address) {
+        return Storage.layout().seam;
+    }
+
+    /// @inheritdoc IStaking
+    function getEsSeam() public view returns (address) {
+        return Storage.layout().esSeam;
+    }
 
     /// @inheritdoc IStaking
     function getStakedToken(address stakingToken) public view returns (address) {
@@ -52,8 +69,8 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc IStaking
-    function isAssetWhitelisted(address asset) public view returns (bool) {
-        return Storage.layout().isAssetWhitelisted[asset];
+    function isStakingStarted(address asset) public view returns (bool) {
+        return Storage.layout().tokenInfo[asset].stakedToken != address(0);
     }
 
     /// @inheritdoc IStaking
@@ -121,50 +138,37 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
             rewardPerStakedToken += Math.mulDiv(tokenRewards, REWARD_PER_STAKED_TOKEN_BASE, totalStaked);
         }
 
-        uint256 pendingRewards = Math.mulDiv(userStakedBalance, rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE);
+        uint256 currentRewards = tokenInfo.accruedRewards[user][rewardToken] * REWARD_PER_STAKED_TOKEN_BASE;
+        uint256 pendingRewards = userStakedBalance * rewardPerStakedToken;
 
-        return tokenInfo.accruedRewards[user][rewardToken] + pendingRewards - tokenInfo.rewardDebt[user][rewardToken];
+        return
+            (currentRewards + pendingRewards - tokenInfo.rewardDebt[user][rewardToken]) / REWARD_PER_STAKED_TOKEN_BASE;
     }
 
     /// @inheritdoc IStaking
-    function addStakingToken(address asset) external onlyOwner {
+    function startStaking(address asset) external onlyOwner {
         Storage.Layout storage $ = Storage.layout();
 
-        if (isAssetWhitelisted(asset)) {
-            revert StakingTokenAlreadyAdded();
+        if (isStakingStarted(asset)) {
+            revert StakingAlreadyStarted();
         }
 
         // TODO: Beacon Proxy
-        address stakedToken = address(new StakedToken(address(this), asset, address(this), "Ime", "symbol"));
-
-        $.tokenInfo[asset].stakedToken = stakedToken;
-        $.isAssetWhitelisted[asset] = true;
-        $.stakingTokens.push(asset);
-
-        emit AddStakingToken(asset);
-    }
-
-    /// @inheritdoc IStaking
-    function removeStakingToken(address asset) external onlyOwner {
-        Storage.Layout storage $ = Storage.layout();
-        address[] storage stakingTokens = $.stakingTokens;
-
-        for (uint256 i = 0; i < stakingTokens.length; i++) {
-            if (stakingTokens[i] == asset) {
-                delete stakingTokens[i];
-            }
+        if (getStakedToken(asset) == address(0)) {
+            address stakedToken = address(new StakedToken(address(this), asset, address(this), "Ime", "symbol"));
+            $.tokenInfo[asset].stakedToken = stakedToken;
         }
 
-        $.isAssetWhitelisted[asset] = false;
+        $.stakingTokens.push(asset);
 
-        emit RemoveStakingToken(asset);
+        emit StartStaking(asset);
     }
 
     /// @inheritdoc IStaking
     function configureRewardToken(address stakingToken, address rewardToken, uint256 emissionPerSecond)
         external
         onlyOwner
-        onlyWhitelistedAsset(stakingToken)
+        onlyActiveStaking(stakingToken)
     {
         Storage.Layout storage $ = Storage.layout();
         Storage.TokenInfo storage tokenInfo = $.tokenInfo[stakingToken];
@@ -190,10 +194,7 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc IStaking
-    function stake(address stakingToken, uint256 amount, address recipient)
-        external
-        onlyWhitelistedAsset(stakingToken)
-    {
+    function stake(address stakingToken, uint256 amount, address recipient) external onlyActiveStaking(stakingToken) {
         // This contract will call mint on StakedToken contract
         // StakedToken contract has override for _update function which will can updateHook on this contract where logic is placed
         SafeERC20.safeTransferFrom(IERC20(stakingToken), msg.sender, address(this), amount);
@@ -207,8 +208,16 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         // This contract will call mint on StakedToken contract
         // StakedToken contract has override for _update function which will can updateHook on this contract where logic is placed
         IStakedToken(getStakedToken(stakingToken)).burn(msg.sender, amount);
-        SafeERC20.safeTransfer(IERC20(stakingToken), recipient, amount);
 
+        address seam = getSeam();
+
+        if (stakingToken == seam) {
+            address esSeam = getEsSeam();
+            IERC20(seam).approve(esSeam, amount);
+            IEscrowSeam(esSeam).deposit(recipient, amount);
+        } else {
+            SafeERC20.safeTransfer(IERC20(stakingToken), recipient, amount);
+        }
         emit Unstake(stakingToken, msg.sender, recipient, amount);
     }
 
@@ -227,16 +236,23 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         _updateRewards(stakingToken, rewardToken);
 
         uint256 userTotalRewards = getUserTotalRewardsForToken(msg.sender, stakingToken, rewardToken);
-        SafeERC20.safeTransfer(IERC20(rewardToken), recipient, userTotalRewards);
 
         Storage.Layout storage $ = Storage.layout();
         Storage.TokenInfo storage tokenInfo = $.tokenInfo[stakingToken];
         RewardTokenData memory rewardTokenData = tokenInfo.rewardTokenData[rewardToken];
         uint256 userStakedBalance = getUserStakedBalance(msg.sender, stakingToken);
 
-        tokenInfo.rewardDebt[msg.sender][rewardToken] =
-            Math.mulDiv(userStakedBalance, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE);
+        tokenInfo.rewardDebt[msg.sender][rewardToken] = userStakedBalance * rewardTokenData.rewardPerStakedToken;
         tokenInfo.accruedRewards[msg.sender][rewardToken] = 0;
+
+        address esSeam = getEsSeam();
+        if (rewardToken == esSeam) {
+            address seam = getSeam();
+            IERC20(seam).approve(esSeam, userTotalRewards);
+            IEscrowSeam(esSeam).deposit(recipient, userTotalRewards);
+        } else {
+            SafeERC20.safeTransfer(IERC20(rewardToken), recipient, userTotalRewards);
+        }
 
         emit ClaimRewardsForToken(msg.sender, recipient, stakingToken, rewardToken);
     }
@@ -312,15 +328,14 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
 
         if (userCurrentBalance > 0) {
             // Calculate how much rewards user has accrued until now
-            uint256 userAccruedRewards = Math.mulDiv(
-                userCurrentBalance, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE
-            ) - tokenInfo.rewardDebt[user][rewardToken];
+            uint256 userAccruedRewards = (
+                userCurrentBalance * rewardTokenData.rewardPerStakedToken - tokenInfo.rewardDebt[user][rewardToken]
+            ) / REWARD_PER_STAKED_TOKEN_BASE;
 
             tokenInfo.accruedRewards[user][rewardToken] += userAccruedRewards;
         }
 
         // Update reward debt of user
-        tokenInfo.rewardDebt[user][rewardToken] =
-            Math.mulDiv(userFutureBalance, rewardTokenData.rewardPerStakedToken, REWARD_PER_STAKED_TOKEN_BASE);
+        tokenInfo.rewardDebt[user][rewardToken] = userFutureBalance * rewardTokenData.rewardPerStakedToken;
     }
 }

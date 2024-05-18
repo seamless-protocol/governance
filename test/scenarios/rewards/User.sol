@@ -8,10 +8,12 @@ import {IStaking} from "src/interfaces/IStaking.sol";
 
 contract User is Test {
     ERC20Mock public token;
+    ERC20Mock public seam;
     IStaking public staking;
 
-    constructor(ERC20Mock _token, IStaking _staking) {
+    constructor(ERC20Mock _token, ERC20Mock _seam, IStaking _staking) {
         token = _token;
+        seam = _seam;
         staking = _staking;
     }
 
@@ -20,12 +22,25 @@ contract User is Test {
         staking.stake(address(token), amount, address(this));
     }
 
+    function depositSeam(uint256 amount) external {
+        seam.approve(address(staking), amount);
+        staking.stake(address(seam), amount, address(this));
+    }
+
     function withdraw(uint256 amount) external {
         staking.unstake(address(token), amount, address(this));
     }
 
+    function withdrawSeam(uint256 amount) external {
+        staking.unstake(address(seam), amount, address(this));
+    }
+
     function claimRewards() external {
         staking.claimRewards(address(token), address(this));
+    }
+
+    function claimRewardsSeam() external {
+        staking.claimRewards(address(seam), address(this));
     }
 
     function transfer(address to, uint256 amount) external {
