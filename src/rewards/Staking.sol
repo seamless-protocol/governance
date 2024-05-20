@@ -272,7 +272,6 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         emit ClaimRewardsForToken(msg.sender, recipient, stakingToken, rewardToken);
     }
 
-    //TODO: Should user be able to transfer token if deposit is paused
     /// @inheritdoc IStaking
     function updateHook(address stakingToken, address sender, address recipient, uint256 value)
         external
