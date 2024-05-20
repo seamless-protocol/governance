@@ -3,17 +3,17 @@ pragma solidity ^0.8.20;
 
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {Initializable} from "openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IEscrowSeam} from "../interfaces/IEscrowSeam.sol";
 import {IStaking} from "../interfaces/IStaking.sol";
-import {RewardTokenData} from "../types/DataTypes.sol";
+import {RewardTokenData, RewardTokenConfig} from "../types/DataTypes.sol";
 import {StakedToken} from "./StakedToken.sol";
 import {IStakedToken} from "../interfaces/IStakedToken.sol";
+import {StakedTokenBeaconProxy} from "./StakedTokenBeaconProxy.sol";
 import {StakingStorage as Storage} from "../storage/StakingStorage.sol";
-
-import "forge-std/console.sol";
 
 /// @title Staking contract
 /// @notice Contract for staking tokens and earning multiple tokens as rewards
@@ -54,6 +54,11 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /// @inheritdoc IStaking
+    function getStakedTokenImplementation() external view returns (address) {
+        return Storage.layout().stakedTokenImplementation;
+    }
+
+    /// @inheritdoc IStaking
     function getSeam() public view returns (address) {
         return Storage.layout().seam;
     }
@@ -84,8 +89,12 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc IStaking
-    function getEmissionPerSecond(address stakingToken, address rewardToken) external view returns (uint256) {
-        return Storage.layout().tokenInfo[stakingToken].emissionPerSecond[rewardToken];
+    function getRewardTokenConfig(address stakingToken, address rewardToken)
+        external
+        view
+        returns (RewardTokenConfig memory rewardTokenConfig)
+    {
+        return Storage.layout().tokenInfo[stakingToken].rewardTokenConfig[rewardToken];
     }
 
     /// @inheritdoc IStaking
@@ -131,18 +140,23 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         uint256 rewardPerStakedToken = rewardTokenData.rewardPerStakedToken;
 
         if (rewardTokenData.lastUpdatedTimestamp < block.timestamp && totalStaked > 0) {
-            uint256 emissionPerSecond = tokenInfo.emissionPerSecond[rewardToken];
-            uint256 timePassed = block.timestamp - rewardTokenData.lastUpdatedTimestamp;
-            uint256 tokenRewards = emissionPerSecond * timePassed;
-
+            uint256 tokenRewards = _getTotalPendingRewards(stakingToken, rewardToken);
             rewardPerStakedToken += Math.mulDiv(tokenRewards, REWARD_PER_STAKED_TOKEN_BASE, totalStaked);
         }
 
-        uint256 currentRewards = tokenInfo.accruedRewards[user][rewardToken] * REWARD_PER_STAKED_TOKEN_BASE;
+        uint256 currentRewards = tokenInfo.accruedRewards[user][rewardToken];
         uint256 pendingRewards = userStakedBalance * rewardPerStakedToken;
 
         return
             (currentRewards + pendingRewards - tokenInfo.rewardDebt[user][rewardToken]) / REWARD_PER_STAKED_TOKEN_BASE;
+    }
+
+    /// @inheritdoc IStaking
+    function setStakedTokenImplementation(address implementation) external {
+        Storage.Layout storage $ = Storage.layout();
+        $.stakedTokenImplementation = implementation;
+
+        emit SetStakedTokenImplementation(implementation);
     }
 
     /// @inheritdoc IStaking
@@ -153,10 +167,13 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
             revert StakingAlreadyStarted();
         }
 
-        // TODO: Beacon Proxy
         if (getStakedToken(asset) == address(0)) {
-            address stakedToken = address(new StakedToken(address(this), asset, address(this), "Ime", "symbol"));
-            $.tokenInfo[asset].stakedToken = stakedToken;
+            StakedTokenBeaconProxy stakedTokenBeaconProxy = new StakedTokenBeaconProxy(
+                address(this),
+                abi.encodeWithSelector(StakedToken.initialize.selector, address(this), asset, "Staked Token", "STK")
+            );
+
+            $.tokenInfo[asset].stakedToken = address(stakedTokenBeaconProxy);
         }
 
         $.stakingTokens.push(asset);
@@ -165,7 +182,7 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     /// @inheritdoc IStaking
-    function configureRewardToken(address stakingToken, address rewardToken, uint256 emissionPerSecond)
+    function configureRewardToken(address stakingToken, address rewardToken, RewardTokenConfig calldata config)
         external
         onlyOwner
         onlyActiveStaking(stakingToken)
@@ -178,19 +195,17 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
             if (rewardTokenList[i] == rewardToken) {
                 _updateRewards(stakingToken, rewardToken);
 
-                tokenInfo.emissionPerSecond[rewardToken] = emissionPerSecond;
+                tokenInfo.rewardTokenConfig[rewardToken] = config;
                 return;
             }
         }
 
         rewardTokenList.push(rewardToken);
+        tokenInfo.rewardTokenConfig[rewardToken] = config;
 
-        RewardTokenData storage rewardTokenData = tokenInfo.rewardTokenData[rewardToken];
-        rewardTokenData.lastUpdatedTimestamp = block.timestamp;
-
-        tokenInfo.emissionPerSecond[rewardToken] = emissionPerSecond;
-
-        emit ConfigureRewardToken(stakingToken, rewardToken, emissionPerSecond);
+        emit ConfigureRewardToken(
+            stakingToken, rewardToken, config.startTimestamp, config.endTimestamp, config.emissionPerSecond
+        );
     }
 
     /// @inheritdoc IStaking
@@ -296,10 +311,6 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         Storage.TokenInfo storage tokenInfo = $.tokenInfo[stakingToken];
         RewardTokenData storage rewardTokenData = tokenInfo.rewardTokenData[rewardToken];
 
-        if (rewardTokenData.lastUpdatedTimestamp >= block.timestamp) {
-            return;
-        }
-
         uint256 totalStaked = getTotalStaked(stakingToken);
 
         if (totalStaked == 0) {
@@ -307,9 +318,7 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
             return;
         }
 
-        uint256 emissionPerSecond = tokenInfo.emissionPerSecond[rewardToken];
-        uint256 timePassed = block.timestamp - rewardTokenData.lastUpdatedTimestamp;
-        uint256 tokenRewards = emissionPerSecond * timePassed;
+        uint256 tokenRewards = _getTotalPendingRewards(stakingToken, rewardToken);
 
         rewardTokenData.rewardPerStakedToken += Math.mulDiv(tokenRewards, REWARD_PER_STAKED_TOKEN_BASE, totalStaked);
         rewardTokenData.lastUpdatedTimestamp = block.timestamp;
@@ -328,14 +337,32 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
 
         if (userCurrentBalance > 0) {
             // Calculate how much rewards user has accrued until now
-            uint256 userAccruedRewards = (
-                userCurrentBalance * rewardTokenData.rewardPerStakedToken - tokenInfo.rewardDebt[user][rewardToken]
-            ) / REWARD_PER_STAKED_TOKEN_BASE;
+            uint256 userAccruedRewards =
+                userCurrentBalance * rewardTokenData.rewardPerStakedToken - tokenInfo.rewardDebt[user][rewardToken];
 
             tokenInfo.accruedRewards[user][rewardToken] += userAccruedRewards;
         }
 
         // Update reward debt of user
         tokenInfo.rewardDebt[user][rewardToken] = userFutureBalance * rewardTokenData.rewardPerStakedToken;
+    }
+
+    function _getTotalPendingRewards(address stakingToken, address rewardToken) private view returns (uint256) {
+        Storage.Layout storage $ = Storage.layout();
+        Storage.TokenInfo storage tokenInfo = $.tokenInfo[stakingToken];
+        RewardTokenData memory rewardTokenData = tokenInfo.rewardTokenData[rewardToken];
+        RewardTokenConfig memory rewardTokenConfig = tokenInfo.rewardTokenConfig[rewardToken];
+
+        uint256 fromTimestamp = Math.max(rewardTokenConfig.startTimestamp, rewardTokenData.lastUpdatedTimestamp);
+        uint256 toTimestamp = Math.min(block.timestamp, rewardTokenConfig.endTimestamp);
+
+        if (fromTimestamp > toTimestamp) {
+            return 0;
+        }
+
+        uint256 timePassed = toTimestamp - fromTimestamp;
+        uint256 emissionPerSecond = rewardTokenConfig.emissionPerSecond;
+
+        return timePassed * emissionPerSecond;
     }
 }

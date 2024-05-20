@@ -1,23 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
-import {Ownable} from "openzeppelin-contracts/access/Ownable.sol";
+import {ERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {IStaking} from "../interfaces/IStaking.sol";
+import {StakedTokenStorage as Storage} from "../storage/StakedTokenStorage.sol";
 
-contract StakedToken is ERC20, Ownable {
-    address public stakingToken;
-    IStaking public staking;
+contract StakedToken is ERC20Upgradeable, OwnableUpgradeable {
+    function initialize(address _staking, address _stakingToken, string memory _name, string memory _symbol)
+        external
+        initializer
+    {
+        __ERC20_init(_name, _symbol);
+        __Ownable_init(_staking);
 
-    constructor(
-        address _staking,
-        address _stakingToken,
-        address _initialOwner,
-        string memory _name,
-        string memory _symbol
-    ) ERC20(_name, _symbol) Ownable(_initialOwner) {
-        staking = IStaking(_staking);
-        stakingToken = _stakingToken;
+        Storage.Layout storage $ = Storage.layout();
+        $.staking = _staking;
+        $.stakingToken = _stakingToken;
     }
 
     function mint(address to, uint256 amount) external onlyOwner {
@@ -29,7 +28,11 @@ contract StakedToken is ERC20, Ownable {
     }
 
     function _update(address sender, address recipient, uint256 amount) internal virtual override {
-        staking.updateHook(stakingToken, sender, recipient, amount);
+        Storage.Layout storage $ = Storage.layout();
+        IStaking($.staking).updateHook($.stakingToken, sender, recipient, amount);
+
         return super._update(sender, recipient, amount);
     }
+
+    receive() external payable {}
 }

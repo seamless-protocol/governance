@@ -8,6 +8,8 @@ import {Staking} from "src/rewards/Staking.sol";
 import {IStaking} from "src/interfaces/IStaking.sol";
 import {User} from "./User.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
+import {RewardTokenConfig} from "src/types/DataTypes.sol";
+import {StakedToken} from "src/rewards/StakedToken.sol";
 
 contract StakingTest is Test {
     uint256 public constant ABS_TOLERANCE = 4 wei;
@@ -26,13 +28,15 @@ contract StakingTest is Test {
     User public user3;
 
     function setUp() public {
-        Staking stakedTokenImplementation = new Staking();
+        Staking stakingImplementation = new Staking();
         ERC1967Proxy proxy = new ERC1967Proxy(
-            address(stakedTokenImplementation),
+            address(stakingImplementation),
             abi.encodeWithSelector(Staking.initialize.selector, address(seam), address(esSeam), address(this))
         );
-
         staking = Staking(address(proxy));
+
+        StakedToken stakedTokenImplementation = new StakedToken();
+        staking.setStakedTokenImplementation(address(stakedTokenImplementation));
 
         token.mint(address(this), 100 ether);
         rewardToken.mint(address(proxy), 1000000000 ether);
@@ -46,22 +50,28 @@ contract StakingTest is Test {
         token.mint(address(user3), 1_000_000 ether);
 
         staking.startStaking(address(token));
-        staking.configureRewardToken(address(token), address(rewardToken), emissionPerSecond);
+        staking.configureRewardToken(
+            address(token),
+            address(rewardToken),
+            RewardTokenConfig({startTimestamp: 0, endTimestamp: type(uint256).max, emissionPerSecond: emissionPerSecond})
+        );
     }
 
     function testDeploy() public {
         assertEq(staking.owner(), address(this));
+        assertEq(staking.isStakingStarted(address(token)), true);
+        assertNotEq(staking.getStakedToken(address(token)), address(0));
     }
-
     /*
-      Scenario:
+     Scenario:
       - User deposits the staked token
       - User deposits again after some time
       - User deposits again after some time
 
-      Expected:
+     Expected:
       - Users accrued rewards should proportionally increase based on passed time between deposits
     */
+
     function testDeposit_OnlyOneStaker() public {
         // User deposits the staked token
 
@@ -77,10 +87,7 @@ contract StakingTest is Test {
         // Check that user's accrued rewards are correctly updated after iteactions
 
         uint256 expectedAccruedRewards = timeToPass * emissionPerSecond;
-        assertEq(
-            staking.getUserAccruedRewardsForToken(address(user1), address(token), address(rewardToken)),
-            expectedAccruedRewards
-        );
+        _validateAccruedRewards(expectedAccruedRewards, 0, 0, expectedAccruedRewards);
 
         // User deposits again after some time
 
@@ -91,27 +98,24 @@ contract StakingTest is Test {
         // Check that user's accrued rewards are correctly updated after iteactions
 
         expectedAccruedRewards += timeToPass * emissionPerSecond;
-        assertEq(
-            staking.getUserAccruedRewardsForToken(address(user1), address(token), address(rewardToken)),
-            expectedAccruedRewards
-        );
+        _validateAccruedRewards(expectedAccruedRewards, 0, 0, expectedAccruedRewards);
     }
 
     /*
-        Scenario:
-        - User1 deposits the tokens
-        - User2 deposits the tokens
-        - User3 deposits the tokens
-        - User1 deposits again
-        - User3 deposits again
-        - User2 deposits again
-        - User3 deposits again
-        - User1 deposits again
-        - User2 deposits again
+    Scenario:
+     - User1 deposits the tokens
+     - User2 deposits the tokens
+     - User3 deposits the tokens
+     - User1 deposits again
+     - User3 deposits again
+     - User2 deposits again
+     - User3 deposits again
+     - User1 deposits again
+     - User2 deposits again
 
-        Expected:
-        - Users accrued rewards should proportionally increase based on passed time between deposits
-        - Users staked amount should be correctly updated after each deposit
+    Expected:
+     - Users accrued rewards should proportionally increase based on passed time between deposits
+     - Users staked amount should be correctly updated after each deposit
     */
     function testDeposit_MulipleStakers() public {
         uint256 expectedUser1TotalStaked;
@@ -121,6 +125,17 @@ contract StakingTest is Test {
         uint256 expectedUser2AccruedRewards;
         uint256 expectedUser3AccruedRewards;
         uint256 totalDistributedRewards;
+
+        uint256 rewardEndTimestamp = block.timestamp + 123_132_134;
+        staking.configureRewardToken(
+            address(token),
+            address(rewardToken),
+            RewardTokenConfig({
+                startTimestamp: block.timestamp,
+                endTimestamp: rewardEndTimestamp,
+                emissionPerSecond: emissionPerSecond
+            })
+        );
 
         // User1 deposits the tokens, check that his position and accrued rewards are correctly updated
 
@@ -196,9 +211,16 @@ contract StakingTest is Test {
             totalDistributedRewards
         );
 
-        // Admin changes emission per second, check that users accrued rewards are correctly updated
+        timeToPass = rewardEndTimestamp - block.timestamp;
+        vm.warp(block.timestamp + timeToPass);
+        newRewards = timeToPass * emissionPerSecond;
+        totalDistributedRewards += newRewards;
+        expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
+        expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
+        expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
+
+        // Reward program is expired, users should not earn anything from this moment
         emissionPerSecond = 0;
-        staking.configureRewardToken(address(token), address(rewardToken), 0);
 
         _validateAccruedRewards(
             expectedUser1AccruedRewards,
@@ -218,6 +240,13 @@ contract StakingTest is Test {
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
 
+        _validateAccruedRewards(
+            expectedUser1AccruedRewards,
+            expectedUser2AccruedRewards,
+            expectedUser3AccruedRewards,
+            totalDistributedRewards
+        );
+
         amount = 200 ether;
         user3.deposit(amount);
         expectedUser3TotalStaked += amount;
@@ -231,9 +260,18 @@ contract StakingTest is Test {
             totalDistributedRewards
         );
 
-        //Admin changes emission per second, check that users accrued rewards are correctly updated
+        // Admin changes emission per second, check that users accrued rewards are correctly updated
+
         emissionPerSecond = 10000;
-        staking.configureRewardToken(address(token), address(rewardToken), emissionPerSecond);
+        staking.configureRewardToken(
+            address(token),
+            address(rewardToken),
+            RewardTokenConfig({
+                startTimestamp: block.timestamp,
+                endTimestamp: type(uint256).max,
+                emissionPerSecond: emissionPerSecond
+            })
+        );
 
         _validateAccruedRewards(
             expectedUser1AccruedRewards,
@@ -242,7 +280,7 @@ contract StakingTest is Test {
             totalDistributedRewards
         );
 
-        // Some time passes and user2 deposits again, check that his position and accrued rewards are correctly updated
+        // // Some time passes and user2 deposits again, check that his position and accrued rewards are correctly updated
 
         timeToPass = 143_420_011;
         amount = 1_000 ether;
@@ -347,20 +385,20 @@ contract StakingTest is Test {
     }
 
     /*
-        Scenario:
-        - User1 deposits the tokens
-        - User1 withdraws the tokens
-        - User1 deposits the tokens
-        - User1 withdraws all the tokens
-        - Some time passes and user is not earning rewards since he withdrew everything
-        - User1 deposits the tokens
-        - Some time passes and user starts earning rewards again but only from timestamp of the last deposit
+     Scenario:
+     - User1 deposits the tokens
+     - User1 withdraws the tokens
+     - User1 deposits the tokens
+     - User1 withdraws all the tokens
+     - Some time passes and user is not earning rewards since he withdrew everything
+     - User1 deposits the tokens
+     - Some time passes and user starts earning rewards again but only from timestamp of the last deposit
 
-        Expected:
-        - Accrued rewards should be correctly updated after each deposit and withdrawal
-        - User should not earn rewards after withdrawing everything
-        - User should start earning rewards again after depositing
-        - User's total staked amount should be correctly updated after each deposit and withdrawal
+     Expected:
+     - Accrued rewards should be correctly updated after each deposit and withdrawal
+     - User should not earn rewards after withdrawing everything
+     - User should start earning rewards again after depositing
+     - User's total staked amount should be correctly updated after each deposit and withdrawal
     */
     function testWithdraw_OnlyOneUser() public {
         uint256 expectedUserTotalStaked;
@@ -439,24 +477,24 @@ contract StakingTest is Test {
     }
 
     /*
-        Scenario:
-        - User1 deposits the tokens
-        - User2 deposits the tokens
-        - User1 does partial withdrawal
-        - User3 deposits the tokens
-        - User1 deposits the tokens
-        - User2 partialy transfers staked token to User3
-        - User1 does full withdrawal
-        - User2 does full withdrawal
-        - User3 does full withdrawal
-        - Time passes and no rewards are accrued by any user
+     Scenario:
+     - User1 deposits the tokens
+     - User2 deposits the tokens
+     - User1 does partial withdrawal
+     - User3 deposits the tokens
+     - User1 deposits the tokens
+     - User2 partialy transfers staked token to User3
+     - User1 does full withdrawal
+     - User2 does full withdrawal
+     - User3 does full withdrawal
+     - Time passes and no rewards are accrued by any user
 
-        Expected:
-        - Users accrued rewards should be correctly updated after each deposit and withdrawal
-        - Users staked amount should be correctly updated after each deposit and withdrawal
-        - Users should not earn rewards after withdrawing everything
-        - User's staked amount should be correctly updated after each deposit and withdrawal
-        - Total staked amount should be correctly updated after each deposit and withdrawal
+     Expected:
+     - Users accrued rewards should be correctly updated after each deposit and withdrawal
+     - Users staked amount should be correctly updated after each deposit and withdrawal
+     - Users should not earn rewards after withdrawing everything
+     - User's staked amount should be correctly updated after each deposit and withdrawal
+     - Total staked amount should be correctly updated after each deposit and withdrawal
     */
     function testDepositAndWithdraw_MultipleUsers() public {
         uint256 expectedTotalStaked;
@@ -467,6 +505,18 @@ contract StakingTest is Test {
         uint256 expectedUser2AccruedRewards;
         uint256 expectedUser3AccruedRewards;
         uint256 totalDistributedRewards;
+
+        uint256 rewardsEndAtTimestamp = block.timestamp + 12_000_000;
+
+        staking.configureRewardToken(
+            address(token),
+            address(rewardToken),
+            RewardTokenConfig({
+                startTimestamp: block.timestamp,
+                endTimestamp: rewardsEndAtTimestamp,
+                emissionPerSecond: emissionPerSecond
+            })
+        );
 
         // User1 deposits the tokens, check that his position and accrued rewards are correctly updated, rewards should be 0
 
@@ -553,9 +603,20 @@ contract StakingTest is Test {
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
 
-        // Admin changes emission per second, check that users accrued rewards are correctly updated
-        emissionPerSecond = 0;
-        staking.configureRewardToken(address(token), address(rewardToken), 0);
+        _validateAccruedRewards(
+            expectedUser1AccruedRewards,
+            expectedUser2AccruedRewards,
+            expectedUser3AccruedRewards,
+            totalDistributedRewards
+        );
+
+        timeToPass = rewardsEndAtTimestamp - block.timestamp;
+        vm.warp(block.timestamp + timeToPass);
+        newRewards = timeToPass * emissionPerSecond;
+        totalDistributedRewards += newRewards;
+        expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
+        expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
+        expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
 
         _validateAccruedRewards(
             expectedUser1AccruedRewards,
@@ -563,6 +624,9 @@ contract StakingTest is Test {
             expectedUser3AccruedRewards,
             totalDistributedRewards
         );
+
+        // Reward program is finished, users should not earn anything from this moment
+        emissionPerSecond = 0;
 
         amount = 100 ether;
         user1.deposit(amount);
@@ -604,7 +668,15 @@ contract StakingTest is Test {
 
         // Admin changes emission per second, check that users accrued rewards are correctly updated
         emissionPerSecond = 10000;
-        staking.configureRewardToken(address(token), address(rewardToken), emissionPerSecond);
+        staking.configureRewardToken(
+            address(token),
+            address(rewardToken),
+            RewardTokenConfig({
+                startTimestamp: block.timestamp,
+                endTimestamp: type(uint256).max,
+                emissionPerSecond: emissionPerSecond
+            })
+        );
 
         _validateAccruedRewards(
             expectedUser1AccruedRewards,
@@ -696,23 +768,23 @@ contract StakingTest is Test {
     }
 
     /*
-        Scenario:
-        - User1 deposits the tokens
-        - User1 claims the rewards
-        - User1 deposits the tokens
-        - User1 deposits the tokens
-        - User1 claims the rewards
-        - User1 does partial withdrawal
-        - User1 claims the rewards
-        - User1 withdraws all the tokens
-        - User1 claims the rewards
-        - Some time passes and no rewards are accrued
+     Scenario:
+     - User1 deposits the tokens
+     - User1 claims the rewards
+     - User1 deposits the tokens
+     - User1 deposits the tokens
+     - User1 claims the rewards
+     - User1 does partial withdrawal
+     - User1 claims the rewards
+     - User1 withdraws all the tokens
+     - User1 claims the rewards
+     - Some time passes and no rewards are accrued
 
-        Expected:
-        - Users accrued rewards should be correctly updated after each deposit, withdrawal and claim
-        - Users staked amount should be correctly updated after each deposit and withdrawal
-        - Users should not earn rewards after withdrawing everything
-    */
+     Expected:
+     - Users accrued rewards should be correctly updated after each deposit, withdrawal and claim
+     - Users staked amount should be correctly updated after each deposit and withdrawal
+     - Users should not earn rewards after withdrawing everything
+        */
     function testClaimReward_OnlyOneUser() public {
         uint256 expectedUserTotalStaked;
         uint256 expectedUserAccruedRewards;
@@ -844,26 +916,26 @@ contract StakingTest is Test {
     }
 
     /*
-        Scenario:
-        - User1 deposits the tokens
-        - User2 deposits the tokens
-        - User3 deposits the tokens
-        - User1 claims the rewards
-        - User2 partialy transfers staked token to User3
-        - User3 withdraws all the tokens
-        - User3 claims the rewards
-        - User3 deposits the tokens
-        - User2 claims the rewards
-        - User1 withdraws all the tokens
-        - User1 claims the rewards
-        - Some time passes and no rewards are accrued
-        - User2 claims the rewards
-        - User2 withdraws all the tokens
-        - User2 claims the rewards
-        - Some time passes and no rewards are accrued
-        - User3 withdraws all the tokens
-        - User3 claims the rewards
-        - Some time passes and no rewards are accrued by any user
+     Scenario:
+      - User1 deposits the tokens
+      - User2 deposits the tokens
+      - User3 deposits the tokens
+      - User1 claims the rewards
+      - User2 partialy transfers staked token to User3
+      - User3 withdraws all the tokens
+      - User3 claims the rewards
+      - User3 deposits the tokens
+      - User2 claims the rewards
+      - User1 withdraws all the tokens
+      - User1 claims the rewards
+      - Some time passes and no rewards are accrued
+      - User2 claims the rewards
+      - User2 withdraws all the tokens
+      - User2 claims the rewards
+      - Some time passes and no rewards are accrued
+      - User3 withdraws all the tokens
+      - User3 claims the rewards
+      - Some time passes and no rewards are accrued by any user
     */
     function testClaimRewards_MultipleUsers() public {
         uint256 expectedTotalStaked;
@@ -1304,16 +1376,24 @@ contract StakingTest is Test {
     }
 
     /*
-        This scenario is complex scenario where multiple users are staking and unstaking tokens and claiming rewards.
-        All values in this test are hardocded. All rewards are manually calculated and should not be changed. This test is
-        used to prove that smart contract distributes rewards correctly and that all values are correctly updated after
-        each action. This test is used to prove that we did not copy formulas from smart contract to tests directly or indirectly.
-        Scenario is similar to previous one.
+      This scenario is complex scenario where multiple users are staking and unstaking tokens and claiming rewards.
+      All values in this test are hardocded. All rewards are manually calculated and should not be changed. This test is
+      used to prove that smart contract distributes rewards correctly and that all values are correctly updated after
+      each action. This test is used to prove that we did not copy formulas from smart contract to tests directly or indirectly.
+      Scenario is similar to previous one.
     */
     function testClaimRewards_MultipleStakers_PredefinedValues() public {
         // Configure the reward token
 
-        staking.configureRewardToken(address(token), address(rewardToken), 1 ether);
+        staking.configureRewardToken(
+            address(token),
+            address(rewardToken),
+            RewardTokenConfig({
+                startTimestamp: block.timestamp,
+                endTimestamp: type(uint256).max,
+                emissionPerSecond: 1 ether
+            })
+        );
 
         // User1 deposits 10 tokens, check that his position and accrued rewards are correctly updated, rewards should be 0
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {RewardTokenData} from "../types/DataTypes.sol";
+import {RewardTokenData, RewardTokenConfig} from "../types/DataTypes.sol";
 import {StakingStorage as Storage} from "../storage/StakingStorage.sol";
 
 interface IStaking {
@@ -15,6 +15,10 @@ interface IStaking {
     /// @dev Transfer hook should be called only by StakedToken contract
     error NotStakedToken();
 
+    /// @notice Emitted when implementation of staked token is set
+    /// @param implementation Address of new implementation contract
+    event SetStakedTokenImplementation(address indexed implementation);
+
     /// @notice Emitted when staking for given token is started
     /// @param asset Token that staking has started for
     event StartStaking(address indexed asset);
@@ -22,8 +26,16 @@ interface IStaking {
     /// @notice Emitted when reward token is configured for specific staking token
     /// @param stakingToken Staking token for which reward token is configured
     /// @param rewardToken Reward token that is configured
-    /// @param emissionPerSecond Emission per second for given token
-    event ConfigureRewardToken(address indexed stakingToken, address indexed rewardToken, uint256 emissionPerSecond);
+    /// @param startTimestamp Start timestamp of reward program
+    /// @param endTimestamp End timestamp of reward program
+    /// @param emissionPerSecond Emission of reward token
+    event ConfigureRewardToken(
+        address indexed stakingToken,
+        address indexed rewardToken,
+        uint256 startTimestamp,
+        uint256 endTimestamp,
+        uint256 emissionPerSecond
+    );
 
     /// @notice Emitted when stake happens
     /// @param stakingToken Token that was staked
@@ -47,6 +59,10 @@ interface IStaking {
     event ClaimRewardsForToken(
         address indexed from, address indexed recipient, address indexed stakingToken, address rewardToken
     );
+
+    /// @notice Gets address of staked token smart contract implementation
+    /// @param implementation Address of implementation contract
+    function getStakedTokenImplementation() external view returns (address implementation);
 
     /// @notice Gets address of SEAM token configured for this contract
     /// @param seam Address of SEAM token
@@ -75,14 +91,14 @@ interface IStaking {
     /// @param rewardTokens List of reward tokens
     function getRewardTokens(address stakingToken) external view returns (address[] memory rewardTokens);
 
-    /// @notice Returns emission per second for given token
-    /// @param stakingToken Staking token to get emission for
-    /// @param rewardToken Reward token to get emission for
-    /// @param emissionPerSecond Emission per second
-    function getEmissionPerSecond(address stakingToken, address rewardToken)
+    /// @notice Returns reward token config for given staking and reward token
+    /// @param stakingToken Staking token to get reward token config for
+    /// @param rewardToken Reward token to get config for
+    /// @param rewardTokenConfig Reward token config
+    function getRewardTokenConfig(address stakingToken, address rewardToken)
         external
         view
-        returns (uint256 emissionPerSecond);
+        returns (RewardTokenConfig memory rewardTokenConfig);
 
     /// @notice Returns reward token data for given staking and reward token, last updated timestamp and reward per staked token
     /// @param stakingToken Staking token to get data for
@@ -127,6 +143,12 @@ interface IStaking {
         view
         returns (uint256 totalRewards);
 
+    /// @notice Sets address of staked token implementation contract
+    /// @param implementation Address of implementation contract
+    /// @dev When this address is changed all staked token smart contract will be upgraded
+    /// @dev Can be called only by owner
+    function setStakedTokenImplementation(address implementation) external;
+
     /// @notice Starts staking for given token
     /// @param asset Token to start staking for
     /// @dev This function can be called only by owner
@@ -136,10 +158,11 @@ interface IStaking {
     /// @notice Configures emission per second for given reward token for specific staking token
     /// @param stakingToken Staking token to configure emission for
     /// @param rewardToken Reward token to configure emission for
-    /// @param emissionPerSecond Emission per second
+    /// @param config Struct containing start and end timestamp and emission per second
     /// @dev This function can be called only by owner
     /// @dev If reward token is not in the list it will be added to the list otherwise config will be updated
-    function configureRewardToken(address stakingToken, address rewardToken, uint256 emissionPerSecond) external;
+    function configureRewardToken(address stakingToken, address rewardToken, RewardTokenConfig calldata config)
+        external;
 
     /// @notice Stakes tokens from sender on behalf of given account, given account will staked tokens
     /// @param stakingToken Staking token to stake

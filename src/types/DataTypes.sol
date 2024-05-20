@@ -13,3 +13,12 @@ struct RewardTokenData {
     /// @dev This value can be different between reward tokens if no interaction happened after reward token is configured
     uint256 lastUpdatedTimestamp;
 }
+
+struct RewardTokenConfig {
+    /// @dev Start timestamp of rewards for this token, used to calculate rewards for each user
+    uint256 startTimestamp;
+    /// @dev End timestamp of rewards for this token, used to calculate rewards for each user
+    uint256 endTimestamp;
+    /// @dev Emission per second for this token, used to calculate rewards for each user
+    uint256 emissionPerSecond;
+}

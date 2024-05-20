@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {RewardTokenData} from "../types/DataTypes.sol";
+import {RewardTokenData, RewardTokenConfig} from "../types/DataTypes.sol";
 
 library StakingStorage {
     /// @dev Data structure for token info
@@ -20,7 +20,7 @@ library StakingStorage {
         mapping(address => RewardTokenData) rewardTokenData;
         /// @dev Emission per second for each reward token
         /// @dev Reward token address => emission per second
-        mapping(address => uint256) emissionPerSecond;
+        mapping(address => RewardTokenConfig) rewardTokenConfig;
         /// @dev Reward debt for each user and reward token
         /// @dev Reward debt is used when calculating rewards for user, logic is copied from MasterChef contract
         /// @dev Reward debt is calculated on each interaction with the contract
@@ -43,6 +43,9 @@ library StakingStorage {
         address seam;
         /// @dev Address of esSEAM token, contract has special logic for esSEAM distribution
         address esSeam;
+        /// @dev Address of implementation contract for StakedToken smart contract
+        /// @dev When this address is changed all StakedToken contract are automatically upgraded since they are BeaconProxy
+        address stakedTokenImplementation;
     }
 
     // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.StakedToken")) - 1)) & ~bytes32(uint256(0xff))
