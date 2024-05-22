@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Address} from "openzeppelin-contracts/utils/Address.sol";
 import {Proxy} from "openzeppelin-contracts/proxy/Proxy.sol";
-import {IStaking} from "../interfaces/IStaking.sol";
+import {IStakingManager} from "../interfaces/IStakingManager.sol";
 
 contract StakedTokenBeaconProxy is Proxy {
     address private immutable _beacon;
@@ -17,7 +17,7 @@ contract StakedTokenBeaconProxy is Proxy {
     }
 
     function _implementation() internal view virtual override returns (address) {
-        return IStaking(_getBeacon()).getStakedTokenImplementation();
+        return IStakingManager(_getBeacon()).getStakedTokenImplementation();
     }
 
     function _getBeacon() internal view virtual returns (address) {

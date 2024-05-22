@@ -4,14 +4,14 @@ pragma solidity ^0.8.20;
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
-import {IStaking} from "src/interfaces/IStaking.sol";
+import {IStakingManager} from "src/interfaces/IStakingManager.sol";
 
 contract User is Test {
     ERC20Mock public token;
     ERC20Mock public seam;
-    IStaking public staking;
+    IStakingManager public staking;
 
-    constructor(ERC20Mock _token, ERC20Mock _seam, IStaking _staking) {
+    constructor(ERC20Mock _token, ERC20Mock _seam, IStakingManager _staking) {
         token = _token;
         seam = _seam;
         staking = _staking;

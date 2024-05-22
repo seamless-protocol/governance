@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {ERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {IStaking} from "../interfaces/IStaking.sol";
+import {IStakingManager} from "../interfaces/IStakingManager.sol";
 import {StakedTokenStorage as Storage} from "../storage/StakedTokenStorage.sol";
 
 contract StakedToken is ERC20Upgradeable, OwnableUpgradeable {
@@ -29,7 +29,7 @@ contract StakedToken is ERC20Upgradeable, OwnableUpgradeable {
 
     function _update(address sender, address recipient, uint256 amount) internal virtual override {
         Storage.Layout storage $ = Storage.layout();
-        IStaking($.staking).updateHook($.stakingToken, sender, recipient, amount);
+        IStakingManager($.staking).updateHook($.stakingToken, sender, recipient, amount);
 
         return super._update(sender, recipient, amount);
     }

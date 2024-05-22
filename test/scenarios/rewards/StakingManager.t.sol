@@ -4,14 +4,14 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {Staking} from "src/rewards/Staking.sol";
-import {IStaking} from "src/interfaces/IStaking.sol";
+import {StakingManager} from "src/rewards/StakingManager.sol";
+import {IStakingManager} from "src/interfaces/IStakingManager.sol";
 import {User} from "./User.sol";
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {RewardTokenConfig} from "src/types/DataTypes.sol";
 import {StakedToken} from "src/rewards/StakedToken.sol";
 
-contract StakingTest is Test {
+contract StakingManagerTest is Test {
     uint256 public constant ABS_TOLERANCE = 4 wei;
 
     uint256 public emissionPerSecond = 10000 wei;
@@ -21,19 +21,19 @@ contract StakingTest is Test {
     ERC20Mock public token = new ERC20Mock();
     ERC20Mock public rewardToken = new ERC20Mock();
 
-    Staking public staking;
+    StakingManager public staking;
 
     User public user1;
     User public user2;
     User public user3;
 
     function setUp() public {
-        Staking stakingImplementation = new Staking();
+        StakingManager stakingImplementation = new StakingManager();
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(stakingImplementation),
-            abi.encodeWithSelector(Staking.initialize.selector, address(seam), address(esSeam), address(this))
+            abi.encodeWithSelector(StakingManager.initialize.selector, address(seam), address(esSeam), address(this))
         );
-        staking = Staking(address(proxy));
+        staking = StakingManager(address(proxy));
 
         StakedToken stakedTokenImplementation = new StakedToken();
         staking.setStakedTokenImplementation(address(stakedTokenImplementation));

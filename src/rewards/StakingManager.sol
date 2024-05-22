@@ -8,17 +8,17 @@ import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IEscrowSeam} from "../interfaces/IEscrowSeam.sol";
-import {IStaking} from "../interfaces/IStaking.sol";
+import {IStakingManager} from "../interfaces/IStakingManager.sol";
 import {RewardTokenData, RewardTokenConfig} from "../types/DataTypes.sol";
 import {StakedToken} from "./StakedToken.sol";
 import {IStakedToken} from "../interfaces/IStakedToken.sol";
 import {StakedTokenBeaconProxy} from "./StakedTokenBeaconProxy.sol";
-import {StakingStorage as Storage} from "../storage/StakingStorage.sol";
+import {StakingManagerStorage as Storage} from "../storage/StakingManagerStorage.sol";
 
-/// @title Staking contract
+/// @title StakingManger contract
 /// @notice Contract for staking tokens and earning multiple tokens as rewards
 /// @dev One contract handles multiple staking tokens and multiple reward tokens for each staking token
-contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
+contract StakingManager is IStakingManager, OwnableUpgradeable, UUPSUpgradeable {
     /// @dev Constant that determines on how many decimals rewardPerStakedToken will be calculated and saved in storage
     /// @dev The more decimals this value has the more precision rewards will have
     /// @dev Nothing more than changing this value is needed in order to change precision
@@ -53,42 +53,42 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function getStakedTokenImplementation() external view returns (address) {
         return Storage.layout().stakedTokenImplementation;
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function getSeam() public view returns (address) {
         return Storage.layout().seam;
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function getEsSeam() public view returns (address) {
         return Storage.layout().esSeam;
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function getStakedToken(address stakingToken) public view returns (address) {
         return Storage.layout().tokenInfo[stakingToken].stakedToken;
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function isStakingStarted(address asset) public view returns (bool) {
         return Storage.layout().tokenInfo[asset].stakedToken != address(0);
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function getStakingTokens() external view returns (address[] memory) {
         return Storage.layout().stakingTokens;
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function getRewardTokens(address stakingToken) external view returns (address[] memory) {
         return Storage.layout().tokenInfo[stakingToken].rewardTokens;
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function getRewardTokenConfig(address stakingToken, address rewardToken)
         external
         view
@@ -97,7 +97,7 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         return Storage.layout().tokenInfo[stakingToken].rewardTokenConfig[rewardToken];
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function getRewardTokenData(address stakingToken, address rewardToken)
         external
         view
@@ -106,17 +106,17 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         return Storage.layout().tokenInfo[stakingToken].rewardTokenData[rewardToken];
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function getTotalStaked(address stakingToken) public view returns (uint256) {
         return IERC20(Storage.layout().tokenInfo[stakingToken].stakedToken).totalSupply();
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function getUserStakedBalance(address user, address stakingToken) public view returns (uint256) {
         return IERC20(Storage.layout().tokenInfo[stakingToken].stakedToken).balanceOf(user);
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function getUserAccruedRewardsForToken(address user, address stakingToken, address rewardToken)
         external
         view
@@ -125,7 +125,7 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         return Storage.layout().tokenInfo[stakingToken].accruedRewards[user][rewardToken];
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function getUserTotalRewardsForToken(address user, address stakingToken, address rewardToken)
         public
         view
@@ -151,7 +151,7 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
             (currentRewards + pendingRewards - tokenInfo.rewardDebt[user][rewardToken]) / REWARD_PER_STAKED_TOKEN_BASE;
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function setStakedTokenImplementation(address implementation) external {
         Storage.Layout storage $ = Storage.layout();
         $.stakedTokenImplementation = implementation;
@@ -159,7 +159,7 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         emit SetStakedTokenImplementation(implementation);
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function startStaking(address asset) external onlyOwner {
         Storage.Layout storage $ = Storage.layout();
 
@@ -181,7 +181,7 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         emit StartStaking(asset);
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function configureRewardToken(address stakingToken, address rewardToken, RewardTokenConfig calldata config)
         external
         onlyOwner
@@ -208,7 +208,7 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         );
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function stake(address stakingToken, uint256 amount, address recipient) external onlyActiveStaking(stakingToken) {
         // This contract will call mint on StakedToken contract
         // StakedToken contract has override for _update function which will can updateHook on this contract where logic is placed
@@ -218,7 +218,7 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         emit Stake(stakingToken, msg.sender, recipient, amount);
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function unstake(address stakingToken, uint256 amount, address recipient) external {
         // This contract will call mint on StakedToken contract
         // StakedToken contract has override for _update function which will can updateHook on this contract where logic is placed
@@ -236,7 +236,7 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         emit Unstake(stakingToken, msg.sender, recipient, amount);
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function claimRewards(address stakingToken, address recipient) external {
         Storage.Layout storage $ = Storage.layout();
         Storage.TokenInfo storage tokenInfo = $.tokenInfo[stakingToken];
@@ -246,7 +246,7 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         }
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function claimRewardsForToken(address stakingToken, address rewardToken, address recipient) public {
         _updateRewards(stakingToken, rewardToken);
 
@@ -272,7 +272,7 @@ contract Staking is IStaking, OwnableUpgradeable, UUPSUpgradeable {
         emit ClaimRewardsForToken(msg.sender, recipient, stakingToken, rewardToken);
     }
 
-    /// @inheritdoc IStaking
+    /// @inheritdoc IStakingManager
     function updateHook(address stakingToken, address sender, address recipient, uint256 value)
         external
         onlyStakedToken(stakingToken)

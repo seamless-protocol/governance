@@ -2,9 +2,9 @@
 pragma solidity ^0.8.20;
 
 import {RewardTokenData, RewardTokenConfig} from "../types/DataTypes.sol";
-import {StakingStorage as Storage} from "../storage/StakingStorage.sol";
+import {StakingManagerStorage as Storage} from "../storage/StakingManagerStorage.sol";
 
-interface IStaking {
+interface IStakingManager {
     /// @notice Error emitted when staking for token is not started
     error StakingNotStarted();
 
