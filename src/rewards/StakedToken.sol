@@ -7,6 +7,10 @@ import {IStakingManager} from "../interfaces/IStakingManager.sol";
 import {StakedTokenStorage as Storage} from "../storage/StakedTokenStorage.sol";
 
 contract StakedToken is ERC20Upgradeable, OwnableUpgradeable {
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(address _staking, address _stakingToken, string memory _name, string memory _symbol)
         external
         initializer
