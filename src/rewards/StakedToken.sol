@@ -3,10 +3,11 @@ pragma solidity ^0.8.20;
 
 import {ERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {Initializable} from "openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
 import {IStakingManager} from "../interfaces/IStakingManager.sol";
 import {StakedTokenStorage as Storage} from "../storage/StakedTokenStorage.sol";
 
-contract StakedToken is ERC20Upgradeable, OwnableUpgradeable {
+contract StakedToken is Initializable, ERC20Upgradeable, OwnableUpgradeable {
     constructor() {
         _disableInitializers();
     }
