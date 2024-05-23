@@ -176,6 +176,12 @@ interface IStakingManager {
     /// @param recipient Account to receive tokens
     function unstake(address stakingToken, uint256 amount, address recipient) external;
 
+    /// @notice Unstakes tokens from sender on behalf of given account, given account will receive tokens and claim rewards
+    /// @param stakingToken Staking token to unstake
+    /// @param amount Amount to unstake
+    /// @param recipient Account to receive tokens and rewards
+    function unstakeAndClaim(address stakingToken, uint256 amount, address recipient) external;
+
     /// @notice Claims rewards for sender on given recipient account for given staking token
     /// @param stakingToken Staking token to claim rewards for
     /// @param recipient Account to receive rewards

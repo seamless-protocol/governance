@@ -221,7 +221,7 @@ contract StakingManager is IStakingManager, OwnableUpgradeable, UUPSUpgradeable 
     }
 
     /// @inheritdoc IStakingManager
-    function unstake(address stakingToken, uint256 amount, address recipient) external {
+    function unstake(address stakingToken, uint256 amount, address recipient) public {
         // This contract will call mint on StakedToken contract
         // StakedToken contract has override for _update function which will can updateHook on this contract where logic is placed
         IStakedToken(getStakedToken(stakingToken)).burn(msg.sender, amount);
@@ -239,7 +239,13 @@ contract StakingManager is IStakingManager, OwnableUpgradeable, UUPSUpgradeable 
     }
 
     /// @inheritdoc IStakingManager
-    function claimRewards(address stakingToken, address recipient) external {
+    function unstakeAndClaim(address stakingToken, uint256 amount, address recipient) external {
+        unstake(stakingToken, amount, recipient);
+        claimRewards(stakingToken, recipient);
+    }
+
+    /// @inheritdoc IStakingManager
+    function claimRewards(address stakingToken, address recipient) public {
         Storage.Layout storage $ = Storage.layout();
         Storage.TokenInfo storage tokenInfo = $.tokenInfo[stakingToken];
 
