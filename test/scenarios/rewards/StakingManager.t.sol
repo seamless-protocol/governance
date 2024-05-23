@@ -12,7 +12,7 @@ import {RewardTokenConfig} from "src/types/DataTypes.sol";
 import {StakedToken} from "src/rewards/StakedToken.sol";
 
 contract StakingManagerTest is Test {
-    uint256 public constant ABS_TOLERANCE = 4 wei;
+    uint256 public constant PRECISION = 1e36;
 
     uint256 public emissionPerSecond = 10000 wei;
 
@@ -62,16 +62,16 @@ contract StakingManagerTest is Test {
         assertEq(staking.isStakingStarted(address(token)), true);
         assertNotEq(staking.getStakedToken(address(token)), address(0));
     }
+
     /*
-     Scenario:
+    Scenario:
       - User deposits the staked token
       - User deposits again after some time
       - User deposits again after some time
 
-     Expected:
+    Expected:
       - Users accrued rewards should proportionally increase based on passed time between deposits
     */
-
     function testDeposit_OnlyOneStaker() public {
         // User deposits the staked token
 
@@ -86,8 +86,8 @@ contract StakingManagerTest is Test {
 
         // Check that user's accrued rewards are correctly updated after iteactions
 
-        uint256 expectedAccruedRewards = timeToPass * emissionPerSecond;
-        _validateAccruedRewards(expectedAccruedRewards, 0, 0, expectedAccruedRewards);
+        uint256 expectedAccruedRewards = timeToPass * emissionPerSecond * PRECISION;
+        _validateAccruedRewards(expectedAccruedRewards, 0, 0);
 
         // User deposits again after some time
 
@@ -97,8 +97,8 @@ contract StakingManagerTest is Test {
 
         // Check that user's accrued rewards are correctly updated after iteactions
 
-        expectedAccruedRewards += timeToPass * emissionPerSecond;
-        _validateAccruedRewards(expectedAccruedRewards, 0, 0, expectedAccruedRewards);
+        expectedAccruedRewards += timeToPass * emissionPerSecond * PRECISION;
+        _validateAccruedRewards(expectedAccruedRewards, 0, 0);
     }
 
     /*
@@ -124,7 +124,6 @@ contract StakingManagerTest is Test {
         uint256 expectedUser1AccruedRewards;
         uint256 expectedUser2AccruedRewards;
         uint256 expectedUser3AccruedRewards;
-        uint256 totalDistributedRewards;
 
         uint256 rewardEndTimestamp = block.timestamp + 123_132_134;
         staking.configureRewardToken(
@@ -144,32 +143,30 @@ contract StakingManagerTest is Test {
         expectedUser1TotalStaked += amount;
 
         uint256 expectedTotalStaked = expectedUser1TotalStaked + expectedUser2TotalStaked + expectedUser3TotalStaked;
-        totalDistributedRewards = (block.timestamp - 1) * emissionPerSecond;
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(0, 0, 0, totalDistributedRewards);
+        _validateAccruedRewards(0, 0, 0);
 
         // Some time passes and user2 deposits the tokens, check that his position and accrued rewards are correctly updated
 
         uint256 timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        expectedUser1AccruedRewards += timeToPass * emissionPerSecond;
+        expectedUser1AccruedRewards += timeToPass * emissionPerSecond * PRECISION;
 
         amount = 20 ether;
         user2.deposit(amount);
         expectedUser2TotalStaked += amount;
 
         expectedTotalStaked += amount;
-        totalDistributedRewards = (block.timestamp - 1) * emissionPerSecond;
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(expectedUser1AccruedRewards, 0, 0, totalDistributedRewards);
+        _validateAccruedRewards(expectedUser1AccruedRewards, 0, 0);
 
         // Some time passes and user3 deposits the tokens, check that his position and accrued rewards are correctly updated
 
         timeToPass = 8_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        uint256 newRewards = timeToPass * emissionPerSecond;
+        uint256 newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += newRewards * expectedUser2TotalStaked / expectedTotalStaked;
 
@@ -177,23 +174,16 @@ contract StakingManagerTest is Test {
         user3.deposit(amount);
         expectedUser3TotalStaked += amount;
         expectedTotalStaked += amount;
-        totalDistributedRewards = (block.timestamp - 1) * emissionPerSecond;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Some time passes and user1 deposits again, check that his position and accrued rewards are correctly updated
 
         timeToPass = 765_241;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -204,17 +194,12 @@ contract StakingManagerTest is Test {
         expectedTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         timeToPass = rewardEndTimestamp - block.timestamp;
         vm.warp(block.timestamp + timeToPass);
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
+
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -222,30 +207,20 @@ contract StakingManagerTest is Test {
         // Reward program is expired, users should not earn anything from this moment
         emissionPerSecond = 0;
 
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Some time passes and user3 deposits again, check that his position and accrued rewards are correctly updated
 
         timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
+
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
 
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         amount = 200 ether;
         user3.deposit(amount);
@@ -253,12 +228,7 @@ contract StakingManagerTest is Test {
         expectedTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Admin changes emission per second, check that users accrued rewards are correctly updated
 
@@ -273,51 +243,35 @@ contract StakingManagerTest is Test {
             })
         );
 
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
-        // // Some time passes and user2 deposits again, check that his position and accrued rewards are correctly updated
+        // Some time passes and user2 deposits again, check that his position and accrued rewards are correctly updated
 
         timeToPass = 143_420_011;
         amount = 1_000 ether;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
 
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
 
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
+
         user2.deposit(amount);
         expectedUser2TotalStaked += amount;
         expectedTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Some time passes and user3 deposits again, check that his position and accrued rewards are correctly updated
 
         timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -328,20 +282,14 @@ contract StakingManagerTest is Test {
         expectedTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Some time passes and user1 deposits again, check that his position and accrued rewards are correctly updated
 
         timeToPass = 100_000_124;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -352,20 +300,14 @@ contract StakingManagerTest is Test {
         expectedTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Some time passes and user2 deposits again, check that his position and accrued rewards are correctly updated
 
         timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -376,12 +318,7 @@ contract StakingManagerTest is Test {
         expectedTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
     }
 
     /*
@@ -411,45 +348,49 @@ contract StakingManagerTest is Test {
         expectedUserTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        _validateAccruedRewards(0, 0, 0, 0);
+        _validateAccruedRewards(0, 0, 0);
 
         // Some time passes and user1 withdraws the tokens, check that his position and accrued rewards are correctly updated
 
         uint256 timeToPass = 982_123;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards = timeToPass * emissionPerSecond;
+        expectedUserAccruedRewards = timeToPass * emissionPerSecond * PRECISION;
 
         amount = 9.234 ether;
         user1.withdraw(amount);
         expectedUserTotalStaked -= amount;
 
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0, expectedUserAccruedRewards);
+        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
         // Some time passes and user1 deposits the tokens, check that his position and accrued rewards are correctly updated
 
         timeToPass = 1234_213_128;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards += timeToPass * emissionPerSecond;
+        expectedUserAccruedRewards += timeToPass * emissionPerSecond * PRECISION;
 
         amount = 1.8888 ether;
         user1.deposit(amount);
         expectedUserTotalStaked += amount;
 
+        uint256 rewardPerStakedToken = expectedUserAccruedRewards / expectedUserTotalStaked;
+        uint256 expectedLoss = expectedUserAccruedRewards - rewardPerStakedToken * expectedUserTotalStaked;
+        expectedUserAccruedRewards -= expectedLoss;
+
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0, expectedUserAccruedRewards);
+        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
         // Some time passes and user1 withdraws all the tokens, check that his position and accrued rewards are correctly updated
 
         timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards += timeToPass * emissionPerSecond;
+        expectedUserAccruedRewards += timeToPass * emissionPerSecond * PRECISION;
 
         user1.withdraw(expectedUserTotalStaked);
         expectedUserTotalStaked = 0;
 
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0, expectedUserAccruedRewards);
+        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
         // Some time passes and user is not earning rewards since he withdrew everything
 
@@ -457,23 +398,23 @@ contract StakingManagerTest is Test {
         vm.warp(block.timestamp + timeToPass);
 
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0, expectedUserAccruedRewards);
+        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
         amount = 1 ether;
         user1.deposit(amount);
         expectedUserTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0, expectedUserAccruedRewards);
+        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
         // Some time passes and user starts earning rewards again but only from timestamp of the last deposit
 
         timeToPass = 154_000_451;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards += timeToPass * emissionPerSecond;
+        expectedUserAccruedRewards += timeToPass * emissionPerSecond * PRECISION;
 
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0, expectedUserAccruedRewards);
+        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
     }
 
     /*
@@ -504,7 +445,6 @@ contract StakingManagerTest is Test {
         uint256 expectedUser1AccruedRewards;
         uint256 expectedUser2AccruedRewards;
         uint256 expectedUser3AccruedRewards;
-        uint256 totalDistributedRewards;
 
         uint256 rewardsEndAtTimestamp = block.timestamp + 12_000_000;
 
@@ -526,15 +466,14 @@ contract StakingManagerTest is Test {
         expectedTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(0, 0, 0, 0);
+        _validateAccruedRewards(0, 0, 0);
 
         // Some time passes and user2 deposits the tokens
         // Check that his position and accrued rewards are correctly updated, all rewards should go to user1
 
         uint256 timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
-        expectedUser1AccruedRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards = expectedUser1AccruedRewards;
+        expectedUser1AccruedRewards = timeToPass * emissionPerSecond * PRECISION;
 
         amount = 20 ether;
         user2.deposit(amount);
@@ -542,19 +481,13 @@ contract StakingManagerTest is Test {
         expectedTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         //Some time passes and user1 does partial withdrawal, check that his position and accrued rewards are correctly updated
 
         timeToPass = 8_000_000;
         vm.warp(block.timestamp + timeToPass);
-        uint256 newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        uint256 newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
 
@@ -564,19 +497,13 @@ contract StakingManagerTest is Test {
         expectedTotalStaked -= amount;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Some time passes and user3 deposits the tokens, check that his position and accrued rewards are correctly updated
 
         timeToPass = 765_241;
         vm.warp(block.timestamp + timeToPass);
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
 
@@ -586,44 +513,27 @@ contract StakingManagerTest is Test {
         expectedTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Some time passes and user1 deposits the tokens, check that his position and accrued rewards are correctly updated
 
         timeToPass = 1_234_567;
         vm.warp(block.timestamp + timeToPass);
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
 
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         timeToPass = rewardsEndAtTimestamp - block.timestamp;
         vm.warp(block.timestamp + timeToPass);
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
 
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Reward program is finished, users should not earn anything from this moment
         emissionPerSecond = 0;
@@ -634,20 +544,14 @@ contract StakingManagerTest is Test {
         expectedTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Some time passes and user2 transfers staked token to user3, check that their positions and accrued rewards are correctly updated
         // Staked amount on user2 should decrease but should increase to user3
 
         timeToPass = 145_234_111_327;
         vm.warp(block.timestamp + timeToPass);
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
 
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
@@ -659,12 +563,7 @@ contract StakingManagerTest is Test {
         expectedUser3TotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Admin changes emission per second, check that users accrued rewards are correctly updated
         emissionPerSecond = 10000;
@@ -678,20 +577,14 @@ contract StakingManagerTest is Test {
             })
         );
 
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Some time passes and user1 does full withdrawal, check that his position and accrued rewards are correctly updated
         // User1 should not earn rewards after withdrawing everything
 
         timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -701,12 +594,7 @@ contract StakingManagerTest is Test {
         expectedTotalStaked = expectedUser2TotalStaked + expectedUser3TotalStaked;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Some time passes and user2 does full withdrawal, check that his position and accrued rewards are correctly updated
         // Rewards should increase only to user2 and user3 because user1 withdrew everything in previous step
@@ -714,8 +602,7 @@ contract StakingManagerTest is Test {
 
         timeToPass = 1_000_001;
         vm.warp(block.timestamp + timeToPass);
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
 
@@ -724,20 +611,14 @@ contract StakingManagerTest is Test {
         expectedTotalStaked = expectedUser3TotalStaked;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Some time passes and user3 does full withdrawal, check that his position and accrued rewards are correctly updated
         // Rewards should increase only to user3 because user1 and user2 withdrew everything in previous steps
 
         timeToPass = 1_245_678;
         vm.warp(block.timestamp + timeToPass);
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
 
         user3.withdraw(expectedUser3TotalStaked);
@@ -745,26 +626,15 @@ contract StakingManagerTest is Test {
         expectedTotalStaked = 0;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Time passes and no rewards are accrued by any user
 
         timeToPass = 17;
         vm.warp(block.timestamp + timeToPass);
-        totalDistributedRewards += timeToPass * emissionPerSecond;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
     }
 
     /*
@@ -784,7 +654,7 @@ contract StakingManagerTest is Test {
      - Users accrued rewards should be correctly updated after each deposit, withdrawal and claim
      - Users staked amount should be correctly updated after each deposit and withdrawal
      - Users should not earn rewards after withdrawing everything
-        */
+    */
     function testClaimReward_OnlyOneUser() public {
         uint256 expectedUserTotalStaked;
         uint256 expectedUserAccruedRewards;
@@ -796,98 +666,110 @@ contract StakingManagerTest is Test {
         expectedUserTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        _validateAccruedRewards(0, 0, 0, 0);
+        _validateAccruedRewards(0, 0, 0);
 
         // Some time passes and user1 claims the rewards, check that his position and accrued rewards are correctly updated
         // After claiming current rewards should be 0 but reward token should be transfered on his wallet
 
         uint256 timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards = timeToPass * emissionPerSecond;
+        expectedUserAccruedRewards = timeToPass * emissionPerSecond * PRECISION;
 
-        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0, expectedUserAccruedRewards);
+        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
+
+        uint256 rewardTokenBalanceBefore = rewardToken.balanceOf(address(user1));
+        uint256 rewardsAmount =
+            staking.getUserTotalRewardsForToken(address(user1), address(token), address(rewardToken));
 
         user1.claimRewards();
 
-        _validateAccruedRewards(0, 0, 0, 0);
+        _validateAccruedRewards(0, 0, 0);
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        assertApproxEqAbs(rewardToken.balanceOf(address(user1)), expectedUserAccruedRewards, ABS_TOLERANCE);
+        assertEq(rewardToken.balanceOf(address(user1)), rewardTokenBalanceBefore + rewardsAmount);
 
         // Some time passes and user1 deposits the tokens, check that his position and accrued rewards are correctly updated
 
         timeToPass = 1_000_000_000;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards = timeToPass * emissionPerSecond;
+        expectedUserAccruedRewards = timeToPass * emissionPerSecond * PRECISION;
 
-        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0, expectedUserAccruedRewards);
+        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
         amount = 20 ether;
         user1.deposit(amount);
         expectedUserTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0, expectedUserAccruedRewards);
+        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
         // Some time passes and user1 deposits the tokens, check that his position and accrued rewards are correctly updated
 
-        timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards += timeToPass * emissionPerSecond;
+        expectedUserAccruedRewards += timeToPass * emissionPerSecond * PRECISION;
 
-        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0, expectedUserAccruedRewards);
+        uint256 rewardPerStakedToken = expectedUserAccruedRewards / expectedUserTotalStaked;
+        uint256 expectedLoss = expectedUserAccruedRewards - rewardPerStakedToken * expectedUserTotalStaked;
+        expectedUserAccruedRewards -= expectedLoss;
+
+        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
         amount = 50 ether;
         user1.deposit(amount);
         expectedUserTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0, expectedUserAccruedRewards);
+        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
+        timeToPass = 1_000_000;
         // Some time passes and user1 claims the rewards, check that his position and accrued rewards are correctly updated
         // After claiming current rewards should be 0 but reward token should be transfered on his wallet
 
         timeToPass = 1_000_244_444_123_444;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards += timeToPass * emissionPerSecond;
+        expectedUserAccruedRewards += timeToPass * emissionPerSecond * PRECISION;
 
-        uint256 rewardTokenBalanceBefore = rewardToken.balanceOf(address(user1));
-        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0, expectedUserAccruedRewards);
+        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
+
+        rewardTokenBalanceBefore = rewardToken.balanceOf(address(user1));
+        rewardsAmount = staking.getUserTotalRewardsForToken(address(user1), address(token), address(rewardToken));
 
         user1.claimRewards();
 
-        _validateAccruedRewards(0, 0, 0, 0);
+        _validateAccruedRewards(0, 0, 0);
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        assertApproxEqAbs(
-            rewardToken.balanceOf(address(user1)), rewardTokenBalanceBefore + expectedUserAccruedRewards, ABS_TOLERANCE
-        );
+        assertEq(rewardToken.balanceOf(address(user1)), rewardTokenBalanceBefore + rewardsAmount);
 
         // Some time passes and user1 does partial withdrawal, check that his position and accrued rewards are correctly updated
 
         timeToPass = 123_456_679_865_111_432;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards = timeToPass * emissionPerSecond;
+        expectedUserAccruedRewards = timeToPass * emissionPerSecond * PRECISION;
 
-        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0, expectedUserAccruedRewards);
+        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
         amount = 5.76913 ether;
         user1.withdraw(amount);
         expectedUserTotalStaked -= amount;
 
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0, expectedUserAccruedRewards);
+        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
         // Some time passes and user1 does full withdrawal, check that his position and accrued rewards are correctly updated
         // User should not earn rewards after withdrawing everything even if he is only staker
 
         timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
-        expectedUserAccruedRewards += timeToPass * emissionPerSecond;
+        expectedUserAccruedRewards += timeToPass * emissionPerSecond * PRECISION;
+
+        rewardPerStakedToken = expectedUserAccruedRewards / expectedUserTotalStaked;
+        expectedLoss = expectedUserAccruedRewards - rewardPerStakedToken * expectedUserTotalStaked;
+        expectedUserAccruedRewards -= expectedLoss;
 
         user1.withdraw(expectedUserTotalStaked);
         expectedUserTotalStaked = 0;
 
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0, expectedUserAccruedRewards);
+        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
         // Some time passes and no new rewards are accrued, user1 claims old rewards
 
@@ -895,16 +777,15 @@ contract StakingManagerTest is Test {
         vm.warp(block.timestamp + timeToPass);
 
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0, expectedUserAccruedRewards);
+        _validateAccruedRewards(expectedUserAccruedRewards, 0, 0);
 
         rewardTokenBalanceBefore = rewardToken.balanceOf(address(user1));
+        rewardsAmount = staking.getUserTotalRewardsForToken(address(user1), address(token), address(rewardToken));
         user1.claimRewards();
 
-        _validateAccruedRewards(0, 0, 0, 0);
+        _validateAccruedRewards(0, 0, 0);
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        assertApproxEqAbs(
-            rewardToken.balanceOf(address(user1)), rewardTokenBalanceBefore + expectedUserAccruedRewards, ABS_TOLERANCE
-        );
+        assertEq(rewardToken.balanceOf(address(user1)), rewardTokenBalanceBefore + rewardsAmount);
 
         // Some time passes and no rewards are accrued and user has no position
 
@@ -912,7 +793,7 @@ contract StakingManagerTest is Test {
         vm.warp(block.timestamp + timeToPass);
 
         _validateUsersStakedAmounts(expectedUserTotalStaked, 0, 0);
-        _validateAccruedRewards(0, 0, 0, 0);
+        _validateAccruedRewards(0, 0, 0);
     }
 
     /*
@@ -945,7 +826,6 @@ contract StakingManagerTest is Test {
         uint256 expectedUser1AccruedRewards;
         uint256 expectedUser2AccruedRewards;
         uint256 expectedUser3AccruedRewards;
-        uint256 totalDistributedRewards;
 
         // User1 deposits the tokens, check that his position and accrued rewards are correctly updated, rewards should be 0
 
@@ -955,26 +835,15 @@ contract StakingManagerTest is Test {
         expectedTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Some time passes and user2 deposits the tokens, check that his position and accrued rewards are correctly updated
 
         uint256 timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        expectedUser1AccruedRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards = expectedUser1AccruedRewards;
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        expectedUser1AccruedRewards = timeToPass * emissionPerSecond * PRECISION;
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         amount = 20 ether;
         user2.deposit(amount);
@@ -982,20 +851,14 @@ contract StakingManagerTest is Test {
         expectedTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Some time passes and user3 deposits the tokens, check that his position and accrued rewards are correctly updated
 
         timeToPass = 111_222_213_445_796_421;
         vm.warp(block.timestamp + timeToPass);
 
-        uint256 newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        uint256 newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
 
@@ -1005,39 +868,28 @@ contract StakingManagerTest is Test {
         expectedTotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Some time passes and user1 claims the rewards, check that his position and accrued rewards are correctly updated
 
         timeToPass = 1_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         uint256 rewardTokenBalanceBefore = rewardToken.balanceOf(address(user1));
+        uint256 rewardsAmount =
+            staking.getUserTotalRewardsForToken(address(user1), address(token), address(rewardToken));
         user1.claimRewards();
-        totalDistributedRewards -= rewardToken.balanceOf(address(user1)) - rewardTokenBalanceBefore;
 
-        _validateAccruedRewards(0, expectedUser2AccruedRewards, expectedUser3AccruedRewards, totalDistributedRewards);
+        _validateAccruedRewards(0, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        assertApproxEqAbs(
-            rewardToken.balanceOf(address(user1)), rewardTokenBalanceBefore + expectedUser1AccruedRewards, ABS_TOLERANCE
-        );
+        assertEq(rewardToken.balanceOf(address(user1)), rewardTokenBalanceBefore + rewardsAmount);
+
         expectedUser1AccruedRewards = 0;
 
         // Some time passes and user2 partially transfers staked token to user3, check that their positions and accrued rewards are correctly updated
@@ -1045,8 +897,7 @@ contract StakingManagerTest is Test {
         timeToPass = 435_333_222_777_111_111_111;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -1057,12 +908,7 @@ contract StakingManagerTest is Test {
         expectedUser3TotalStaked += amount;
 
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         // Some time passes and user3 withdraws all the tokens, check that his position and accrued rewards are correctly updated
         // User3 should not earn rewards after withdrawing everything
@@ -1070,8 +916,7 @@ contract StakingManagerTest is Test {
         timeToPass = 234_124_123_123_123_123;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -1080,12 +925,7 @@ contract StakingManagerTest is Test {
         expectedTotalStaked -= expectedUser3TotalStaked;
         expectedUser3TotalStaked = 0;
 
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
 
         // Some time passes and user3 claims the rewards, check that his position and accrued rewards are correctly updated
@@ -1094,28 +934,21 @@ contract StakingManagerTest is Test {
         timeToPass = 499_999_999_999_999_999;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
 
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
 
         rewardTokenBalanceBefore = rewardToken.balanceOf(address(user3));
+        rewardsAmount = staking.getUserTotalRewardsForToken(address(user3), address(token), address(rewardToken));
         user3.claimRewards();
-        totalDistributedRewards -= rewardToken.balanceOf(address(user3)) - rewardTokenBalanceBefore;
 
-        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, 0, totalDistributedRewards);
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, 0);
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        assertApproxEqAbs(
-            rewardToken.balanceOf(address(user3)), rewardTokenBalanceBefore + expectedUser3AccruedRewards, ABS_TOLERANCE
-        );
+        assertEq(rewardToken.balanceOf(address(user3)), rewardTokenBalanceBefore + rewardsAmount);
+
         expectedUser3AccruedRewards = 0;
 
         // Some time passes and user3 deposits again, check that his position and accrued rewards are correctly updated
@@ -1123,29 +956,18 @@ contract StakingManagerTest is Test {
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
 
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         amount = 100 ether;
         user3.deposit(amount);
         expectedUser3TotalStaked += amount;
         expectedTotalStaked += amount;
 
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
 
         // Some time passes and user2 claims the rewards, check that his position and accrued rewards are correctly updated
@@ -1153,28 +975,21 @@ contract StakingManagerTest is Test {
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
 
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         rewardTokenBalanceBefore = rewardToken.balanceOf(address(user2));
+        rewardsAmount = staking.getUserTotalRewardsForToken(address(user2), address(token), address(rewardToken));
         user2.claimRewards();
-        totalDistributedRewards -= rewardToken.balanceOf(address(user2)) - rewardTokenBalanceBefore;
 
-        _validateAccruedRewards(expectedUser1AccruedRewards, 0, expectedUser3AccruedRewards, totalDistributedRewards);
+        _validateAccruedRewards(expectedUser1AccruedRewards, 0, expectedUser3AccruedRewards);
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        assertApproxEqAbs(
-            rewardToken.balanceOf(address(user2)), rewardTokenBalanceBefore + expectedUser2AccruedRewards, ABS_TOLERANCE
-        );
+        assertEq(rewardToken.balanceOf(address(user2)), rewardTokenBalanceBefore + rewardsAmount);
+
         expectedUser2AccruedRewards = 0;
 
         // Some time passes and user1 withdraws all the tokens, check that his position and accrued rewards are correctly updated
@@ -1183,8 +998,7 @@ contract StakingManagerTest is Test {
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser1AccruedRewards += Math.mulDiv(newRewards, expectedUser1TotalStaked, expectedTotalStaked);
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
@@ -1193,12 +1007,7 @@ contract StakingManagerTest is Test {
         expectedTotalStaked -= expectedUser1TotalStaked;
         expectedUser1TotalStaked = 0;
 
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
 
         // Some time passes and user1 claims the rewards, check that his position and accrued rewards are correctly updated
@@ -1206,26 +1015,19 @@ contract StakingManagerTest is Test {
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         rewardTokenBalanceBefore = rewardToken.balanceOf(address(user1));
+        rewardsAmount = staking.getUserTotalRewardsForToken(address(user1), address(token), address(rewardToken));
         user1.claimRewards();
-        totalDistributedRewards -= rewardToken.balanceOf(address(user1)) - rewardTokenBalanceBefore;
 
-        _validateAccruedRewards(0, expectedUser2AccruedRewards, expectedUser3AccruedRewards, totalDistributedRewards);
+        _validateAccruedRewards(0, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        assertApproxEqAbs(
-            rewardToken.balanceOf(address(user1)), rewardTokenBalanceBefore + expectedUser1AccruedRewards, ABS_TOLERANCE
-        );
+        assertEq(rewardToken.balanceOf(address(user1)), rewardTokenBalanceBefore + rewardsAmount);
+
         expectedUser1AccruedRewards = 0;
 
         // Some time passes and no rewards are accrued for user1, all new rewards are split between user2 and user3
@@ -1233,16 +1035,10 @@ contract StakingManagerTest is Test {
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
 
         // Some time passes and user2 claims the rewards, check that his position and accrued rewards are correctly updated
@@ -1250,26 +1046,19 @@ contract StakingManagerTest is Test {
         timeToPass = 2134;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         rewardTokenBalanceBefore = rewardToken.balanceOf(address(user2));
+        rewardsAmount = staking.getUserTotalRewardsForToken(address(user2), address(token), address(rewardToken));
         user2.claimRewards();
-        totalDistributedRewards -= rewardToken.balanceOf(address(user2)) - rewardTokenBalanceBefore;
 
-        _validateAccruedRewards(expectedUser1AccruedRewards, 0, expectedUser3AccruedRewards, totalDistributedRewards);
+        _validateAccruedRewards(expectedUser1AccruedRewards, 0, expectedUser3AccruedRewards);
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        assertApproxEqAbs(
-            rewardToken.balanceOf(address(user2)), rewardTokenBalanceBefore + expectedUser2AccruedRewards, ABS_TOLERANCE
-        );
+        assertEq(rewardToken.balanceOf(address(user2)), rewardTokenBalanceBefore + rewardsAmount);
+
         expectedUser2AccruedRewards = 0;
 
         // Some time passes and user2 withdraws all the tokens, check that his position and accrued rewards are correctly updated
@@ -1278,27 +1067,16 @@ contract StakingManagerTest is Test {
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser2AccruedRewards += Math.mulDiv(newRewards, expectedUser2TotalStaked, expectedTotalStaked);
         expectedUser3AccruedRewards += Math.mulDiv(newRewards, expectedUser3TotalStaked, expectedTotalStaked);
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         user2.withdraw(expectedUser2TotalStaked);
         expectedTotalStaked -= expectedUser2TotalStaked;
         expectedUser2TotalStaked = 0;
 
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
 
         // Some time passes and user2 claims the rewards, check that his position and accrued rewards are correctly updated
@@ -1306,25 +1084,18 @@ contract StakingManagerTest is Test {
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser3AccruedRewards += newRewards;
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
 
         rewardTokenBalanceBefore = rewardToken.balanceOf(address(user2));
+        rewardsAmount = staking.getUserTotalRewardsForToken(address(user2), address(token), address(rewardToken));
         user2.claimRewards();
-        totalDistributedRewards -= rewardToken.balanceOf(address(user2)) - rewardTokenBalanceBefore;
 
-        _validateAccruedRewards(0, 0, expectedUser3AccruedRewards, totalDistributedRewards);
+        _validateAccruedRewards(0, 0, expectedUser3AccruedRewards);
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
-        assertApproxEqAbs(
-            rewardToken.balanceOf(address(user2)), rewardTokenBalanceBefore + expectedUser2AccruedRewards, ABS_TOLERANCE
-        );
+        assertEq(rewardToken.balanceOf(address(user2)), rewardTokenBalanceBefore + rewardsAmount);
+
         expectedUser2AccruedRewards = 0;
 
         // Some time passes and user3 withdraws all the tokens, check that his position and accrued rewards are correctly updated
@@ -1332,16 +1103,15 @@ contract StakingManagerTest is Test {
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        newRewards = timeToPass * emissionPerSecond;
-        totalDistributedRewards += newRewards;
+        newRewards = timeToPass * emissionPerSecond * PRECISION;
         expectedUser3AccruedRewards += newRewards;
-        _validateAccruedRewards(0, 0, expectedUser3AccruedRewards, totalDistributedRewards);
+        _validateAccruedRewards(0, 0, expectedUser3AccruedRewards);
 
         user3.withdraw(expectedUser3TotalStaked);
         expectedTotalStaked = 0;
         expectedUser3TotalStaked = 0;
 
-        _validateAccruedRewards(0, 0, expectedUser3AccruedRewards, totalDistributedRewards);
+        _validateAccruedRewards(0, 0, expectedUser3AccruedRewards);
         _validateUsersStakedAmounts(expectedUser1TotalStaked, expectedUser2TotalStaked, expectedUser3TotalStaked);
 
         // Some time passes and no rewards are accrued by any user
@@ -1349,29 +1119,23 @@ contract StakingManagerTest is Test {
 
         timeToPass = 123;
         vm.warp(block.timestamp + timeToPass);
-        totalDistributedRewards += timeToPass * emissionPerSecond;
 
-        _validateAccruedRewards(
-            expectedUser1AccruedRewards,
-            expectedUser2AccruedRewards,
-            expectedUser3AccruedRewards,
-            totalDistributedRewards
-        );
+        _validateAccruedRewards(expectedUser1AccruedRewards, expectedUser2AccruedRewards, expectedUser3AccruedRewards);
+
         rewardTokenBalanceBefore = rewardToken.balanceOf(address(user3));
+        rewardsAmount = staking.getUserTotalRewardsForToken(address(user3), address(token), address(rewardToken));
         user3.claimRewards();
 
-        _validateAccruedRewards(0, 0, 0, 0);
+        _validateAccruedRewards(0, 0, 0);
         _validateUsersStakedAmounts(0, 0, 0);
-        assertApproxEqAbs(
-            rewardToken.balanceOf(address(user3)), rewardTokenBalanceBefore + expectedUser3AccruedRewards, ABS_TOLERANCE
-        );
+        assertEq(rewardToken.balanceOf(address(user3)), rewardTokenBalanceBefore + rewardsAmount);
 
         // Some time passes and no rewards are accrued by any user and no one has position
 
         timeToPass = 1_000_000_000_000_000;
         vm.warp(block.timestamp + timeToPass);
 
-        _validateAccruedRewards(0, 0, 0, 0);
+        _validateAccruedRewards(0, 0, 0);
         _validateUsersStakedAmounts(0, 0, 0);
     }
 
@@ -1383,6 +1147,10 @@ contract StakingManagerTest is Test {
       Scenario is similar to previous one.
     */
     function testClaimRewards_MultipleStakers_PredefinedValues() public {
+        uint256 expectedUser1Rewards;
+        uint256 expectedUser2Rewards;
+        uint256 expectedUser3Rewards;
+
         // Configure the reward token
 
         staking.configureRewardToken(
@@ -1401,7 +1169,7 @@ contract StakingManagerTest is Test {
         user1.deposit(amount);
 
         _validateUsersStakedAmounts(10 ether, 0, 0);
-        _validateAccruedRewards(0, 0, 0, 0);
+        _validateAccruedRewards(0, 0, 0);
 
         // After 100 seconds user2 deposits 20 tokens, check that his position and accrued rewards are correctly updated
         // User1 should have 100 tokens in rewards since he was only staker for 100 seconds
@@ -1409,13 +1177,15 @@ contract StakingManagerTest is Test {
         uint256 timeToPass = 100;
         vm.warp(block.timestamp + timeToPass);
 
-        _validateAccruedRewards(100 ether, 0, 0, 100 ether);
+        expectedUser1Rewards = 100 ether * PRECISION;
+
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         amount = 20 ether;
         user2.deposit(amount);
 
         _validateUsersStakedAmounts(10 ether, 20 ether, 0);
-        _validateAccruedRewards(100 ether, 0, 0, 100 ether);
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         // After 30 seconds user3 deposits 30 tokens, check that his position and accrued rewards are correctly updated
         // After previous action 30 tokens are emitted as rewards, user1 should have 10 and user2 20 tokens in rewards
@@ -1427,8 +1197,11 @@ contract StakingManagerTest is Test {
         amount = 30 ether;
         user3.deposit(amount);
 
+        expectedUser1Rewards = 110 ether * PRECISION;
+        expectedUser2Rewards = 20 ether * PRECISION;
+
         _validateUsersStakedAmounts(10 ether, 20 ether, 30 ether);
-        _validateAccruedRewards(110 ether, 20 ether, 0, 130 ether);
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         // After 60 seconds user1 claims the rewards, check that his position and accrued rewards are correctly updated
         // From previous action 60 tokens are emitted as rewards, user1 should have 10 and user2 20 tokens in rewards and user3 30 tokens
@@ -1439,11 +1212,17 @@ contract StakingManagerTest is Test {
         timeToPass = 60;
         vm.warp(block.timestamp + timeToPass);
 
-        _validateAccruedRewards(120 ether, 40 ether, 30 ether, 190 ether);
+        expectedUser1Rewards = 120 ether * PRECISION;
+        expectedUser2Rewards = 40 ether * PRECISION;
+        expectedUser3Rewards = 30 ether * PRECISION;
+
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         user1.claimRewards();
 
-        _validateAccruedRewards(0, 40 ether, 30 ether, 70 ether);
+        expectedUser1Rewards = 0;
+
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
         _validateUsersStakedAmounts(10 ether, 20 ether, 30 ether);
 
         // After 90 seconds user3 withdraws all the tokens, check that his position and accrued rewards are correctly updated
@@ -1457,8 +1236,12 @@ contract StakingManagerTest is Test {
 
         user3.withdraw(30 ether);
 
-        _validateAccruedRewards(15 ether, 70 ether, 75 ether, 160 ether);
+        expectedUser1Rewards = 15 ether * PRECISION;
+        expectedUser2Rewards = 70 ether * PRECISION;
+        expectedUser3Rewards = 75 ether * PRECISION;
+
         _validateUsersStakedAmounts(10 ether, 20 ether, 0);
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         // After 180 seconds user3 claims the rewards, check that his position and accrued rewards are correctly updated
         // From previous action 180 tokens are emitted as rewards, user1 should have 60 and user2 120
@@ -1469,12 +1252,17 @@ contract StakingManagerTest is Test {
         timeToPass = 180;
         vm.warp(block.timestamp + timeToPass);
 
-        _validateAccruedRewards(75 ether, 190 ether, 75 ether, 340 ether);
+        expectedUser1Rewards = 75 ether * PRECISION;
+        expectedUser2Rewards = 190 ether * PRECISION;
+        expectedUser3Rewards = 75 ether * PRECISION;
+
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
         _validateUsersStakedAmounts(10 ether, 20 ether, 0);
 
         user3.claimRewards();
+        expectedUser3Rewards = 0;
 
-        _validateAccruedRewards(75 ether, 190 ether, 0, 265 ether);
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
         _validateUsersStakedAmounts(10 ether, 20 ether, 0);
 
         // 30 seconds passes and user3 stakes 10 tokens
@@ -1486,11 +1274,14 @@ contract StakingManagerTest is Test {
         timeToPass = 30;
         vm.warp(block.timestamp + timeToPass);
 
-        _validateAccruedRewards(85 ether, 210 ether, 0, 295 ether);
+        expectedUser1Rewards = 85 ether * PRECISION;
+        expectedUser2Rewards = 210 ether * PRECISION;
+
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         user3.deposit(10 ether);
 
-        _validateAccruedRewards(85 ether, 210 ether, 0, 295 ether);
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
         _validateUsersStakedAmounts(10 ether, 20 ether, 10 ether);
 
         // 400 seconds passes and user2 claims the rewards, check that his position and accrued rewards are correctly updated
@@ -1502,11 +1293,16 @@ contract StakingManagerTest is Test {
         timeToPass = 400;
         vm.warp(block.timestamp + timeToPass);
 
-        _validateAccruedRewards(185 ether, 410 ether, 100 ether, 695 ether);
+        expectedUser1Rewards = 185 ether * PRECISION;
+        expectedUser2Rewards = 410 ether * PRECISION;
+        expectedUser3Rewards = 100 ether * PRECISION;
+
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         user2.claimRewards();
+        expectedUser2Rewards = 0;
 
-        _validateAccruedRewards(185 ether, 0, 100 ether, 400 ether);
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
         _validateUsersStakedAmounts(10 ether, 20 ether, 10 ether);
 
         // 60 seconds passes and user1 withdraws all the tokens, check that his position and accrued rewards are correctly updated
@@ -1518,9 +1314,13 @@ contract StakingManagerTest is Test {
         timeToPass = 60;
         vm.warp(block.timestamp + timeToPass);
 
+        expectedUser1Rewards = 200 ether * PRECISION;
+        expectedUser2Rewards = 30 ether * PRECISION;
+        expectedUser3Rewards = 115 ether * PRECISION;
+
         user1.withdraw(10 ether);
 
-        _validateAccruedRewards(200 ether, 30 ether, 115 ether, 345 ether);
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
         _validateUsersStakedAmounts(0, 20 ether, 10 ether);
 
         // 90 seconds passes and user1 claims the rewards, check that his position and accrued rewards are correctly updated
@@ -1532,12 +1332,17 @@ contract StakingManagerTest is Test {
         timeToPass = 90;
         vm.warp(block.timestamp + timeToPass);
 
-        _validateAccruedRewards(200 ether, 90 ether, 145 ether, 435 ether);
+        expectedUser1Rewards = 200 ether * PRECISION;
+        expectedUser2Rewards = 90 ether * PRECISION;
+        expectedUser3Rewards = 145 ether * PRECISION;
+
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         user1.claimRewards();
+        expectedUser1Rewards = 0;
 
-        _validateAccruedRewards(0, 90 ether, 145 ether, 235 ether);
         _validateUsersStakedAmounts(0, 20 ether, 10 ether);
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         // 30 seconds passes and no rewards are accrued for user1, all new rewards are split between user2 and user3
         // User1 should now have 0 tokens in total rewards
@@ -1547,8 +1352,11 @@ contract StakingManagerTest is Test {
         timeToPass = 30;
         vm.warp(block.timestamp + timeToPass);
 
-        _validateAccruedRewards(0, 110 ether, 155 ether, 265 ether);
+        expectedUser2Rewards = 110 ether * PRECISION;
+        expectedUser3Rewards = 155 ether * PRECISION;
+
         _validateUsersStakedAmounts(0, 20 ether, 10 ether);
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         // 45 seconds passes and user2 claims the rewards, check that his position and accrued rewards are correctly updated
         // From previous action 45 tokens are emitted as rewards user2 should have 30 and user3 15
@@ -1559,12 +1367,16 @@ contract StakingManagerTest is Test {
         timeToPass = 45;
         vm.warp(block.timestamp + timeToPass);
 
-        _validateAccruedRewards(0, 140 ether, 170 ether, 310 ether);
+        expectedUser2Rewards = 140 ether * PRECISION;
+        expectedUser3Rewards = 170 ether * PRECISION;
+
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         user2.claimRewards();
+        expectedUser2Rewards = 0;
 
-        _validateAccruedRewards(0, 0, 170 ether, 170 ether);
         _validateUsersStakedAmounts(0, 20 ether, 10 ether);
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         // 120 seconds passes and user2 withdraws all the tokens, check that his position and accrued rewards are correctly updated
         // From previous action 120 tokens are emitted as rewards user2 should have 80 and user3 40
@@ -1575,12 +1387,15 @@ contract StakingManagerTest is Test {
         timeToPass = 120;
         vm.warp(block.timestamp + timeToPass);
 
-        _validateAccruedRewards(0, 80 ether, 210 ether, 290 ether);
+        expectedUser2Rewards = 80 ether * PRECISION;
+        expectedUser3Rewards = 210 ether * PRECISION;
+
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         user2.withdraw(20 ether);
 
-        _validateAccruedRewards(0, 80 ether, 210 ether, 290 ether);
         _validateUsersStakedAmounts(0, 0, 10 ether);
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         // 10 seconds passes and user2 claims the rewards, check that his position and accrued rewards are correctly updated
         // From previous action 10 tokens are emitted and user3 should have all of them
@@ -1591,12 +1406,16 @@ contract StakingManagerTest is Test {
         timeToPass = 10;
         vm.warp(block.timestamp + timeToPass);
 
-        _validateAccruedRewards(0, 80 ether, 220 ether, 300 ether);
+        expectedUser2Rewards = 80 ether * PRECISION;
+        expectedUser3Rewards = 220 ether * PRECISION;
+
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         user2.claimRewards();
+        expectedUser2Rewards = 0;
 
-        _validateAccruedRewards(0, 0, 220 ether, 220 ether);
         _validateUsersStakedAmounts(0, 0, 10 ether);
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         // 10 seconds passes and user3 withdraws all the tokens, check that his position and accrued rewards are correctly updated
         // From previous action 10 tokens are emitted and user3 should have all of them
@@ -1607,12 +1426,14 @@ contract StakingManagerTest is Test {
         timeToPass = 10;
         vm.warp(block.timestamp + timeToPass);
 
-        _validateAccruedRewards(0, 0, 230 ether, 230 ether);
+        expectedUser3Rewards = 230 ether * PRECISION;
+
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         user3.withdraw(10 ether);
 
-        _validateAccruedRewards(0, 0, 230 ether, 230 ether);
         _validateUsersStakedAmounts(0, 0, 0);
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         // Some time passes and no rewards are accrued by any user
         // User3 claims rewards that he accrued before withdrawing
@@ -1620,11 +1441,11 @@ contract StakingManagerTest is Test {
         timeToPass = 123;
         vm.warp(block.timestamp + timeToPass);
 
-        _validateAccruedRewards(0, 0, 230 ether, 230 ether);
+        _validateAccruedRewards(expectedUser1Rewards, expectedUser2Rewards, expectedUser3Rewards);
 
         user3.claimRewards();
 
-        _validateAccruedRewards(0, 0, 0, 0);
+        _validateAccruedRewards(0, 0, 0);
         _validateUsersStakedAmounts(0, 0, 0);
 
         // Some time passes and no rewards are accrued by any user and no one has position
@@ -1632,25 +1453,22 @@ contract StakingManagerTest is Test {
         timeToPass = 23452;
         vm.warp(block.timestamp + timeToPass);
 
-        _validateAccruedRewards(0, 0, 0, 0);
+        _validateAccruedRewards(0, 0, 0);
         _validateUsersStakedAmounts(0, 0, 0);
     }
 
     function _validateAccruedRewards(
         uint256 expectedUser1AccruedRewards,
         uint256 expectedUser2AccruedRewards,
-        uint256 expectedUser3AccruedRewards,
-        uint256 totalDistributedRewards
+        uint256 expectedUser3AccruedRewards
     ) internal {
         uint256 user1Rewards = staking.getUserTotalRewardsForToken(address(user1), address(token), address(rewardToken));
         uint256 user2Rewards = staking.getUserTotalRewardsForToken(address(user2), address(token), address(rewardToken));
         uint256 user3Rewards = staking.getUserTotalRewardsForToken(address(user3), address(token), address(rewardToken));
 
-        assertApproxEqAbs(user1Rewards, expectedUser1AccruedRewards, ABS_TOLERANCE);
-        assertApproxEqAbs(user2Rewards, expectedUser2AccruedRewards, ABS_TOLERANCE);
-        assertApproxEqAbs(user3Rewards, expectedUser3AccruedRewards, ABS_TOLERANCE);
-
-        assertLe(user1Rewards + user2Rewards + user3Rewards, totalDistributedRewards);
+        assertEq(user1Rewards, expectedUser1AccruedRewards / PRECISION);
+        assertEq(user2Rewards, expectedUser2AccruedRewards / PRECISION);
+        assertEq(user3Rewards, expectedUser3AccruedRewards / PRECISION);
     }
 
     function _validateUsersStakedAmounts(

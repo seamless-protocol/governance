@@ -15,6 +15,8 @@ import {IStakedToken} from "../interfaces/IStakedToken.sol";
 import {StakedTokenBeaconProxy} from "./StakedTokenBeaconProxy.sol";
 import {StakingManagerStorage as Storage} from "../storage/StakingManagerStorage.sol";
 
+import "forge-std/console.sol";
+
 /// @title StakingManger contract
 /// @notice Contract for staking tokens and earning multiple tokens as rewards
 /// @dev One contract handles multiple staking tokens and multiple reward tokens for each staking token
@@ -318,7 +320,6 @@ contract StakingManager is IStakingManager, OwnableUpgradeable, UUPSUpgradeable 
         }
 
         uint256 tokenRewards = _getTotalPendingRewards(stakingToken, rewardToken);
-
         rewardTokenData.rewardPerStakedToken += Math.mulDiv(tokenRewards, REWARD_PER_STAKED_TOKEN_BASE, totalStaked);
         rewardTokenData.lastUpdatedTimestamp = block.timestamp;
     }
