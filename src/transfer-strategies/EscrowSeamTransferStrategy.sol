@@ -34,8 +34,11 @@ contract EscrowSeamTransferStrategy is ISeamTransferStrategy, TransferStrategyBa
         onlyIncentivesController
         returns (bool)
     {
-        seam.approve(address(escrowSeam), amount);
-        escrowSeam.deposit(to, amount);
+        if (amount != 0) {
+            seam.approve(address(escrowSeam), amount);
+            escrowSeam.deposit(to, amount);
+        }
+
         emit PerformTransfer(to, amount);
         return true;
     }

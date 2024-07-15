@@ -44,4 +44,7 @@ library Constants {
 
     // https://docs.base.org/base-contracts#ethereum-mainnet
     address public constant BASE_L1_BRIDGE = 0x3154Cf16ccdb4C6d922629664174b904d80F2C35;
+
+    address public constant REWARDS_CONTROLLER_ADDRESS = 0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780;
+    address public constant sBRETT_ADDRESS = 0xCE335056A7b3Be1B0B23Ea4DF1Fd0969328c7c0c;
 }

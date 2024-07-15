@@ -30,6 +30,7 @@ contract EscrowSeamTransferStrategyTest is Test {
 
     function testFuzz_PerformTransfer(address user, uint256 amount) public {
         vm.assume(user != address(0));
+        vm.assume(amount > 0);
 
         deal(address(seam), address(strategy), type(uint256).max);
         vm.mockCall(
@@ -38,6 +39,14 @@ contract EscrowSeamTransferStrategyTest is Test {
         vm.expectCall(address(escrowSeam), abi.encodeWithSelector(IEscrowSeam.deposit.selector, user, amount));
         vm.startPrank(incentivesController);
         strategy.performTransfer(user, address(0), amount);
+        vm.stopPrank();
+    }
+
+    function testFuzz_PerformTransfer_ZeroAmount(address user) public {
+        vm.assume(user != address(0));
+
+        vm.startPrank(incentivesController);
+        strategy.performTransfer(user, address(0), 0);
         vm.stopPrank();
     }
 
@@ -52,15 +61,16 @@ contract EscrowSeamTransferStrategyTest is Test {
     }
 
     function testFuzz_EmergencyTransfer(address to, uint256 amount) public {
-        vm.assume(to != address(0));
+        vm.assume(to != address(0) && to != address(strategy));
 
+        uint256 receiverBalanceBefore = seam.balanceOf(to);
         uint256 strategyBalanceBefore = type(uint256).max;
         deal(address(seam), address(strategy), strategyBalanceBefore);
         vm.startPrank(rewardsAdmin);
         strategy.emergencyWithdrawal(address(seam), to, amount);
         vm.stopPrank();
 
-        assertEq(seam.balanceOf(to), amount);
+        assertEq(seam.balanceOf(to), receiverBalanceBefore + amount);
         assertEq(seam.balanceOf(address(strategy)), strategyBalanceBefore - amount);
     }
 
