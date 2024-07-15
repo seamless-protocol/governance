@@ -2,14 +2,11 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {Seam} from "../../src/Seam.sol";
-import {SeamGovernor} from "../../src/SeamGovernor.sol";
 import {Constants} from "../../src/library/Constants.sol";
 import {EscrowSeamTransferStrategy} from "../../src/transfer-strategies/EscrowSeamTransferStrategy.sol";
-import {RewardsController} from "aave-v3-periphery/contracts/rewards/RewardsController.sol";
 import {ITransferStrategyBase} from "aave-v3-periphery/contracts/rewards/interfaces/ITransferStrategyBase.sol";
 import {IRewardsController} from "aave-v3-periphery/contracts/rewards/interfaces/IRewardsController.sol";
+import {IEscrowSeam} from "../../src/interfaces/IEscrowSeam.sol";
 
 contract EsSeamTransferStrategyChangeTest is Test {
     EscrowSeamTransferStrategy public constant currentEscrowSeamTransferStrategy =
@@ -21,11 +18,11 @@ contract EsSeamTransferStrategyChangeTest is Test {
     address public constant BUGGED_USER = 0xEFCb4E944a84140c405efBd2186Fb4aA6bB7C405;
 
     function setUp() public {
-        vm.createSelectFork(vm.envString("TENDERLY_FORK_RPC_URL"));
+        vm.createSelectFork(vm.envString("BASE_RPC_URL"), 17125427);
     }
 
-    function testChange() public {
-        vm.expectRevert();
+    function test_ChangeTransferStrategy() public {
+        vm.expectRevert(IEscrowSeam.ZeroAmount.selector);
         _tryClaimRewards();
 
         _changeEsSeamTransferStrategy();
