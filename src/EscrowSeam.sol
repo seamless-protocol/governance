@@ -95,7 +95,7 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, ERC20VotesUpgradeable, Own
     /// @inheritdoc IEscrowSeam
     function deposit(address onBehalfOf, uint256 amount) external {
         if (amount == 0) {
-            revert ZeroAmount();
+            return;
         }
 
         _updateVesting(onBehalfOf);

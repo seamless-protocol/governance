@@ -107,8 +107,7 @@ contract EscrowSeamTest is Test {
         assertEq(lastUpdatedTimestamp, block.timestamp);
     }
 
-    function testFuzzDepositRevertZeroAmount(address account) public {
-        vm.expectRevert(IEscrowSeam.ZeroAmount.selector);
+    function testFuzzDepositZeroAmountShouldNotRevert(address account) public {
         esSEAM.deposit(account, 0);
     }
 
