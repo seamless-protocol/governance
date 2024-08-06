@@ -39,7 +39,7 @@ contract SeamTransferStrategyTest is Test {
         public
     {
         vm.assume(caller != incentivesController);
-        vm.startPrank(user);
+        vm.startPrank(caller);
         vm.expectRevert(ITransferStrategyBase.NotIncentivesController.selector);
         strategy.performTransfer(user, address(0), amount);
         vm.stopPrank();
