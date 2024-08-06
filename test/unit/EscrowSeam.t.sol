@@ -160,4 +160,33 @@ contract EscrowSeamTest is Test {
         esSEAM.delegate(address(this));
         assertEq(esSEAM.getVotes(address(this)), esSEAM.totalSupply());
     }
+
+    function testClaimBeforeDeposit_ShouldNotRevert() public {
+        address account = makeAddr("account");
+
+        vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
+        esSEAM.claim(account);
+
+        // deposit after claim should not revert
+        uint256 depositAmount = 10 ether;
+        vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
+        esSEAM.deposit(account, depositAmount);
+    }
+
+    function testClaimAfterVestingEnd_DepositShouldNotRevert() public {
+        address account = makeAddr("account");
+        uint256 depositAmount = 10 ether;
+
+        vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
+        esSEAM.deposit(account, depositAmount);
+
+        vm.warp(block.timestamp + VESTING_DURATION * 2);
+
+        vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
+        esSEAM.claim(account);
+
+        // deposit after claim should not revert
+        vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
+        esSEAM.deposit(account, depositAmount);
+    }
 }
