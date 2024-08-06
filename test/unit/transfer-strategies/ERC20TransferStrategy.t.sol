@@ -45,7 +45,7 @@ contract ERC20TransferStrategyTest is Test {
     }
 
     function testFuzz_EmergencyTransfer(address to, uint256 amount) public {
-        vm.assume(to != address(0));
+        vm.assume(to != address(0) && to != address(strategy));
 
         uint256 strategyBalanceBefore = type(uint256).max;
         deal(address(rewardToken), address(strategy), strategyBalanceBefore);
