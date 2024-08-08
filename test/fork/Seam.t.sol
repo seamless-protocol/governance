@@ -12,7 +12,7 @@ contract SeamForkTest is Test {
     SeamGovernor public governor = SeamGovernor(payable(Constants.GOVERNOR_SHORT_ADDRESS));
 
     function setUp() public {
-        vm.createSelectFork(vm.envString("BASE_RPC_URL"), 7567615);
+        vm.createSelectFork(vm.envString("FORK_URL"), 7567615);
     }
 
     function testUpgrade() public {

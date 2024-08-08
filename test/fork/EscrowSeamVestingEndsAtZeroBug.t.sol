@@ -16,7 +16,7 @@ contract EscrowSeamVestingEndsAtZeroBugForkTest is Test {
     address public constant BUGGED_USER = 0x8d8335751DEFdfe2207e8DeCd67e462a08988844;
 
     function setUp() public {
-        vm.createSelectFork(vm.envString("BASE_RPC_URL"), 18130000);
+        vm.createSelectFork(vm.envString("FORK_URL"), 18130000);
     }
 
     function testConfirmBuggedUserState() public {
