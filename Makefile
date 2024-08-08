@@ -42,3 +42,6 @@ deploy-escrow-seam-transfer-strategy-tenderly	:; forge script script/EscrowSeamT
 
 deploy-erc20-transfer-strategy-base-mainnet	:; forge script script/ERC20TransferStrategy.s.sol:ERC20TransferStrategyScript --force --rpc-url ${BASE_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
 deploy-erc20-transfer-strategy-tenderly		:; forge script script/ERC20TransferStrategy.s.sol:ERC20TransferStrategyScript --force --rpc-url ${TENDERLY_FORK_RPC_URL} --slow --broadcast -vvvv
+
+deploy-escrow-seam-implementation-base-mainnet	:; forge script script/EscrowSeamImplementationDeploy.s.sol:EscrowSeamImplementationDeploy --force --rpc-url ${BASE_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
+deploy-escrow-seam-implementation-tenderly		:; forge script script/EscrowSeamImplementationDeploy.s.sol:EscrowSeamImplementationDeploy --force --rpc-url ${TENDERLY_FORK_RPC_URL} --slow --broadcast -vvvv
