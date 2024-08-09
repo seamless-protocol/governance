@@ -36,24 +36,33 @@ contract EscrowSeamVestingEndsAtZeroBugForkTest is Test {
         esSEAM.deposit(BUGGED_USER, depositAmount);
     }
 
-    function testBuggedUserShouldNotRevertAfterUpgrade() public {
-        address newEscrowSeamImplementation = address(new EscrowSeam());
-        vm.prank(Constants.LONG_TIMELOCK_ADDRESS);
-        esSEAM.upgradeToAndCall(newEscrowSeamImplementation, "");
+    function testFuzzBuggedUserShouldNotRevertAfterUpgrade(uint256 depositAmount) public {
+        _upgradeEscrowSeam();
 
         // getClaimableAmount must not revert
         esSEAM.getClaimableAmount(BUGGED_USER);
 
+        depositAmount = bound(depositAmount, 1, type(uint256).max / 1 ether);
+
         // deposit must not revert
-        uint256 depositAmount = 10 ether;
         deal(address(SEAM), address(this), depositAmount);
         SEAM.approve(address(esSEAM), depositAmount);
         esSEAM.deposit(BUGGED_USER, depositAmount);
 
-        // deposit 0 amount must not revert
-        esSEAM.deposit(BUGGED_USER, 0);
-
         (,, uint256 vestingEndsAt,) = esSEAM.vestingInfo(BUGGED_USER);
         assertGt(vestingEndsAt, 0);
+    }
+
+    function testFuzzZeroDepositShouldNotRevertAfterUpgrade(address account) public {
+        _upgradeEscrowSeam();
+
+        // deposit 0 amount must not revert
+        esSEAM.deposit(account, 0);
+    }
+
+    function _upgradeEscrowSeam() internal {
+        address newEscrowSeamImplementation = address(new EscrowSeam());
+        vm.prank(Constants.LONG_TIMELOCK_ADDRESS);
+        esSEAM.upgradeToAndCall(newEscrowSeamImplementation, "");
     }
 }
