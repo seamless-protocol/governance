@@ -107,7 +107,7 @@ contract EscrowSeamTest is Test {
         assertEq(lastUpdatedTimestamp, block.timestamp);
     }
 
-    function testFuzzDepositZeroAmountShouldNotRevert_ShouldNotChangeVestingInfo(address account) public {
+    function testFuzzDepositZeroAmountShouldNotChangeVestingInfo(address account) public {
         (
             uint256 claimableAmountBefore,
             uint256 decreasePerSecondBefore,
