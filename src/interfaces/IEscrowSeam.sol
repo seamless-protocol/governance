@@ -9,9 +9,6 @@ interface IEscrowSeam is IERC20 {
     /// @notice EscrowSeam: non-transferable
     error NonTransferable();
 
-    /// @notice Cannot vest zero amount
-    error ZeroAmount();
-
     /// @notice Emitted when SEAM token is deposited(vested) for user.
     /// @param from Account that deposited(vested) SEAM token
     /// @param onBehalfOf Account that SEAM token is deposited(vested) for
