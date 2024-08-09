@@ -109,18 +109,18 @@ contract EscrowSeamTest is Test {
 
     function testFuzzDepositZeroAmountShouldNotRevert_ShouldNotChangeVestingInfo(address account) public {
         (
-            uint256 claimableAmountBefore, 
-            uint256 decreasePerSecondBefore, 
-            uint256 vestingEndsAtBefore, 
+            uint256 claimableAmountBefore,
+            uint256 decreasePerSecondBefore,
+            uint256 vestingEndsAtBefore,
             uint256 lastUpdatedTimestampBefore
         ) = esSEAM.vestingInfo(account);
-        
+
         esSEAM.deposit(account, 0);
 
         (
-            uint256 claimableAmountAfter, 
-            uint256 decreasePerSecondAfter, 
-            uint256 vestingEndsAtAfter, 
+            uint256 claimableAmountAfter,
+            uint256 decreasePerSecondAfter,
+            uint256 vestingEndsAtAfter,
             uint256 lastUpdatedTimestampAfter
         ) = esSEAM.vestingInfo(account);
 
