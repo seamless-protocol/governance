@@ -62,12 +62,7 @@ contract GovernanceTest is Test, GovernorDeployer {
         EscrowSeam esSEAMTokenImplementation = new EscrowSeam();
         ERC1967Proxy esSEAMProxy = new ERC1967Proxy(
             address(esSEAMTokenImplementation),
-            abi.encodeWithSelector(
-                EscrowSeam.initialize.selector,
-                address(seam),
-                365 days,
-                address(this)
-            )
+            abi.encodeWithSelector(EscrowSeam.initialize.selector, address(seam), 365 days, address(this))
         );
         esSEAM = EscrowSeam(address(esSEAMProxy));
 
@@ -109,14 +104,8 @@ contract GovernanceTest is Test, GovernorDeployer {
         shortGovernor.transferOwnership(address(longTimelock));
         longGovernor.transferOwnership(address(longTimelock));
 
-        shortGovernorProposer = new Proposer(
-            address(seam),
-            payable(shortGovernor)
-        );
-        longGovernorProposer = new Proposer(
-            address(seam),
-            payable(longGovernor)
-        );
+        shortGovernorProposer = new Proposer(address(seam), payable(shortGovernor));
+        longGovernorProposer = new Proposer(address(seam), payable(longGovernor));
         shortGovernorVoter1 = new Voter(address(seam), payable(shortGovernor));
         shortGovernorVoter2 = new Voter(address(seam), payable(shortGovernor));
         shortGovernorVoter3 = new Voter(address(seam), payable(shortGovernor));

@@ -20,24 +20,14 @@ contract EscrowSeamTest is Test {
         Seam tokenImplementation = new Seam();
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(tokenImplementation),
-            abi.encodeWithSelector(
-                Seam.initialize.selector,
-                "Seamless",
-                "SEAM",
-                100_000_000 ether
-            )
+            abi.encodeWithSelector(Seam.initialize.selector, "Seamless", "SEAM", 100_000_000 ether)
         );
         seam = Seam(address(proxy));
 
         EscrowSeam implementation = new EscrowSeam();
         proxy = new ERC1967Proxy(
             address(implementation),
-            abi.encodeWithSelector(
-                EscrowSeam.initialize.selector,
-                address(seam),
-                VESTING_DURATION,
-                address(this)
-            )
+            abi.encodeWithSelector(EscrowSeam.initialize.selector, address(seam), VESTING_DURATION, address(this))
         );
         esSEAM = EscrowSeam(address(proxy));
         user = new Depositor(address(seam), address(esSEAM));

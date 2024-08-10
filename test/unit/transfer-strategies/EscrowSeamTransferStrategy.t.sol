@@ -17,12 +17,8 @@ contract EscrowSeamTransferStrategyTest is Test {
     EscrowSeamTransferStrategy strategy;
 
     function setUp() public {
-        strategy = new EscrowSeamTransferStrategy(
-            IERC20(seam),
-            IEscrowSeam(escrowSeam),
-            incentivesController,
-            rewardsAdmin
-        );
+        strategy =
+            new EscrowSeamTransferStrategy(IERC20(seam), IEscrowSeam(escrowSeam), incentivesController, rewardsAdmin);
     }
 
     function test_SetUp() public {
@@ -33,6 +29,8 @@ contract EscrowSeamTransferStrategyTest is Test {
     }
 
     function testFuzz_PerformTransfer(address user, uint256 amount) public {
+        vm.assume(user != address(0));
+
         deal(address(seam), address(strategy), type(uint256).max);
         vm.mockCall(
             address(escrowSeam), abi.encodeWithSelector(IEscrowSeam.deposit.selector, user, amount), abi.encode()
@@ -47,14 +45,14 @@ contract EscrowSeamTransferStrategyTest is Test {
         public
     {
         vm.assume(caller != incentivesController);
-        vm.startPrank(user);
+        vm.startPrank(caller);
         vm.expectRevert(ITransferStrategyBase.NotIncentivesController.selector);
         strategy.performTransfer(user, address(0), amount);
         vm.stopPrank();
     }
 
     function testFuzz_EmergencyTransfer(address to, uint256 amount) public {
-        vm.assume(to != address(0));
+        vm.assume(to != address(0) && to != address(strategy));
 
         uint256 strategyBalanceBefore = type(uint256).max;
         deal(address(seam), address(strategy), strategyBalanceBefore);
@@ -68,7 +66,7 @@ contract EscrowSeamTransferStrategyTest is Test {
 
     function testFuzz_EmergencyTransfer_RevertIf_NotRewardsAdmin(address caller, address to, uint256 amount) public {
         vm.assume(caller != rewardsAdmin);
-        vm.startPrank(to);
+        vm.startPrank(caller);
         vm.expectRevert(ITransferStrategyBase.NotRewardsAdmin.selector);
         strategy.emergencyWithdrawal(address(seam), to, amount);
         vm.stopPrank();

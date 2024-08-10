@@ -25,6 +25,10 @@ interface ISeamVestingWallet {
     /// @notice Getter for the vesting duration.
     function duration() external view returns (uint256);
 
+    /// @notice Change the vesting duration. Only callable by owner.
+    /// @param duration the new vesting duration
+    function setDuration(uint64 duration) external;
+
     /// @notice Getter for the end timestamp.
     function end() external view returns (uint256);
 

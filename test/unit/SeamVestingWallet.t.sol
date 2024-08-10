@@ -29,11 +29,7 @@ contract SeamVestingWalletTest is Test {
         ERC1967Proxy proxy_ = new ERC1967Proxy(
             address(_implementation),
             abi.encodeWithSelector(
-                SeamVestingWallet.initialize.selector,
-                address(this),
-                _beneficiary,
-                _token,
-                _duration
+                SeamVestingWallet.initialize.selector, address(this), _beneficiary, _token, _duration
             )
         );
         _proxy = SeamVestingWallet(address(proxy_));
@@ -83,6 +79,20 @@ contract SeamVestingWalletTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _beneficiary));
         _proxy.setStart(1);
+
+        vm.stopPrank();
+    }
+
+    function test_SetDuration() public {
+        _proxy.setDuration(1);
+        assertEq(_proxy.duration(), 1);
+    }
+
+    function test_SetDuration_RevertIf_NotOwner() public {
+        vm.startPrank(_beneficiary);
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, _beneficiary));
+        _proxy.setDuration(1);
 
         vm.stopPrank();
     }

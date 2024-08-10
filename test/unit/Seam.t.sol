@@ -20,12 +20,7 @@ contract SeamTest is Test {
         tokenImplementation = new Seam();
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(tokenImplementation),
-            abi.encodeWithSelector(
-                Seam.initialize.selector,
-                "test token name",
-                "test token symbol",
-                100
-            )
+            abi.encodeWithSelector(Seam.initialize.selector, "test token name", "test token symbol", 100)
         );
         tokenProxy = Seam(address(proxy));
     }

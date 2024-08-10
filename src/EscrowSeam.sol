@@ -87,6 +87,9 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, ERC20VotesUpgradeable, Own
     /// @inheritdoc IEscrowSeam
     function getClaimableAmount(address account) public view returns (uint256) {
         Storage.VestingData storage vestingData = Storage.layout().vestingInfo[account];
+
+        if (vestingData.lastUpdatedTimestamp > vestingData.vestingEndsAt) return vestingData.claimableAmount;
+
         uint256 timeDiff = Math.min(block.timestamp, vestingData.vestingEndsAt) - vestingData.lastUpdatedTimestamp;
         uint256 vestedAmount = Math.mulDiv(timeDiff, vestingData.vestPerSecond, MULTIPLIER);
         return vestingData.claimableAmount + vestedAmount;
@@ -95,7 +98,7 @@ contract EscrowSeam is IEscrowSeam, ERC20Upgradeable, ERC20VotesUpgradeable, Own
     /// @inheritdoc IEscrowSeam
     function deposit(address onBehalfOf, uint256 amount) external {
         if (amount == 0) {
-            revert ZeroAmount();
+            return;
         }
 
         _updateVesting(onBehalfOf);

@@ -19,12 +19,7 @@ contract EscrowSeamTest is Test {
         EscrowSeam implementation = new EscrowSeam();
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(implementation),
-            abi.encodeWithSelector(
-                EscrowSeam.initialize.selector,
-                address(seam),
-                VESTING_DURATION,
-                address(this)
-            )
+            abi.encodeWithSelector(EscrowSeam.initialize.selector, address(seam), VESTING_DURATION, address(this))
         );
         esSEAM = EscrowSeam(address(proxy));
     }
@@ -112,9 +107,27 @@ contract EscrowSeamTest is Test {
         assertEq(lastUpdatedTimestamp, block.timestamp);
     }
 
-    function testFuzzDepositRevertZeroAmount(address account) public {
-        vm.expectRevert(IEscrowSeam.ZeroAmount.selector);
+    function testFuzzDepositZeroAmountShouldNotChangeVestingInfo(address account) public {
+        (
+            uint256 claimableAmountBefore,
+            uint256 decreasePerSecondBefore,
+            uint256 vestingEndsAtBefore,
+            uint256 lastUpdatedTimestampBefore
+        ) = esSEAM.vestingInfo(account);
+
         esSEAM.deposit(account, 0);
+
+        (
+            uint256 claimableAmountAfter,
+            uint256 decreasePerSecondAfter,
+            uint256 vestingEndsAtAfter,
+            uint256 lastUpdatedTimestampAfter
+        ) = esSEAM.vestingInfo(account);
+
+        assertEq(claimableAmountBefore, claimableAmountAfter);
+        assertEq(decreasePerSecondBefore, decreasePerSecondAfter);
+        assertEq(vestingEndsAtBefore, vestingEndsAtAfter);
+        assertEq(lastUpdatedTimestampBefore, lastUpdatedTimestampAfter);
     }
 
     function testClaim() public {
@@ -165,5 +178,34 @@ contract EscrowSeamTest is Test {
     function testDelegate() public {
         esSEAM.delegate(address(this));
         assertEq(esSEAM.getVotes(address(this)), esSEAM.totalSupply());
+    }
+
+    function testClaimBeforeDeposit_ShouldNotRevert() public {
+        address account = makeAddr("account");
+
+        vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
+        esSEAM.claim(account);
+
+        // deposit after claim should not revert
+        uint256 depositAmount = 10 ether;
+        vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
+        esSEAM.deposit(account, depositAmount);
+    }
+
+    function testClaimAfterVestingEnd_DepositShouldNotRevert() public {
+        address account = makeAddr("account");
+        uint256 depositAmount = 10 ether;
+
+        vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
+        esSEAM.deposit(account, depositAmount);
+
+        vm.warp(block.timestamp + VESTING_DURATION * 2);
+
+        vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
+        esSEAM.claim(account);
+
+        // deposit after claim should not revert
+        vm.mockCall(seam, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
+        esSEAM.deposit(account, depositAmount);
     }
 }

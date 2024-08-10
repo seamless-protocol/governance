@@ -47,9 +47,7 @@ contract SeamGovernorTest is Test {
                     quorumNumeratorValue: QUORUM_NUMERATOR,
                     seam: IERC5805(_seam),
                     esSEAM: IERC5805(_esSEAM),
-                    timelock: TimelockControllerUpgradeable(
-                        payable(_timelockController)
-                    ),
+                    timelock: TimelockControllerUpgradeable(payable(_timelockController)),
                     initialOwner: address(this)
                 })
             )

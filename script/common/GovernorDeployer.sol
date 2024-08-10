@@ -30,14 +30,14 @@ contract GovernorDeployer is Script {
     {
         SeamTimelockController timelockControllerImplementation = new SeamTimelockController();
         ERC1967Proxy timelockControllerProxy = new ERC1967Proxy(
-                address(timelockControllerImplementation),
-                abi.encodeWithSelector(
+            address(timelockControllerImplementation),
+            abi.encodeWithSelector(
                 SeamTimelockController.initialize.selector,
                 params.timelockControllerMinDelay,
                 new address[](0),
                 new address[](0),
                 params.deployer
-                )
+            )
         );
         console.log(
             "TimelockControllerProxy deployed to: ",
@@ -60,9 +60,7 @@ contract GovernorDeployer is Script {
                     quorumNumeratorValue: params.quorumNumerator,
                     seam: IERC5805(params.seam),
                     esSEAM: IERC5805(params.esSEAM),
-                    timelock: TimelockControllerUpgradeable(
-                        payable(timelockControllerProxy)
-                    ),
+                    timelock: TimelockControllerUpgradeable(payable(timelockControllerProxy)),
                     initialOwner: params.deployer
                 })
             )
