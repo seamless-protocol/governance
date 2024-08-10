@@ -65,7 +65,7 @@ SEAML1: `0xF01901ad15fcd248a7175E03c0ecCC0fD1D943Eb`
 | Contract                   | Proxy address                                | Implementation address                       |
 | -------------------------- | -------------------------------------------- | -------------------------------------------- |
 | SEAM                       | `0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85` | `0x57b4b7f830244FC854cD1123ff14AFd4C1AEfd3F` |
-| EscrowSEAM                 | `0x998e44232BEF4F8B033e5A5175BDC97F2B10d5e5` | `0x2c1f4bBFb944DF2ff7cE636fd3122fd0Fe9a69c1` |
+| EscrowSEAM                 | `0x998e44232BEF4F8B033e5A5175BDC97F2B10d5e5` | `0x78423BfC5053102A3087DAA978c2117a6809fBB1` |
 | Timelock short             | `0x639d2dD24304aC2e6A691d8c1cFf4a2665925fee` | `0x13F5B49217f330167D6350530F6185A75Ab35e6F` |
 | Governor short             | `0x8768c789C6df8AF1a92d96dE823b4F80010Db294` | `0xC8A0E02878A4EF18fa260F0968cEcde8Eb607BFc` |
 | Timelock long              | `0xA96448469520666EDC351eff7676af2247b16718` | `0xBe170D7D3Cda6E9db39E012D0fE25aB83Fff790d` |
