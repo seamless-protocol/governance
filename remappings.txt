@@ -4,5 +4,5 @@ forge-std/=lib/forge-std/src/
 openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts
 openzeppelin-contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts
 @aave/=node_modules/@aave/
-@openzeppelin/=node_modules/@openzeppelin
+
 
