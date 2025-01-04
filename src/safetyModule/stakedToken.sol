@@ -40,24 +40,6 @@ contract StakedToken is
     event Cooldown(address user);
     event TimersUpdated(uint256 cooldown, uint256 unstake);
 
-    // Global State
-    // /// @dev role which can change strategy parameters
-    // bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
-    // /// @dev role which can upgrade the contract
-    // bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
-
-    // bool isEmergencyWithdrawal;
-
-    // IRewardsController rewardsController;
-
-    // /// @notice Seconds to wait before unstake window is available
-    // uint256 public COOLDOWN_SECONDS;
-
-    // /// @notice Seconds available to redeem once the cooldown period is fullfilled
-    // uint256 public UNSTAKE_WINDOW;
-
-    // mapping(address => uint256) public stakersCooldowns;
-
     modifier isNotZeroAddress(address target) {
         if (target == address(0)) {
             revert isZeroAddress(target);
@@ -95,6 +77,7 @@ contract StakedToken is
         Storage.Layout storage $ = Storage.layout();
         $.MANAGER_ROLE = keccak256("MANAGER_ROLE");
         $.UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+        $.PAUSER_ROLE = keccak256("PAUSER_ROLE");
         $.COOLDOWN_SECONDS = _cooldown;
         $.UNSTAKE_WINDOW = unstake;
 
@@ -112,23 +95,17 @@ contract StakedToken is
     { }
 
     // Emergency functions
-    function enableEmergencyWithdrawalState() external onlyRole(Storage.layout().MANAGER_ROLE) {
-        Storage.Layout storage $ = Storage.layout();
-        $.isEmergencyWithdrawal = true;
+    function enableEmergencyWithdrawalState() external onlyRole(Storage.layout().PAUSER_ROLE) whenNotPaused {
         _pause();
         emit EmergencyActive(true);
     }
 
-    function endEmergencyWithdrawalState() external onlyRole(Storage.layout().MANAGER_ROLE) {
-        Storage.Layout storage $ = Storage.layout();
-        $.isEmergencyWithdrawal = false;
+    function endEmergencyWithdrawalState() external onlyRole(Storage.layout().PAUSER_ROLE) whenPaused {
         _unpause();
         emit EmergencyActive(false);
     }
 
-    function emergencyWithdrawal(address to, uint256 amt) external onlyRole(Storage.layout().MANAGER_ROLE) {
-        Storage.Layout storage $ = Storage.layout();
-        if (!$.isEmergencyWithdrawal) revert NotInEmergency();
+    function emergencyWithdrawal(address to, uint256 amt) external onlyRole(Storage.layout().MANAGER_ROLE) whenPaused {
         bool success = IERC20(asset()).transfer(to, amt);
         if (!success) revert SendFailed();
         emit EmergencyWithdraw(to, amt);
@@ -195,13 +172,14 @@ contract StakedToken is
         return toCooldownTimestamp;
     }
     // override _withdraw to check for cooldown
+    // @notice block withdrawals when contract is paused aka in emergency state
     function _withdraw(
         address caller,
         address receiver,
         address owner,
         uint256 assets,
         uint256 shares
-    ) internal virtual override {
+    ) internal virtual override whenNotPaused {
         Storage.Layout storage $ = Storage.layout();
         uint256 cooldownStartTimestamp = $.stakersCooldowns[owner];
         bool isValid = _checkCooldown(cooldownStartTimestamp, $.COOLDOWN_SECONDS, $.UNSTAKE_WINDOW);
