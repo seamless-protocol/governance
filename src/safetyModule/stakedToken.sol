@@ -6,19 +6,24 @@ import {AccessControlUpgradeable} from "openzeppelin-contracts-upgradeable/acces
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {VotesUpgradeable} from "openzeppelin-contracts-upgradeable/governance/utils/VotesUpgradeable.sol";
-import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
+// import {VotesUpgradeable} from "openzeppelin-contracts-upgradeable/governance/utils/VotesUpgradeable.sol";
+// import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import {IRewardsController} from "./interfaces/IRewardsController.sol";
+import {ERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import {NoncesUpgradeable} from "openzeppelin-contracts-upgradeable/utils/NoncesUpgradeable.sol";
 import {ERC4626Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-
+import {ERC20VotesUpgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {ERC20PermitUpgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 contract StakedToken is 
     UUPSUpgradeable, 
     AccessControlUpgradeable, 
     ERC4626Upgradeable, 
-    PausableUpgradeable,
-    VotesUpgradeable 
+    ERC20PermitUpgradeable,
+    ERC20VotesUpgradeable,
+    PausableUpgradeable
+    
 {
     using SafeERC20 for IERC20;
 
@@ -27,7 +32,7 @@ contract StakedToken is
     error isZeroAddress(address target);
     error InsufficientStake();
     error CooldownActive();
-    error ERC20ExceededSafeSupply(uint256 increasedSupply, uint256 cap);
+    // error ERC20ExceededSafeSupply(uint256 increasedSupply, uint256 cap);
 
     // events
     event EmergencyActive(bool status);
@@ -202,10 +207,18 @@ contract StakedToken is
         return true;
     }
 
+    function decimals() public view virtual override(ERC20Upgradeable, ERC4626Upgradeable) returns (uint8) {
+        return super.decimals();
+    }
+
+    function nonces(address owner) public view virtual override(ERC20PermitUpgradeable, NoncesUpgradeable) returns (uint256) {
+        return super.nonces(owner);
+    }
+
     // _update override
     function _update(address from, address to, uint256 value)
         internal
-        override
+        override (ERC20Upgradeable, ERC20VotesUpgradeable)
     {   
         // save to local for gas efficiency
         // Can remove if we block any transfer during CD
@@ -231,15 +244,15 @@ contract StakedToken is
 
         super._update(from, to, value);
 
-        //ERC20Votes
-        if (from == address(0)) {
-            uint256 supply = totalSupply();
-            uint256 cap = _maxSupply();
-            if (supply > cap) {
-                revert ERC20ExceededSafeSupply(supply, cap);
-            }
-        }
-        _transferVotingUnits(from, to, value);
+        // //ERC20Votes
+        // if (from == address(0)) {
+        //     uint256 supply = totalSupply();
+        //     uint256 cap = _maxSupply();
+        //     if (supply > cap) {
+        //         revert ERC20ExceededSafeSupply(supply, cap);
+        //     }
+        // }
+        // _transferVotingUnits(from, to, value);
     }
 
     function _handleAction(
@@ -259,45 +272,45 @@ contract StakedToken is
         emit RewardsControllerChange(newController);
     }
 
-    // ERC20Votes
+    // // ERC20Votes
 
-    /**
-     * @dev Maximum token supply. Defaults to `type(uint208).max` (2^208^ - 1).
-     *
-     * This maximum is enforced in {_update}. It limits the total supply of the token, which is otherwise a uint256,
-     * so that checkpoints can be stored in the Trace208 structure used by {{Votes}}. Increasing this value will not
-     * remove the underlying limitation, and will cause {_update} to fail because of a math overflow in
-     * {_transferVotingUnits}. An override could be used to further restrict the total supply (to a lower value) if
-     * additional logic requires it. When resolving override conflicts on this function, the minimum should be
-     * returned.
-     */
-    function _maxSupply() internal view virtual returns (uint256) {
-        return type(uint208).max;
-    }
+    // /**
+    //  * @dev Maximum token supply. Defaults to `type(uint208).max` (2^208^ - 1).
+    //  *
+    //  * This maximum is enforced in {_update}. It limits the total supply of the token, which is otherwise a uint256,
+    //  * so that checkpoints can be stored in the Trace208 structure used by {{Votes}}. Increasing this value will not
+    //  * remove the underlying limitation, and will cause {_update} to fail because of a math overflow in
+    //  * {_transferVotingUnits}. An override could be used to further restrict the total supply (to a lower value) if
+    //  * additional logic requires it. When resolving override conflicts on this function, the minimum should be
+    //  * returned.
+    //  */
+    // function _maxSupply() internal view virtual returns (uint256) {
+    //     return type(uint208).max;
+    // }
 
-    /**
-     * @dev Returns the voting units of an `account`.
-     *
-     * WARNING: Overriding this function may compromise the internal vote accounting.
-     * `ERC20Votes` assumes tokens map to voting units 1:1 and this is not easy to change.
-     */
-    function _getVotingUnits(address account) internal view virtual override returns (uint256) {
-        return balanceOf(account);
-    }
+    // /**
+    //  * @dev Returns the voting units of an `account`.
+    //  *
+    //  * WARNING: Overriding this function may compromise the internal vote accounting.
+    //  * `ERC20Votes` assumes tokens map to voting units 1:1 and this is not easy to change.
+    //  */
+    // function _getVotingUnits(address account) internal view virtual override returns (uint256) {
+    //     return balanceOf(account);
+    // }
 
-    /**
-     * @dev Get number of checkpoints for `account`.
-     */
-    function numCheckpoints(address account) public view virtual returns (uint32) {
-        return _numCheckpoints(account);
-    }
+    // /**
+    //  * @dev Get number of checkpoints for `account`.
+    //  */
+    // function numCheckpoints(address account) public view virtual returns (uint32) {
+    //     return _numCheckpoints(account);
+    // }
 
-    /**
-     * @dev Get the `pos`-th checkpoint for `account`.
-     */
-    function checkpoints(address account, uint32 pos) public view virtual returns (Checkpoints.Checkpoint208 memory) {
-        return _checkpoints(account, pos);
-    }
+    // /**
+    //  * @dev Get the `pos`-th checkpoint for `account`.
+    //  */
+    // function checkpoints(address account, uint32 pos) public view virtual returns (Checkpoints.Checkpoint208 memory) {
+    //     return _checkpoints(account, pos);
+    // }
 
 }
 
