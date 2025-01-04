@@ -11,14 +11,16 @@ import {StakedTokenStorage as Storage} from "../storage/StakedTokenStorage.sol";
 import {ERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {NoncesUpgradeable} from "openzeppelin-contracts-upgradeable/utils/NoncesUpgradeable.sol";
 import {ERC4626Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import {ERC20VotesUpgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
-import {ERC20PermitUpgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
+import {ERC20VotesUpgradeable} from
+    "openzeppelin-contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {ERC20PermitUpgradeable} from
+    "openzeppelin-contracts-upgradeable/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 
-contract StakedToken is 
-    UUPSUpgradeable, 
-    AccessControlUpgradeable, 
-    ERC4626Upgradeable, 
+contract StakedToken is
+    UUPSUpgradeable,
+    AccessControlUpgradeable,
+    ERC4626Upgradeable,
     ERC20PermitUpgradeable,
     ERC20VotesUpgradeable,
     PausableUpgradeable
@@ -61,7 +63,7 @@ contract StakedToken is
         address _asset,
         address controller,
         address initialAdmin,
-        string calldata _erc20name, 
+        string calldata _erc20name,
         string calldata _erc20symbol,
         uint256 _cooldown,
         uint256 unstake
@@ -70,7 +72,7 @@ contract StakedToken is
         __UUPSUpgradeable_init();
         __ERC20_init(_erc20name, _erc20symbol);
         __ERC4626_init(IERC20(_asset));
-        
+
         __Pausable_init();
 
         Storage.Layout storage $ = Storage.layout();
@@ -86,11 +88,7 @@ contract StakedToken is
     }
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(address)
-        internal
-        override
-        onlyRole(Storage.layout().UPGRADER_ROLE)
-    { }
+    function _authorizeUpgrade(address) internal override onlyRole(Storage.layout().UPGRADER_ROLE) {}
 
     // Emergency functions
     function enableEmergencyWithdrawalState() external onlyRole(Storage.layout().PAUSER_ROLE) whenNotPaused {
@@ -114,7 +112,8 @@ contract StakedToken is
     /**
      * @dev Begins the cooldown period to unstake
      * @notice Requires an active stake to activate
-     **/
+     *
+     */
     function cooldown() external {
         if (balanceOf(msg.sender) == 0) revert InsufficientStake();
         Storage.Layout storage $ = Storage.layout();
@@ -136,7 +135,8 @@ contract StakedToken is
      * @param toAddress Address of the recipient
      * @param toBalance Current balance of the receiver
      * @return The new cooldown timestamp
-     **/
+     *
+     */
     function getNextCooldownTimestamp(
         uint256 fromCooldownTimestamp,
         uint256 amountToReceive,
@@ -154,9 +154,8 @@ contract StakedToken is
         if (minimalValidCooldownTimestamp > toCooldownTimestamp) {
             toCooldownTimestamp = 0;
         } else {
-            uint256 fromCooldownTimestampFinal = (minimalValidCooldownTimestamp > fromCooldownTimestamp)
-                ? block.timestamp
-                : fromCooldownTimestamp;
+            uint256 fromCooldownTimestampFinal =
+                (minimalValidCooldownTimestamp > fromCooldownTimestamp) ? block.timestamp : fromCooldownTimestamp;
 
             if (fromCooldownTimestampFinal < toCooldownTimestamp) {
                 return toCooldownTimestamp;
@@ -171,13 +170,13 @@ contract StakedToken is
     }
     // override _withdraw to check for cooldown
     // @notice block withdrawals when contract is paused aka in emergency state
-    function _withdraw(
-        address caller,
-        address receiver,
-        address owner,
-        uint256 assets,
-        uint256 shares
-    ) internal virtual override whenNotPaused {
+
+    function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
+        internal
+        virtual
+        override
+        whenNotPaused
+    {
         Storage.Layout storage $ = Storage.layout();
         uint256 cooldownStartTimestamp = $.stakersCooldowns[owner];
         bool isValid = _checkCooldown(cooldownStartTimestamp, $.COOLDOWN_SECONDS, $.UNSTAKE_WINDOW);
@@ -185,7 +184,11 @@ contract StakedToken is
         super._withdraw(caller, receiver, owner, assets, shares);
     }
 
-    function _checkCooldown(uint256 cd, uint256 COOLDOWN_SECONDS, uint256 UNSTAKE_WINDOW) internal view returns(bool) {
+    function _checkCooldown(uint256 cd, uint256 COOLDOWN_SECONDS, uint256 UNSTAKE_WINDOW)
+        internal
+        view
+        returns (bool)
+    {
         uint256 cooldownEnd = cd + COOLDOWN_SECONDS;
         if (block.timestamp > cooldownEnd) {
             return false;
@@ -202,15 +205,21 @@ contract StakedToken is
         return super.decimals();
     }
 
-    function nonces(address owner) public view virtual override(ERC20PermitUpgradeable, NoncesUpgradeable) returns (uint256) {
+    function nonces(address owner)
+        public
+        view
+        virtual
+        override(ERC20PermitUpgradeable, NoncesUpgradeable)
+        returns (uint256)
+    {
         return super.nonces(owner);
     }
 
     // _update override
     function _update(address from, address to, uint256 value)
         internal
-        override (ERC20Upgradeable, ERC20VotesUpgradeable)
-    {   
+        override(ERC20Upgradeable, ERC20VotesUpgradeable)
+    {
         Storage.Layout storage $ = Storage.layout();
         // save to local for gas efficiency
         // Can remove if we block any transfer during CD
@@ -244,11 +253,14 @@ contract StakedToken is
         IRewardsController rewardsController
     ) internal {
         rewardsController.handleAction(user, totalSupply, oldUserBalance);
-        
     }
 
     // Admin Functions
-    function changeController(address newController) external isNotZeroAddress(newController) onlyRole(Storage.layout().MANAGER_ROLE) {
+    function changeController(address newController)
+        external
+        isNotZeroAddress(newController)
+        onlyRole(Storage.layout().MANAGER_ROLE)
+    {
         Storage.Layout storage $ = Storage.layout();
         $.rewardsController = IRewardsController(newController);
         emit RewardsControllerChange(newController);
@@ -263,22 +275,22 @@ contract StakedToken is
     }
 
     // Storage getters
-    function getCooldown() external view returns(uint256) {
+    function getCooldown() external view returns (uint256) {
         Storage.Layout storage $ = Storage.layout();
         return $.COOLDOWN_SECONDS;
     }
 
-    function getUnstakeWindow() external view returns(uint256) {
+    function getUnstakeWindow() external view returns (uint256) {
         Storage.Layout storage $ = Storage.layout();
         return $.UNSTAKE_WINDOW;
     }
 
-    function getStakerCooldown(address user) external view returns(uint256) {
+    function getStakerCooldown(address user) external view returns (uint256) {
         Storage.Layout storage $ = Storage.layout();
         return $.stakersCooldowns[user];
     }
 
-    function getRewardsController() external view returns(address) {
+    function getRewardsController() external view returns (address) {
         Storage.Layout storage $ = Storage.layout();
         return address($.rewardsController);
     }
