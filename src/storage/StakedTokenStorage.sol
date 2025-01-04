@@ -10,13 +10,11 @@ library StakedTokenStorage {
         bytes32 MANAGER_ROLE;
         bytes32 UPGRADER_ROLE;
         bytes32 PAUSER_ROLE;
-        // bool isEmergencyWithdrawal;
         uint256 COOLDOWN_SECONDS;
         uint256 UNSTAKE_WINDOW;
         mapping(address => uint256) stakersCooldowns;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.EscrowSeam")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant STORAGE_SLOT = keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.StakedToken")) - 1)) & ~bytes32(uint256(0xff));
 
     function layout() internal pure returns (Layout storage l) {

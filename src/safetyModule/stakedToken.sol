@@ -22,7 +22,6 @@ contract StakedToken is
     ERC20PermitUpgradeable,
     ERC20VotesUpgradeable,
     PausableUpgradeable
-    
 {
     using SafeERC20 for IERC20;
 
@@ -80,11 +79,10 @@ contract StakedToken is
         $.PAUSER_ROLE = keccak256("PAUSER_ROLE");
         $.COOLDOWN_SECONDS = _cooldown;
         $.UNSTAKE_WINDOW = unstake;
+        $.rewardsController = IRewardsController(controller);
 
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
         _grantRole($.MANAGER_ROLE, initialAdmin);
-       
-        $.rewardsController = IRewardsController(controller);
     }
 
     /// @inheritdoc UUPSUpgradeable
@@ -264,6 +262,26 @@ contract StakedToken is
         emit TimersUpdated(_cooldown, _unstake);
     }
 
+    // Storage getters
+    function getCooldown() external view returns(uint256) {
+        Storage.Layout storage $ = Storage.layout();
+        return $.COOLDOWN_SECONDS;
+    }
+
+    function getUnstakeWindow() external view returns(uint256) {
+        Storage.Layout storage $ = Storage.layout();
+        return $.UNSTAKE_WINDOW;
+    }
+
+    function getStakerCooldown(address user) external view returns(uint256) {
+        Storage.Layout storage $ = Storage.layout();
+        return $.stakersCooldowns[user];
+    }
+
+    function getRewardsController() external view returns(address) {
+        Storage.Layout storage $ = Storage.layout();
+        return address($.rewardsController);
+    }
 }
 
 // TODO: TEST: Mint and burn should trigger _update, so _deposit does not need to be modified
