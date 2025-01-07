@@ -6,9 +6,6 @@ import {IRewardsController} from "../safetyModule/interfaces/IRewardsController.
 library StakedTokenStorage {
     struct Layout {
         IRewardsController rewardsController;
-        bytes32 MANAGER_ROLE;
-        bytes32 UPGRADER_ROLE;
-        bytes32 PAUSER_ROLE;
         uint256 COOLDOWN_SECONDS;
         uint256 UNSTAKE_WINDOW;
         mapping(address => uint256) stakersCooldowns;

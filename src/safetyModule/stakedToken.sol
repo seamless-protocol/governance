@@ -41,6 +41,10 @@ contract StakedToken is
     event Cooldown(address user);
     event TimersUpdated(uint256 cooldown, uint256 unstake);
 
+    bytes32 constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    bytes32 constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+    bytes32 constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
     modifier isNotZeroAddress(address target) {
         if (target == address(0)) {
             revert isZeroAddress(target);
@@ -76,9 +80,6 @@ contract StakedToken is
         __Pausable_init();
 
         Storage.Layout storage $ = Storage.layout();
-        $.MANAGER_ROLE = keccak256("MANAGER_ROLE");
-        $.UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
-        $.PAUSER_ROLE = keccak256("PAUSER_ROLE");
         $.COOLDOWN_SECONDS = _cooldown;
         $.UNSTAKE_WINDOW = unstake;
         $.rewardsController = IRewardsController(controller);
