@@ -6,7 +6,7 @@ import {AccessControlUpgradeable} from "openzeppelin-contracts-upgradeable/acces
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
-import {IRewardsController} from "./interfaces/IRewardsController.sol";
+import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
 import {StakedTokenStorage as Storage} from "../storage/StakedTokenStorage.sol";
 import {ERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {NoncesUpgradeable} from "openzeppelin-contracts-upgradeable/utils/NoncesUpgradeable.sol";
