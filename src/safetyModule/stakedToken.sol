@@ -85,24 +85,24 @@ contract StakedToken is
         $.rewardsController = IRewardsController(controller);
 
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
-        _grantRole($.MANAGER_ROLE, initialAdmin);
+        _grantRole(MANAGER_ROLE, initialAdmin);
     }
 
     /// @inheritdoc UUPSUpgradeable
-    function _authorizeUpgrade(address) internal override onlyRole(Storage.layout().UPGRADER_ROLE) {}
+    function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
 
     // Emergency functions
-    function enableEmergencyWithdrawalState() external onlyRole(Storage.layout().PAUSER_ROLE) whenNotPaused {
+    function enableEmergencyWithdrawalState() external onlyRole(PAUSER_ROLE) whenNotPaused {
         _pause();
         emit EmergencyActive(true);
     }
 
-    function endEmergencyWithdrawalState() external onlyRole(Storage.layout().PAUSER_ROLE) whenPaused {
+    function endEmergencyWithdrawalState() external onlyRole(PAUSER_ROLE) whenPaused {
         _unpause();
         emit EmergencyActive(false);
     }
 
-    function emergencyWithdrawal(address to, uint256 amt) external onlyRole(Storage.layout().MANAGER_ROLE) whenPaused {
+    function emergencyWithdrawal(address to, uint256 amt) external onlyRole(MANAGER_ROLE) whenPaused {
         bool success = IERC20(asset()).transfer(to, amt);
         if (!success) revert SendFailed();
         emit EmergencyWithdraw(to, amt);
@@ -260,14 +260,14 @@ contract StakedToken is
     function changeController(address newController)
         external
         isNotZeroAddress(newController)
-        onlyRole(Storage.layout().MANAGER_ROLE)
+        onlyRole(MANAGER_ROLE)
     {
         Storage.Layout storage $ = Storage.layout();
         $.rewardsController = IRewardsController(newController);
         emit RewardsControllerChange(newController);
     }
 
-    function changeTimers(uint256 _cooldown, uint256 _unstake) external onlyRole(Storage.layout().MANAGER_ROLE) {
+    function changeTimers(uint256 _cooldown, uint256 _unstake) external onlyRole(MANAGER_ROLE) {
         Storage.Layout storage $ = Storage.layout();
         $.COOLDOWN_SECONDS = _cooldown;
         $.UNSTAKE_WINDOW = _unstake;
