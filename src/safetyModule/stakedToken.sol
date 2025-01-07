@@ -185,6 +185,11 @@ contract StakedToken is
         super._withdraw(caller, receiver, owner, assets, shares);
     }
 
+    // override _deposit to revert if contract is paused
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal virtual override whenNotPaused {
+        super._deposit(caller, receiver, assets, shares);
+    }
+
     function _checkCooldown(uint256 cd, uint256 COOLDOWN_SECONDS, uint256 UNSTAKE_WINDOW)
         internal
         view
