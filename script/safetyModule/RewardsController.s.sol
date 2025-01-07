@@ -7,8 +7,6 @@ import {EmissionManager} from "@aave/periphery-v3/contracts/rewards/EmissionMana
 import {RewardsController} from "@aave/periphery-v3/contracts/rewards/RewardsController.sol";
 import {StakedToken} from "../../src/safetyModule/stakedToken.sol";
 
-
-
 contract SafetyModuleDeploy is Script {
     function getChainId() public view returns (uint256) {
         uint256 chainId;
@@ -52,13 +50,11 @@ contract SafetyModuleDeploy is Script {
                 1 days
             )
         );
-        console.log(
-            "Deployed stkSEAM proxy to: ", address(proxy), " implementation: ", address(implementation)
-        );
+        console.log("Deployed stkSEAM proxy to: ", address(proxy), " implementation: ", address(implementation));
 
         // deploy transferERC20TransferStrategy for all reward tokens
 
-        // set transferStrategies 
+        // set transferStrategies
 
         // manager.configureAssets -> set stkSEAM address and reward tokens
 

@@ -186,7 +186,12 @@ contract StakedToken is
     }
 
     // override _deposit to revert if contract is paused
-    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal virtual override whenNotPaused {
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
+        internal
+        virtual
+        override
+        whenNotPaused
+    {
         super._deposit(caller, receiver, assets, shares);
     }
 
@@ -262,11 +267,7 @@ contract StakedToken is
     }
 
     // Admin Functions
-    function changeController(address newController)
-        external
-        isNotZeroAddress(newController)
-        onlyRole(MANAGER_ROLE)
-    {
+    function changeController(address newController) external isNotZeroAddress(newController) onlyRole(MANAGER_ROLE) {
         Storage.Layout storage $ = Storage.layout();
         $.rewardsController = IRewardsController(newController);
         emit RewardsControllerChange(newController);
