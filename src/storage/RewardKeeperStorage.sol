@@ -2,14 +2,17 @@
 pragma solidity ^0.8.20;
 
 import {IEmissionManager} from "@aave/periphery-v3/contracts/rewards/interfaces/IEmissionManager.sol";
+import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 
 library RewardKeeperStorage {
     struct Layout {
         IEmissionManager manager;
+        IRewardsController controller;
         IPool pool;
         address treasury;
         address asset;
+        address rewardAdmin;
         uint256 period;
         uint256 lastClaim;
     }

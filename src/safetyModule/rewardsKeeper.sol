@@ -6,11 +6,18 @@ import {AccessControlUpgradeable} from "openzeppelin-contracts-upgradeable/acces
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
+import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 import {IEmissionManager} from "@aave/periphery-v3/contracts/rewards/interfaces/IEmissionManager.sol";
+import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
+import {ITransferStrategyBase} from "@aave/periphery-v3/contracts/rewards/interfaces/ITransferStrategyBase.sol";
+import {IEACAggregatorProxy} from '@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol';
+import {RewardsDataTypes} from '@aave/periphery-v3/contracts/rewards/libraries/RewardsDataTypes.sol';
+import {DataTypes} from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
 import {RewardKeeperStorage as Storage} from "../storage/RewardKeeperStorage.sol";
+import {ERC20TransferStrategy} from "../transfer-strategies/ERC20TransferStrategy.sol";
 
-contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable {
+contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
     using SafeERC20 for IERC20;
 
     event ClaimedAndSetRate(address[] rewards, uint88[] rates);
@@ -25,8 +32,9 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable {
 
     bytes32 constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     bytes32 constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
-    // bytes32 constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-    // TODO: include pausable?
+    bytes32 constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
+    address constant ORACLE_MOCK = 0x602823807C919A92B63cF5C126387c4759976072;
 
     modifier isNotZeroAddress(address target) {
         if (target == address(0)) {
@@ -46,11 +54,14 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable {
         initializer
     {
         __UUPSUpgradeable_init();
+        __Pausable_init();
 
         Storage.Layout storage $ = Storage.layout();
         $.manager = IEmissionManager(emissionManager);
+        $.controller = IRewardsController($.manager.getRewardsController());
         $.pool = IPool(pool);
         $.treasury = treasury;
+        $.rewardAdmin = msg.sender;
         $.period = 1 days;
         $.lastClaim = block.timestamp;
         $.asset = stkSeam;
@@ -72,26 +83,54 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable {
 
         address[] memory rewardTokens = $.pool.getReservesList();
 
-        // Get previous balances for all rewards
-        uint256[] memory balancesBefore = new uint256[](rewardTokens.length);
-        for (uint8 i; i < rewardTokens.length; i++) {
-            balancesBefore[i] = IERC20(rewardTokens[i]).balanceOf($.treasury);
-        }
+        
 
         // claim rewards
+        // assume its coming to this contract for now
         $.pool.mintToTreasury(rewardTokens);
 
         // get new Emission rates
         uint88[] memory newRates = new uint88[](rewardTokens.length);
         for (uint8 i; i < rewardTokens.length; i++) {
-            uint256 balance = IERC20(rewardTokens[i]).balanceOf($.treasury);
+            IERC20 token = IERC20(rewardTokens[i]);
+            
+            // get aToken address
+            DataTypes.ReserveData memory data = $.pool.getReserveData(rewardTokens[i]);
 
-            // there will be dust from rounding here... it will be small so we can ignore/collect in treasury OR track them...
-            uint88 rate = uint88((balance - balancesBefore[i]) / $.period);
+            // get aToken balance
+            uint256 aBalance = IERC20(data.aTokenAddress).balanceOf($.treasury);
+            
+            // withdraw reward tokens
+            $.pool.withdraw(rewardTokens[i], aBalance, address(this));
+
+            uint256 balance = token.balanceOf(address(this));
+
+            // there will be dust from rounding here... it can stay in the contract and get accounted for next time.
+            uint88 rate = uint88((balance) / $.period);
             newRates[i] = rate;
 
-            // set distributonEnd here
-            $.manager.setDistributionEnd($.asset, rewardTokens[i], uint32(block.timestamp + $.period));
+            ERC20TransferStrategy transferStrategy = ERC20TransferStrategy($.controller.getTransferStrategy(rewardTokens[i]));
+
+            if (address(transferStrategy) == address(0)) {
+                RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
+                // TODO: Is the second param correct?
+                transferStrategy = new ERC20TransferStrategy(token, address($.controller), $.rewardAdmin);
+                config[0].emissionPerSecond = 0;
+                config[0].totalSupply = token.totalSupply(); // Not sure if this is correct...
+                config[0].distributionEnd = uint32(block.timestamp + $.period);
+                config[0].asset = $.asset;
+                config[0].reward = rewardTokens[i];
+                config[0].transferStrategy = ITransferStrategyBase(address(transferStrategy));
+                config[0].rewardOracle = IEACAggregatorProxy(ORACLE_MOCK);
+                $.manager.configureAssets(config);
+
+            } else {
+                // set distributonEnd here
+                $.manager.setDistributionEnd($.asset, rewardTokens[i], uint32(block.timestamp + $.period));
+            }
+
+            // ensures dust is not sent.
+            token.transfer(address(transferStrategy), rate * $.period);
         }
 
         // set emissions per second
