@@ -64,13 +64,13 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable {
 
     /// @notice EmissionManager requires "rewardToken" address be msg.sender
     /// @dev Could use "ConfigureAssets" instead, but that requires oracle and transferStrategy addresses.
-    /// @dev can we get list of rewardTokens from some function? Passing it in is not great and a source of error.
-    /// @param rewardTokens addresses of reward tokens
-    function claimAndSetRate(address[] calldata rewardTokens) external {
+    function claimAndSetRate() external {
         Storage.Layout storage $ = Storage.layout();
         // check if period has elapsed, update lastClaim
         if ($.lastClaim > block.timestamp - $.period) revert InsufficientTimeElapsed();
         $.lastClaim = block.timestamp;
+
+        address[] memory rewardTokens = $.pool.getReservesList();
 
         // Get previous balances for all rewards
         uint256[] memory balancesBefore = new uint256[](rewardTokens.length);
