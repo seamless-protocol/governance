@@ -74,9 +74,17 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
 
+    function pause() external onlyRole(PAUSER_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(PAUSER_ROLE) {
+        _unpause();
+    }
+
     /// @notice EmissionManager requires "rewardToken" address be msg.sender
     /// @dev Could use "ConfigureAssets" instead, but that requires oracle and transferStrategy addresses.
-    function claimAndSetRate() external {
+    function claimAndSetRate() external whenNotPaused {
         Storage.Layout storage $ = Storage.layout();
         // check if period has elapsed, update lastClaim
         if ($.lastClaim > block.timestamp - $.previousPeriod) revert InsufficientTimeElapsed();
