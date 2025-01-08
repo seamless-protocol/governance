@@ -25,6 +25,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     event SetPool(address pool);
     event SetTreasury(address treasury);
     event SetPeriod(uint256 period);
+    event SetRewardAdmin(address newAdmin);
 
     error isZeroAddress(address target);
     error InsufficientTimeElapsed();
@@ -78,8 +79,9 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     function claimAndSetRate() external {
         Storage.Layout storage $ = Storage.layout();
         // check if period has elapsed, update lastClaim
-        if ($.lastClaim > block.timestamp - $.period) revert InsufficientTimeElapsed();
+        if ($.lastClaim > block.timestamp - $.previousPeriod) revert InsufficientTimeElapsed();
         $.lastClaim = block.timestamp;
+        $.previousPeriod = $.period;
 
         address[] memory rewardTokens = $.pool.getReservesList();
 
@@ -166,5 +168,11 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         Storage.Layout storage $ = Storage.layout();
         $.period = newPeriod;
         emit SetPeriod(newPeriod);
+    }
+
+    function setRewardAdmin(address newAdmin) external isNotZeroAddress(newAdmin) onlyRole("MANAGER_ROLE") {
+        Storage.Layout storage $ = Storage.layout();
+        $.rewardAdmin = newAdmin;
+        emit SetRewardAdmin(newAdmin);
     }
 }

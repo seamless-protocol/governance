@@ -14,6 +14,7 @@ library RewardKeeperStorage {
         address asset;
         address rewardAdmin;
         uint256 period;
+        uint256 previousPeriod;
         uint256 lastClaim;
     }
 
