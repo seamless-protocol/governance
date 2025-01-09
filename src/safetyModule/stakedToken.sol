@@ -29,7 +29,7 @@ contract StakedToken is
 
     // errors
     error SendFailed();
-    error isZeroAddress(address target);
+    error isZeroAddress();
     error InsufficientStake();
     error CooldownActive();
     error NotInEmergency();
@@ -47,7 +47,7 @@ contract StakedToken is
 
     modifier isNotZeroAddress(address target) {
         if (target == address(0)) {
-            revert isZeroAddress(target);
+            revert isZeroAddress();
         }
         _;
     }
@@ -143,7 +143,7 @@ contract StakedToken is
         uint256 amountToReceive,
         address toAddress,
         uint256 toBalance
-    ) public returns (uint256) {
+    ) public view returns (uint256) {
         Storage.Layout storage $ = Storage.layout();
         uint256 toCooldownTimestamp = $.stakersCooldowns[toAddress];
         if (toCooldownTimestamp == 0) {
@@ -165,7 +165,7 @@ contract StakedToken is
                     / (amountToReceive + toBalance);
             }
         }
-        $.stakersCooldowns[toAddress] = toCooldownTimestamp;
+        // $.stakersCooldowns[toAddress] = toCooldownTimestamp;
 
         return toCooldownTimestamp;
     }
@@ -200,13 +200,15 @@ contract StakedToken is
         view
         returns (bool)
     {
+        if (cd == 0) return false;
+
         uint256 cooldownEnd = cd + COOLDOWN_SECONDS;
-        if (block.timestamp > cooldownEnd) {
+        if (block.timestamp <= cooldownEnd) {
             return false;
         }
 
         uint256 window = block.timestamp - cooldownEnd;
-        if (window <= UNSTAKE_WINDOW) {
+        if (window > UNSTAKE_WINDOW) {
             return false;
         }
         return true;

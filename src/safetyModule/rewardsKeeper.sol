@@ -11,8 +11,8 @@ import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 import {IEmissionManager} from "@aave/periphery-v3/contracts/rewards/interfaces/IEmissionManager.sol";
 import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
 import {ITransferStrategyBase} from "@aave/periphery-v3/contracts/rewards/interfaces/ITransferStrategyBase.sol";
-import {IEACAggregatorProxy} from '@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol';
-import {RewardsDataTypes} from '@aave/periphery-v3/contracts/rewards/libraries/RewardsDataTypes.sol';
+import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
+import {RewardsDataTypes} from "@aave/periphery-v3/contracts/rewards/libraries/RewardsDataTypes.sol";
 import {DataTypes} from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
 import {RewardKeeperStorage as Storage} from "../storage/RewardKeeperStorage.sol";
 import {ERC20TransferStrategy} from "../transfer-strategies/ERC20TransferStrategy.sol";
@@ -93,8 +93,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
         address[] memory rewardTokens = $.pool.getReservesList();
 
-        
-
         // claim rewards
         // assume its coming to this contract for now
         $.pool.mintToTreasury(rewardTokens);
@@ -103,13 +101,13 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         uint88[] memory newRates = new uint88[](rewardTokens.length);
         for (uint8 i; i < rewardTokens.length; i++) {
             IERC20 token = IERC20(rewardTokens[i]);
-            
+
             // get aToken address
             DataTypes.ReserveData memory data = $.pool.getReserveData(rewardTokens[i]);
 
             // get aToken balance
             uint256 aBalance = IERC20(data.aTokenAddress).balanceOf($.treasury);
-            
+
             // withdraw reward tokens
             $.pool.withdraw(rewardTokens[i], aBalance, address(this));
 
@@ -119,7 +117,8 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
             uint88 rate = uint88((balance) / $.period);
             newRates[i] = rate;
 
-            ERC20TransferStrategy transferStrategy = ERC20TransferStrategy($.controller.getTransferStrategy(rewardTokens[i]));
+            ERC20TransferStrategy transferStrategy =
+                ERC20TransferStrategy($.controller.getTransferStrategy(rewardTokens[i]));
 
             if (address(transferStrategy) == address(0)) {
                 RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
@@ -133,7 +132,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
                 config[0].transferStrategy = ITransferStrategyBase(address(transferStrategy));
                 config[0].rewardOracle = IEACAggregatorProxy(ORACLE_MOCK);
                 $.manager.configureAssets(config);
-
             } else {
                 // set distributonEnd here
                 $.manager.setDistributionEnd($.asset, rewardTokens[i], uint32(block.timestamp + $.period));
