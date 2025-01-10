@@ -9,10 +9,12 @@ library RewardKeeperStorage {
     struct Rates {
         uint88[] rates;
     }
+
     struct StakeTokenInfo {
         address stkToken;
         uint256 weight;
     }
+
     struct Layout {
         IEmissionManager manager;
         IRewardsController controller;

@@ -37,7 +37,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     error TokenExists();
     error InvalidWeight();
     error NoTokens();
-    
+
     bytes32 constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     bytes32 constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     bytes32 constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
@@ -87,14 +87,14 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     function unpause() external onlyRole(PAUSER_ROLE) {
         _unpause();
     }
-    
+
     function addStkTokens(address[] calldata tokens, uint256[] calldata weights) external onlyRole(MANAGER_ROLE) {
         if (tokens.length != weights.length) revert ArraySizeIncorrect();
         Storage.Layout storage $ = Storage.layout();
         $.arrayLength += tokens.length;
         for (uint256 i; i < tokens.length; i++) {
             if ($.stkTokenPos[tokens[i]] != 0) revert TokenExists();
-            if(weights[i] == 0) revert InvalidWeight();
+            if (weights[i] == 0) revert InvalidWeight();
 
             Storage.StakeTokenInfo memory info = Storage.StakeTokenInfo(tokens[i], weights[i]);
             $.stkTokens.push(info);
@@ -125,7 +125,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     function modifyStkToken(address token, uint256 weight) external onlyRole(MANAGER_ROLE) {
-        if(weight == 0) revert InvalidWeight();
+        if (weight == 0) revert InvalidWeight();
         Storage.Layout storage $ = Storage.layout();
         Storage.StakeTokenInfo memory info = $.stkTokens[$.stkTokenPos[token]];
 
@@ -134,9 +134,8 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         $.stkTokens[$.stkTokenPos[token]].weight = weight;
 
         emit ModifiedToken(token, weight);
-
     }
- 
+
     /// @notice EmissionManager requires "rewardToken" address be msg.sender
     /// @dev Could use "ConfigureAssets" instead, but that requires oracle and transferStrategy addresses.
     function claimAndSetRate() external whenNotPaused {
@@ -171,10 +170,11 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
                 ERC20TransferStrategy($.controller.getTransferStrategy(rewardTokens[i]));
 
             if (address(transferStrategy) == address(0)) {
-                RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[]($.arrayLength);
-                
+                RewardsDataTypes.RewardsConfigInput[] memory config =
+                    new RewardsDataTypes.RewardsConfigInput[]($.arrayLength);
+
                 transferStrategy = new ERC20TransferStrategy(token, address($.controller), $.rewardAdmin);
-                for(uint256 k; k < $.arrayLength; k++) {
+                for (uint256 k; k < $.arrayLength; k++) {
                     config[k].emissionPerSecond = 0;
                     config[k].totalSupply = token.totalSupply(); // Not sure if this is correct...
                     config[k].distributionEnd = uint32(block.timestamp + $.period);
@@ -189,13 +189,14 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
                 $.manager.configureAssets(config);
             } else {
                 // set distributonEnd here
-                for(uint256 k; k < $.arrayLength; k++) {
+                for (uint256 k; k < $.arrayLength; k++) {
                     //TODO: Would this ever result in totalToTransfer > balance?
                     ratesPerAsset[k] = uint88(rate * $.stkTokens[k].weight / $.totalWeight);
                     totalToTransfer += ratesPerAsset[k] * $.period;
-                    $.manager.setDistributionEnd($.stkTokens[k].stkToken, rewardTokens[i], uint32(block.timestamp + $.period));
+                    $.manager.setDistributionEnd(
+                        $.stkTokens[k].stkToken, rewardTokens[i], uint32(block.timestamp + $.period)
+                    );
                 }
-                
             }
             newRates[i] = Storage.Rates(ratesPerAsset);
             // ensures dust is not sent.
@@ -206,7 +207,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         for (uint256 i; i < $.arrayLength; i++) {
             $.manager.setEmissionPerSecond($.stkTokens[i].stkToken, rewardTokens, newRates[i].rates);
         }
-        
 
         emit ClaimedAndSetRate(rewardTokens, newRates);
     }
