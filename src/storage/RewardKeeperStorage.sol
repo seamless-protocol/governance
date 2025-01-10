@@ -6,6 +6,13 @@ import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interface
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 
 library RewardKeeperStorage {
+    struct Rates {
+        uint88[] rates;
+    }
+    struct StakeTokenInfo {
+        address stkToken;
+        uint256 weight;
+    }
     struct Layout {
         IEmissionManager manager;
         IRewardsController controller;
@@ -13,9 +20,13 @@ library RewardKeeperStorage {
         address treasury;
         address asset;
         address rewardAdmin;
+        StakeTokenInfo[] stkTokens;
         uint256 period;
         uint256 previousPeriod;
         uint256 lastClaim;
+        uint256 totalWeight;
+        uint256 arrayLength;
+        mapping(address => uint256) stkTokenPos;
     }
 
     bytes32 private constant STORAGE_SLOT = keccak256(
