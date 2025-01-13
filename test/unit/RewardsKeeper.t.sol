@@ -248,10 +248,6 @@ contract RewardKeeperTest is Test {
     }
 
     function testClaimAndSetRateCreatesNewTransferStrategyIfNoneFound() public {
-        // In the contract, if the controller returns address(0) for getTransferStrategy,
-        // it deploys a new ERC20TransferStrategy. We can see that by checking
-        // the mockRewardsController and ensuring a new strategy was set.
-
         // Wait 1 day
         vm.warp(block.timestamp + 1 days + 1);
 
