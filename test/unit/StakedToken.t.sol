@@ -9,20 +9,7 @@ import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
-
-contract MockRewardsController {
-    event ActionHandled(address indexed user, uint256 totalSupply, uint256 oldUserBalance);
-    mapping(address => address) internal _transferStrategies;
-    constructor() {}
-
-    function handleAction(address user, uint256 totalSupply, uint256 oldUserBalance) external {
-        emit ActionHandled(user, totalSupply, oldUserBalance);
-    }
-
-    function getTransferStrategy(address reward) external view returns (address) {
-        return _transferStrategies[reward];
-    }
-}
+import {MockRewardsController} from "../mocks/MockRewardsController.sol";
 
 contract StakedTokenTest is Test {
     StakedToken internal stakedToken;

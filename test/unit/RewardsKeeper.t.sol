@@ -13,84 +13,14 @@ import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interface
 import {IEmissionManager} from "@aave/periphery-v3/contracts/rewards/interfaces/IEmissionManager.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {MockRewardsController} from "../mocks/MockRewardsController.sol";
+import {MockEmissionManager} from "../mocks/MockEmissionManager.sol";
+import {MockPool} from "../mocks/MockPool.sol";
 
-contract MockRewardsController {
-    event ActionHandled(address indexed user, uint256 totalSupply, uint256 oldUserBalance);
-    mapping(address => address) internal _transferStrategies;
-    constructor() {}
 
-    function handleAction(address user, uint256 totalSupply, uint256 oldUserBalance) external {
-        emit ActionHandled(user, totalSupply, oldUserBalance);
-    }
 
-    function getTransferStrategy(address reward) external view returns (address) {
-        return _transferStrategies[reward];
-    }
 
-    function _addTransferStrategy(address reward, address strat) external {
-        _transferStrategies[reward] = strat;
-    }
-}
 
-contract MockPool  {
-    address[] internal _reserves;
-    mapping(address => DataTypes.ReserveData) internal _reservesData;
-    address internal _treasury;
-
-    constructor(address[] memory reserves, address treasury) {
-        _reserves = reserves;
-        _treasury = treasury;
-    }
-
-    // minimal stubs needed for RewardKeeper calls
-
-    function getReservesList() external view returns (address[] memory) {
-        return _reserves;
-    }
-
-    // For this test, we assume `mintToTreasury` just no-ops or updates an internal state
-    function mintToTreasury(address[] calldata) external {
-        // no-op for testing
-    }
-
-    // We’ll simulate some aToken addresses here
-    function setReserveData(address underlyingAsset, address aTokenAddress) external {
-        DataTypes.ReserveData storage data = _reservesData[underlyingAsset];
-        data.aTokenAddress = aTokenAddress;
-    }
-
-    function getReserveData(address asset) external view returns (DataTypes.ReserveData memory) {
-        return _reservesData[asset];
-    }
-
-    function withdraw(address asset, uint256 amount, address to) external returns (uint256) {
-        // no-op, pretend we transferred tokens
-        return amount;
-    }
-}
-
-contract MockEmissionManager {
-    address internal rewardsController;
-
-    constructor(address _rewardsController) {
-        rewardsController = _rewardsController;
-    }
-
-    function getRewardsController() external view returns (IRewardsController) {
-        return IRewardsController(rewardsController);
-    }
-
-    function setDistributionEnd(address, address, uint32) external {}
-    function setEmissionPerSecond(address, address[] calldata, uint88[] calldata) external {}
-    function configureAssets(RewardsDataTypes.RewardsConfigInput[] calldata config) external {
-        // imitate setting rewards controller
-        for(uint256 i; i < config.length; i++) {
-            MockRewardsController(rewardsController)._addTransferStrategy(config[i].reward, address(config[i].transferStrategy));
-        }
-        
-    }
-
-}
 
 contract RewardKeeperTest is Test {
     RewardKeeper internal rewardKeeper;
