@@ -83,6 +83,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
     /// @notice EmissionManager requires "rewardToken" address be msg.sender
     /// @dev Could use "ConfigureAssets" instead, but that requires oracle and transferStrategy addresses.
+
     function claimAndSetRate() external whenNotPaused {
         Storage.Layout storage $ = Storage.layout();
         // check if period has elapsed, update lastClaim
@@ -175,7 +176,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         emit SetRewardAdmin(newAdmin);
     }
 
-    function getLayout() external pure returns(Storage.Layout memory) {
+    function getLayout() external pure returns (Storage.Layout memory) {
         return Storage.layout();
     }
 }

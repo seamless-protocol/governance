@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {DataTypes} from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
 
-contract MockPool  {
+contract MockPool {
     address[] internal _reserves;
     mapping(address => DataTypes.ReserveData) internal _reservesData;
     address internal _treasury;

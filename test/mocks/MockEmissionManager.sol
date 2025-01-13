@@ -18,12 +18,13 @@ contract MockEmissionManager {
 
     function setDistributionEnd(address, address, uint32) external {}
     function setEmissionPerSecond(address, address[] calldata, uint88[] calldata) external {}
+
     function configureAssets(RewardsDataTypes.RewardsConfigInput[] calldata config) external {
         // imitate setting rewards controller
-        for(uint256 i; i < config.length; i++) {
-            MockRewardsController(rewardsController)._addTransferStrategy(config[i].reward, address(config[i].transferStrategy));
+        for (uint256 i; i < config.length; i++) {
+            MockRewardsController(rewardsController)._addTransferStrategy(
+                config[i].reward, address(config[i].transferStrategy)
+            );
         }
-        
     }
-
 }

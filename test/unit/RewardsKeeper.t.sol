@@ -17,11 +17,6 @@ import {MockRewardsController} from "../mocks/MockRewardsController.sol";
 import {MockEmissionManager} from "../mocks/MockEmissionManager.sol";
 import {MockPool} from "../mocks/MockPool.sol";
 
-
-
-
-
-
 contract RewardKeeperTest is Test {
     RewardKeeper internal rewardKeeper;
 
@@ -80,7 +75,7 @@ contract RewardKeeperTest is Test {
         // Give admin the UPGRADER_ROLE for testing upgrades
         vm.startPrank(admin);
         rewardKeeper.grantRole(UPGRADER_ROLE, upgradeAdmin);
-        
+
         vm.stopPrank();
     }
 
@@ -99,7 +94,6 @@ contract RewardKeeperTest is Test {
     }
 
     function testOnlyManagerCanSetPool() public {
-        
         vm.expectRevert(); // revert due to missing MANAGER_ROLE
         rewardKeeper.setPool(address(0xABC));
 
@@ -284,6 +278,5 @@ contract RewardKeeperTest is Test {
 
         vm.prank(upgradeAdmin);
         rewardKeeper.upgradeToAndCall(address(upgrade), "");
-        
     }
 }
