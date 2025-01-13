@@ -20,23 +20,16 @@ import {ERC20TransferStrategy} from "../transfer-strategies/ERC20TransferStrateg
 contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
     using SafeERC20 for IERC20;
 
-    event ClaimedAndSetRate(address[] rewards, Storage.Rates[] rates);
+    event ClaimedAndSetRate(address[] rewards, uint88[] rates);
     event SetEmissionManager(address emissionManager);
     event SetPool(address pool);
     event SetTreasury(address treasury);
     event SetPeriod(uint256 period);
     event SetRewardAdmin(address newAdmin);
-    event AddedToken(address stkToken, uint256 weight);
-    event ModifiedToken(address stkToken, uint256 weight);
-    event RemovedToken(address stkToken);
 
     error isZeroAddress(address target);
     error InsufficientTimeElapsed();
     error InvalidPeriod();
-    error ArraySizeIncorrect();
-    error TokenExists();
-    error InvalidWeight();
-    error NoTokens();
 
     bytes32 constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     bytes32 constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
@@ -57,7 +50,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @notice Initializes the token storage and inherited contracts.
-    function initialize(address pool, address emissionManager, address initialAdmin, address treasury)
+    function initialize(address pool, address emissionManager, address initialAdmin, address treasury, address stkSeam)
         external
         initializer
     {
@@ -72,6 +65,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         $.rewardAdmin = msg.sender;
         $.period = 1 days;
         $.lastClaim = block.timestamp;
+        $.asset = stkSeam;
 
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
         _grantRole(MANAGER_ROLE, initialAdmin);
@@ -87,55 +81,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     function unpause() external onlyRole(PAUSER_ROLE) {
         _unpause();
     }
-
-    function addStkTokens(address[] calldata tokens, uint256[] calldata weights) external onlyRole(MANAGER_ROLE) {
-        if (tokens.length != weights.length) revert ArraySizeIncorrect();
-        Storage.Layout storage $ = Storage.layout();
-        $.arrayLength += tokens.length;
-        for (uint256 i; i < tokens.length; i++) {
-            if ($.stkTokenPos[tokens[i]] != 0) revert TokenExists();
-            if (weights[i] == 0) revert InvalidWeight();
-
-            Storage.StakeTokenInfo memory info = Storage.StakeTokenInfo(tokens[i], weights[i]);
-            $.stkTokens.push(info);
-            $.stkTokenPos[tokens[i]] = $.stkTokens.length - 1;
-            $.totalWeight += weights[i];
-
-            emit AddedToken(tokens[i], weights[i]);
-        }
-    }
-
-    function removeStkToken(address token) external onlyRole(MANAGER_ROLE) {
-        Storage.Layout storage $ = Storage.layout();
-        Storage.StakeTokenInfo memory info = $.stkTokens[$.stkTokenPos[token]];
-        $.totalWeight = $.totalWeight - info.weight;
-
-        // take last item on the list, place it in subject position
-        if ($.stkTokens.length == 0) revert NoTokens();
-        uint256 finalPos = $.arrayLength - 1;
-        address finalPosAddr = $.stkTokens[finalPos].stkToken;
-        $.stkTokens[$.stkTokenPos[token]] = $.stkTokens[finalPos];
-
-        $.stkTokenPos[finalPosAddr] = $.stkTokenPos[token];
-        $.stkTokenPos[token] = 0;
-        $.arrayLength -= 1;
-        delete $.stkTokens[finalPos];
-
-        emit RemovedToken(token);
-    }
-
-    function modifyStkToken(address token, uint256 weight) external onlyRole(MANAGER_ROLE) {
-        if (weight == 0) revert InvalidWeight();
-        Storage.Layout storage $ = Storage.layout();
-        Storage.StakeTokenInfo memory info = $.stkTokens[$.stkTokenPos[token]];
-
-        // cleaner to do it this way than to use conditionals
-        $.totalWeight = $.totalWeight - info.weight + weight;
-        $.stkTokens[$.stkTokenPos[token]].weight = weight;
-
-        emit ModifiedToken(token, weight);
-    }
-
     /// @notice EmissionManager requires "rewardToken" address be msg.sender
     /// @dev Could use "ConfigureAssets" instead, but that requires oracle and transferStrategy addresses.
     function claimAndSetRate() external whenNotPaused {
@@ -152,61 +97,51 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         $.pool.mintToTreasury(rewardTokens);
 
         // get new Emission rates
-        Storage.Rates[] memory newRates = new Storage.Rates[](rewardTokens.length);
+        uint88[] memory newRates = new uint88[](rewardTokens.length);
         for (uint8 i; i < rewardTokens.length; i++) {
             IERC20 token = IERC20(rewardTokens[i]);
 
+            // get aToken address
+            DataTypes.ReserveData memory data = $.pool.getReserveData(rewardTokens[i]);
+
+            // get aToken balance
+            uint256 aBalance = IERC20(data.aTokenAddress).balanceOf($.treasury);
+
             // withdraw reward tokens
-            $.pool.withdraw(rewardTokens[i], type(uint256).max, address(this));
+            $.pool.withdraw(rewardTokens[i], aBalance, address(this));
 
             uint256 balance = token.balanceOf(address(this));
 
             // there will be dust from rounding here... it can stay in the contract and get accounted for next time.
             uint88 rate = uint88((balance) / $.period);
-            uint88[] memory ratesPerAsset = new uint88[]($.arrayLength);
-            uint256 totalToTransfer;
+            newRates[i] = rate;
 
             ERC20TransferStrategy transferStrategy =
                 ERC20TransferStrategy($.controller.getTransferStrategy(rewardTokens[i]));
 
             if (address(transferStrategy) == address(0)) {
-                RewardsDataTypes.RewardsConfigInput[] memory config =
-                    new RewardsDataTypes.RewardsConfigInput[]($.arrayLength);
-
+                RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
+                // TODO: Is the second param correct?
                 transferStrategy = new ERC20TransferStrategy(token, address($.controller), $.rewardAdmin);
-                for (uint256 k; k < $.arrayLength; k++) {
-                    config[k].emissionPerSecond = 0;
-                    config[k].totalSupply = token.totalSupply(); // Not sure if this is correct...
-                    config[k].distributionEnd = uint32(block.timestamp + $.period);
-                    config[k].asset = $.stkTokens[k].stkToken;
-                    config[k].reward = rewardTokens[i];
-                    config[k].transferStrategy = ITransferStrategyBase(address(transferStrategy));
-                    config[k].rewardOracle = IEACAggregatorProxy(ORACLE_MOCK);
-
-                    ratesPerAsset[k] = uint88(rate * $.stkTokens[k].weight / $.totalWeight);
-                    totalToTransfer += ratesPerAsset[k] * $.period;
-                }
+                config[0].emissionPerSecond = 0;
+                config[0].totalSupply = token.totalSupply(); // Not sure if this is correct...
+                config[0].distributionEnd = uint32(block.timestamp + $.period);
+                config[0].asset = $.asset;
+                config[0].reward = rewardTokens[i];
+                config[0].transferStrategy = ITransferStrategyBase(address(transferStrategy));
+                config[0].rewardOracle = IEACAggregatorProxy(ORACLE_MOCK);
                 $.manager.configureAssets(config);
             } else {
                 // set distributonEnd here
-                for (uint256 k; k < $.arrayLength; k++) {
-                    //TODO: Would this ever result in totalToTransfer > balance?
-                    ratesPerAsset[k] = uint88(rate * $.stkTokens[k].weight / $.totalWeight);
-                    totalToTransfer += ratesPerAsset[k] * $.period;
-                    $.manager.setDistributionEnd(
-                        $.stkTokens[k].stkToken, rewardTokens[i], uint32(block.timestamp + $.period)
-                    );
-                }
+                $.manager.setDistributionEnd($.asset, rewardTokens[i], uint32(block.timestamp + $.period));
             }
-            newRates[i] = Storage.Rates(ratesPerAsset);
+
             // ensures dust is not sent.
-            token.transfer(address(transferStrategy), totalToTransfer);
+            token.transfer(address(transferStrategy), rate * $.period);
         }
 
         // set emissions per second
-        for (uint256 i; i < $.arrayLength; i++) {
-            $.manager.setEmissionPerSecond($.stkTokens[i].stkToken, rewardTokens, newRates[i].rates);
-        }
+        $.manager.setEmissionPerSecond($.asset, rewardTokens, newRates);
 
         emit ClaimedAndSetRate(rewardTokens, newRates);
     }
