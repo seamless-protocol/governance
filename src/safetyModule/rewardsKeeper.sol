@@ -101,14 +101,8 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         for (uint8 i; i < rewardTokens.length; i++) {
             IERC20 token = IERC20(rewardTokens[i]);
 
-            // get aToken address
-            DataTypes.ReserveData memory data = $.pool.getReserveData(rewardTokens[i]);
-
-            // get aToken balance
-            uint256 aBalance = IERC20(data.aTokenAddress).balanceOf($.treasury);
-
             // withdraw reward tokens
-            $.pool.withdraw(rewardTokens[i], aBalance, address(this));
+            $.pool.withdraw(rewardTokens[i], type(uint256).max, address(this));
 
             uint256 balance = token.balanceOf(address(this));
 
@@ -149,35 +143,39 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     function setEmissionManager(address emissionManager)
         external
         isNotZeroAddress(emissionManager)
-        onlyRole("MANAGER_ROLE")
+        onlyRole(MANAGER_ROLE)
     {
         Storage.Layout storage $ = Storage.layout();
         $.manager = IEmissionManager(emissionManager);
         emit SetEmissionManager(emissionManager);
     }
 
-    function setPool(address newPool) external isNotZeroAddress(newPool) onlyRole("MANAGER_ROLE") {
+    function setPool(address newPool) external isNotZeroAddress(newPool) onlyRole(MANAGER_ROLE) {
         Storage.Layout storage $ = Storage.layout();
         $.pool = IPool(newPool);
         emit SetPool(newPool);
     }
 
-    function setTreasury(address newTreasury) external isNotZeroAddress(newTreasury) onlyRole("MANAGER_ROLE") {
+    function setTreasury(address newTreasury) external isNotZeroAddress(newTreasury) onlyRole(MANAGER_ROLE) {
         Storage.Layout storage $ = Storage.layout();
         $.treasury = newTreasury;
         emit SetPool(newTreasury);
     }
 
-    function setPeriod(uint256 newPeriod) external onlyRole("MANAGER_ROLE") {
+    function setPeriod(uint256 newPeriod) external onlyRole(MANAGER_ROLE) {
         if (newPeriod == 0) revert InvalidPeriod();
         Storage.Layout storage $ = Storage.layout();
         $.period = newPeriod;
         emit SetPeriod(newPeriod);
     }
 
-    function setRewardAdmin(address newAdmin) external isNotZeroAddress(newAdmin) onlyRole("MANAGER_ROLE") {
+    function setRewardAdmin(address newAdmin) external isNotZeroAddress(newAdmin) onlyRole(MANAGER_ROLE) {
         Storage.Layout storage $ = Storage.layout();
         $.rewardAdmin = newAdmin;
         emit SetRewardAdmin(newAdmin);
+    }
+
+    function getLayout() external pure returns(Storage.Layout memory) {
+        return Storage.layout();
     }
 }

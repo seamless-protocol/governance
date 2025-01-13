@@ -12,11 +12,15 @@ import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/Paus
 
 contract MockRewardsController {
     event ActionHandled(address indexed user, uint256 totalSupply, uint256 oldUserBalance);
-
+    mapping(address => address) internal _transferStrategies;
     constructor() {}
 
     function handleAction(address user, uint256 totalSupply, uint256 oldUserBalance) external {
         emit ActionHandled(user, totalSupply, oldUserBalance);
+    }
+
+    function getTransferStrategy(address reward) external view returns (address) {
+        return _transferStrategies[reward];
     }
 }
 
