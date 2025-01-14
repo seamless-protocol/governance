@@ -30,6 +30,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     error isZeroAddress(address target);
     error InsufficientTimeElapsed();
     error InvalidPeriod();
+    error InvalidRewardToken();
 
     bytes32 constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     bytes32 constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
@@ -116,7 +117,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
             if (address(transferStrategy) == address(0)) {
                 RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
-                // TODO: Is the second param correct?
                 transferStrategy = new ERC20TransferStrategy(token, address($.controller), $.rewardAdmin);
                 config[0].emissionPerSecond = 0;
                 config[0].totalSupply = token.totalSupply(); // Not sure if this is correct...
@@ -139,6 +139,13 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         $.manager.setEmissionPerSecond($.asset, rewardTokens, newRates);
 
         emit ClaimedAndSetRate(rewardTokens, newRates);
+    }
+
+    function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt) external isNotZeroAddress(to) isNotZeroAddress(token) onlyRole(MANAGER_ROLE) {
+        Storage.Layout storage $ = Storage.layout();
+        address transferStrategy = $.controller.getTransferStrategy(token);
+        if (transferStrategy == address(0)) revert InvalidRewardToken();
+        ITransferStrategyBase(transferStrategy).emergencyWithdrawal(token, to, amt);
     }
 
     function setEmissionManager(address emissionManager)
@@ -176,7 +183,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         emit SetRewardAdmin(newAdmin);
     }
 
-    function getLayout() external pure returns (Storage.Layout memory) {
+    function getLayout() external view returns (Storage.Layout memory) {
         return Storage.layout();
     }
 }

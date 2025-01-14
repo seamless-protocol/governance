@@ -275,4 +275,36 @@ contract RewardKeeperTest is Test {
         vm.prank(upgradeAdmin);
         rewardKeeper.upgradeToAndCall(address(upgrade), "");
     }
+
+    function testEmergencyWithdrawal() public {
+        vm.warp(block.timestamp + 50 days);
+
+        vm.startPrank(address(this));
+        rewardKeeper.claimAndSetRate();
+
+        address strategy1 = mockRewardsController.getTransferStrategy(address(mockToken1));
+        address strategy2 = mockRewardsController.getTransferStrategy(address(mockToken2));
+
+        mockToken1.transfer(strategy1, 500_000 ether);
+        mockToken2.transfer(strategy2, 200_000 ether);
+
+        vm.stopPrank();
+
+        vm.prank(address(5555));
+        vm.expectRevert();
+        rewardKeeper.emergencyWithdrawalFromTransferStrategy(address(mockToken1), address(5555), 500_000 ether);
+
+        vm.startPrank(admin);
+        vm.expectRevert(abi.encodeWithSelector(RewardKeeper.InvalidRewardToken.selector));
+        rewardKeeper.emergencyWithdrawalFromTransferStrategy(address(11), admin, 500_000 ether);
+
+        vm.expectRevert(); // insufficient funds
+        rewardKeeper.emergencyWithdrawalFromTransferStrategy(address(mockToken1), address(admin), 500_001 ether);
+
+        uint256 balBefore = mockToken1.balanceOf(admin);
+        rewardKeeper.emergencyWithdrawalFromTransferStrategy(address(mockToken1), address(admin), 500_000 ether);
+        uint256 balAfter = mockToken1.balanceOf(admin);
+
+        assertEq(balAfter, balBefore + 500_000 ether, "Withdrawal failed");
+    }
 }
