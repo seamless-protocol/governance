@@ -137,7 +137,12 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         emit ClaimedAndSetRate(rewardTokens, newRates);
     }
 
-    function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt) external isNotZeroAddress(to) isNotZeroAddress(token) onlyRole(MANAGER_ROLE) {
+    function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt)
+        external
+        isNotZeroAddress(to)
+        isNotZeroAddress(token)
+        onlyRole(MANAGER_ROLE)
+    {
         Storage.Layout storage $ = Storage.layout();
         address transferStrategy = $.controller.getTransferStrategy(token);
         if (transferStrategy == address(0)) revert InvalidRewardToken();
