@@ -29,7 +29,6 @@ contract RewardKeeperTest is Test {
 
     // Addresses
     address internal admin = address(0xA11CE);
-    address internal treasury = address(0xFEEFEE);
     address internal upgradeAdmin = address(0xBABE);
 
     // Roles (same as in the contract, for convenience)
@@ -53,7 +52,7 @@ contract RewardKeeperTest is Test {
         address[] memory reserves = new address[](2);
         reserves[0] = address(mockToken1);
         reserves[1] = address(mockToken2);
-        mockPool = new MockPool(reserves, treasury);
+        mockPool = new MockPool(reserves, address(this));
 
         mockPool.setReserveData(address(mockToken1), address(mockToken1));
         mockPool.setReserveData(address(mockToken2), address(mockToken2));
@@ -66,11 +65,11 @@ contract RewardKeeperTest is Test {
                 address(mockPool),
                 address(mockEmissionManager),
                 admin,
-                treasury,
                 address(mockToken1)
             )
         );
         rewardKeeper = RewardKeeper(address(proxy));
+        mockPool.setTreasury(address(rewardKeeper));
 
         // Give admin the UPGRADER_ROLE for testing upgrades
         vm.startPrank(admin);
@@ -86,8 +85,6 @@ contract RewardKeeperTest is Test {
         assertEq(address(layout.manager), address(mockEmissionManager), "manager mismatch");
         assertEq(address(layout.pool), address(mockPool), "pool mismatch");
         assertEq(address(layout.controller), address(mockRewardsController), "controller mismatch");
-        assertEq(layout.treasury, treasury, "treasury mismatch");
-        
         assertEq(layout.period, 1 days, "wrong period");
         assertEq(layout.lastClaim, block.timestamp, "Wrong last claim");
         assertEq(layout.asset, address(mockToken1), "asset mismatch");
@@ -102,17 +99,6 @@ contract RewardKeeperTest is Test {
 
         StorageLib.Layout memory layout = rewardKeeper.getLayout();
         assertEq(address(layout.pool), address(0xABC), "Pool not updated");
-    }
-
-    function testOnlyManagerCanSetTreasury() public {
-        vm.expectRevert();
-        rewardKeeper.setTreasury(address(0xDEF));
-
-        vm.prank(admin);
-        rewardKeeper.setTreasury(address(0xDEF));
-
-        StorageLib.Layout memory layout = rewardKeeper.getLayout();
-        assertEq(layout.treasury, address(0xDEF), "Treasury not updated");
     }
 
     function testOnlyManagerCanSetPeriod() public {
@@ -162,12 +148,6 @@ contract RewardKeeperTest is Test {
         vm.prank(admin);
         vm.expectRevert(abi.encodeWithSelector(RewardKeeper.isZeroAddress.selector, address(0)));
         rewardKeeper.setPool(address(0));
-    }
-
-    function testSetTreasuryRevertsWhenZero() public {
-        vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(RewardKeeper.isZeroAddress.selector, address(0)));
-        rewardKeeper.setTreasury(address(0));
     }
 
     function testClaimAndSetRateRevertsIfNotEnoughTimePassed() public {

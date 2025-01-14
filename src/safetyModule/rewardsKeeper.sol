@@ -23,7 +23,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     event ClaimedAndSetRate(address[] rewards, uint88[] rates);
     event SetEmissionManager(address emissionManager);
     event SetPool(address pool);
-    event SetTreasury(address treasury);
     event SetPeriod(uint256 period);
 
     error isZeroAddress(address target);
@@ -50,7 +49,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @notice Initializes the token storage and inherited contracts.
-    function initialize(address pool, address emissionManager, address initialAdmin, address treasury, address stkSeam)
+    function initialize(address pool, address emissionManager, address initialAdmin, address stkSeam)
         external
         initializer
     {
@@ -61,7 +60,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         $.manager = IEmissionManager(emissionManager);
         $.controller = IRewardsController($.manager.getRewardsController());
         $.pool = IPool(pool);
-        $.treasury = treasury;
         $.period = 1 days;
         $.lastClaim = block.timestamp;
         $.asset = stkSeam;
@@ -160,12 +158,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         Storage.Layout storage $ = Storage.layout();
         $.pool = IPool(newPool);
         emit SetPool(newPool);
-    }
-
-    function setTreasury(address newTreasury) external isNotZeroAddress(newTreasury) onlyRole(MANAGER_ROLE) {
-        Storage.Layout storage $ = Storage.layout();
-        $.treasury = newTreasury;
-        emit SetPool(newTreasury);
     }
 
     function setPeriod(uint256 newPeriod) external onlyRole(MANAGER_ROLE) {

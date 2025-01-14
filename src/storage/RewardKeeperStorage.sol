@@ -10,7 +10,6 @@ library RewardKeeperStorage {
         IEmissionManager manager;
         IRewardsController controller;
         IPool pool;
-        address treasury;
         address asset;
         uint256 period;
         uint256 previousPeriod;

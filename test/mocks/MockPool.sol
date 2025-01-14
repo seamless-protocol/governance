@@ -30,6 +30,10 @@ contract MockPool {
         data.aTokenAddress = aTokenAddress;
     }
 
+    function setTreasury(address treasure) external {
+        _treasury = treasure;
+    }
+
     function getReserveData(address asset) external view returns (DataTypes.ReserveData memory) {
         return _reservesData[asset];
     }
