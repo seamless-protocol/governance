@@ -12,7 +12,6 @@ library RewardKeeperStorage {
         IPool pool;
         address treasury;
         address asset;
-        address rewardAdmin;
         uint256 period;
         uint256 previousPeriod;
         uint256 lastClaim;

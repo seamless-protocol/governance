@@ -25,7 +25,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     event SetPool(address pool);
     event SetTreasury(address treasury);
     event SetPeriod(uint256 period);
-    event SetRewardAdmin(address newAdmin);
 
     error isZeroAddress(address target);
     error InsufficientTimeElapsed();
@@ -63,7 +62,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         $.controller = IRewardsController($.manager.getRewardsController());
         $.pool = IPool(pool);
         $.treasury = treasury;
-        $.rewardAdmin = msg.sender;
         $.period = 1 days;
         $.lastClaim = block.timestamp;
         $.asset = stkSeam;
@@ -117,7 +115,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
             if (address(transferStrategy) == address(0)) {
                 RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
-                transferStrategy = new ERC20TransferStrategy(token, address($.controller), $.rewardAdmin);
+                transferStrategy = new ERC20TransferStrategy(token, address($.controller), address(this));
                 config[0].emissionPerSecond = 0;
                 config[0].totalSupply = token.totalSupply(); // Not sure if this is correct...
                 config[0].distributionEnd = uint32(block.timestamp + $.period);
@@ -175,12 +173,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         Storage.Layout storage $ = Storage.layout();
         $.period = newPeriod;
         emit SetPeriod(newPeriod);
-    }
-
-    function setRewardAdmin(address newAdmin) external isNotZeroAddress(newAdmin) onlyRole(MANAGER_ROLE) {
-        Storage.Layout storage $ = Storage.layout();
-        $.rewardAdmin = newAdmin;
-        emit SetRewardAdmin(newAdmin);
     }
 
     function getLayout() external view returns (Storage.Layout memory) {

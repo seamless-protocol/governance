@@ -87,7 +87,7 @@ contract RewardKeeperTest is Test {
         assertEq(address(layout.pool), address(mockPool), "pool mismatch");
         assertEq(address(layout.controller), address(mockRewardsController), "controller mismatch");
         assertEq(layout.treasury, treasury, "treasury mismatch");
-        assertEq(layout.rewardAdmin, address(this), "reward admin mismatch");
+        
         assertEq(layout.period, 1 days, "wrong period");
         assertEq(layout.lastClaim, block.timestamp, "Wrong last claim");
         assertEq(layout.asset, address(mockToken1), "asset mismatch");
@@ -124,17 +124,6 @@ contract RewardKeeperTest is Test {
 
         StorageLib.Layout memory layout = rewardKeeper.getLayout();
         assertEq(layout.period, 2 days, "Period not updated");
-    }
-
-    function testOnlyManagerCanSetRewardAdmin() public {
-        vm.expectRevert();
-        rewardKeeper.setRewardAdmin(address(0xFAFA));
-
-        vm.prank(admin);
-        rewardKeeper.setRewardAdmin(address(0xFAFA));
-
-        StorageLib.Layout memory layout = rewardKeeper.getLayout();
-        assertEq(layout.rewardAdmin, address(0xFAFA), "RewardAdmin not updated");
     }
 
     function testPauseAndUnpause() public {
@@ -179,12 +168,6 @@ contract RewardKeeperTest is Test {
         vm.prank(admin);
         vm.expectRevert(abi.encodeWithSelector(RewardKeeper.isZeroAddress.selector, address(0)));
         rewardKeeper.setTreasury(address(0));
-    }
-
-    function testSetRewardAdminRevertsWhenZero() public {
-        vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(RewardKeeper.isZeroAddress.selector, address(0)));
-        rewardKeeper.setRewardAdmin(address(0));
     }
 
     function testClaimAndSetRateRevertsIfNotEnoughTimePassed() public {
