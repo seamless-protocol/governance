@@ -208,6 +208,9 @@ contract StakedTokenTest is Test {
         vm.prank(user);
         stakedToken.deposit(1000 ether, user);
 
+        vm.prank(manager);
+        stakedToken.emergencyWithdrawal(user, 1 ether);
+
         // Only pauser can enable emergency
         vm.prank(user);
         vm.expectRevert(); // user does not have PAUSER_ROLE

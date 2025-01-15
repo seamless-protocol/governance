@@ -106,7 +106,7 @@ contract StakedToken is
         emit EmergencyActive(false);
     }
 
-    function emergencyWithdrawal(address to, uint256 amt) external onlyRole(MANAGER_ROLE) whenPaused {
+    function emergencyWithdrawal(address to, uint256 amt) external onlyRole(MANAGER_ROLE) {
         bool success = IERC20(asset()).transfer(to, amt);
         if (!success) revert SendFailed();
         emit EmergencyWithdraw(to, amt);
