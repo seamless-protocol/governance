@@ -15,7 +15,6 @@ import {EmissionManager} from "@aave/periphery-v3/contracts/rewards/EmissionMana
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 
-
 import {MockPool} from "../mocks/MockPool.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 
@@ -55,7 +54,7 @@ contract SafetyModuleTest is Test {
         oracle = new MockOracle();
 
         // Deploy mock RewardsController and EmissionManager
-        
+
         emissionManager = new EmissionManager(address(this));
         rewardsController = new RewardsController(address(emissionManager));
 
@@ -77,7 +76,6 @@ contract SafetyModuleTest is Test {
             )
         );
         stkSEAM = StakedToken(address(prox));
-        
 
         // Deploy mockPool with two reserve tokens
         address[] memory reserves = new address[](2);
