@@ -34,7 +34,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     bytes32 constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     bytes32 constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
-    address constant ORACLE_MOCK = 0x602823807C919A92B63cF5C126387c4759976072;
+    // address constant ORACLE_MOCK = 0x602823807C919A92B63cF5C126387c4759976072;
 
     modifier isNotZeroAddress(address target) {
         if (target == address(0)) {
@@ -49,7 +49,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @notice Initializes the token storage and inherited contracts.
-    function initialize(address pool, address emissionManager, address initialAdmin, address stkSeam)
+    function initialize(address pool, address emissionManager, address initialAdmin, address stkSeam, address oracle)
         external
         initializer
     {
@@ -60,6 +60,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         $.manager = IEmissionManager(emissionManager);
         $.controller = IRewardsController($.manager.getRewardsController());
         $.pool = IPool(pool);
+        $.mockOracle = IEACAggregatorProxy(oracle);
         $.period = 1 days;
         $.lastClaim = block.timestamp;
         $.asset = stkSeam;
@@ -120,7 +121,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
                 config[0].asset = $.asset;
                 config[0].reward = rewardTokens[i];
                 config[0].transferStrategy = ITransferStrategyBase(address(transferStrategy));
-                config[0].rewardOracle = IEACAggregatorProxy(ORACLE_MOCK);
+                config[0].rewardOracle = $.mockOracle;
                 $.manager.configureAssets(config);
             } else {
                 // set distributonEnd here

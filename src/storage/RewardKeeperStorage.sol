@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {IEmissionManager} from "@aave/periphery-v3/contracts/rewards/interfaces/IEmissionManager.sol";
 import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
+import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 
 library RewardKeeperStorage {
@@ -10,6 +11,7 @@ library RewardKeeperStorage {
         IEmissionManager manager;
         IRewardsController controller;
         IPool pool;
+        IEACAggregatorProxy mockOracle;
         address asset;
         uint256 period;
         uint256 previousPeriod;

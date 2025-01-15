@@ -91,6 +91,10 @@ contract StakedToken is
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
 
+    function scaledTotalSupply() external view returns (uint256) {
+        return totalSupply();
+    }
+
     // Emergency functions
     function enableEmergencyWithdrawalState() external onlyRole(PAUSER_ROLE) whenNotPaused {
         _pause();
