@@ -8,7 +8,6 @@ import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
-import {IEmissionManager} from "@aave/periphery-v3/contracts/rewards/interfaces/IEmissionManager.sol";
 import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
 import {ITransferStrategyBase} from "@aave/periphery-v3/contracts/rewards/interfaces/ITransferStrategyBase.sol";
 import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
@@ -21,7 +20,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     using SafeERC20 for IERC20;
 
     event ClaimedAndSetRate(address[] rewards, uint88[] rates);
-    event SetEmissionManager(address emissionManager);
+    event SetRewardsController(address controller);
     event SetPool(address pool);
     event SetPeriod(uint256 period);
 
@@ -49,7 +48,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @notice Initializes the token storage and inherited contracts.
-    function initialize(address pool, address emissionManager, address initialAdmin, address stkSeam, address oracle)
+    function initialize(address pool, address initialAdmin, address stkSeam, address oracle)
         external
         initializer
     {
@@ -57,8 +56,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         __Pausable_init();
 
         Storage.Layout storage $ = Storage.layout();
-        $.manager = IEmissionManager(emissionManager);
-        $.controller = IRewardsController($.manager.getRewardsController());
+        
         $.pool = IPool(pool);
         $.mockOracle = IEACAggregatorProxy(oracle);
         $.period = 1 days;
@@ -122,10 +120,10 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
                 config[0].reward = rewardTokens[i];
                 config[0].transferStrategy = ITransferStrategyBase(address(transferStrategy));
                 config[0].rewardOracle = $.mockOracle;
-                $.manager.configureAssets(config);
+                $.controller.configureAssets(config);
             } else {
                 // set distributonEnd here
-                $.manager.setDistributionEnd($.asset, rewardTokens[i], uint32(block.timestamp + $.period));
+                $.controller.setDistributionEnd($.asset, rewardTokens[i], uint32(block.timestamp + $.period));
             }
 
             // ensures dust is not sent.
@@ -133,7 +131,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         }
 
         // set emissions per second
-        $.manager.setEmissionPerSecond($.asset, rewardTokens, newRates);
+        $.controller.setEmissionPerSecond($.asset, rewardTokens, newRates);
 
         emit ClaimedAndSetRate(rewardTokens, newRates);
     }
@@ -150,14 +148,14 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         ITransferStrategyBase(transferStrategy).emergencyWithdrawal(token, to, amt);
     }
 
-    function setEmissionManager(address emissionManager)
+    function setRewardsController(address controller)
         external
-        isNotZeroAddress(emissionManager)
+        isNotZeroAddress(controller)
         onlyRole(MANAGER_ROLE)
     {
         Storage.Layout storage $ = Storage.layout();
-        $.manager = IEmissionManager(emissionManager);
-        emit SetEmissionManager(emissionManager);
+        $.controller = IRewardsController(controller);
+        emit SetRewardsController(controller);
     }
 
     function setPool(address newPool) external isNotZeroAddress(newPool) onlyRole(MANAGER_ROLE) {

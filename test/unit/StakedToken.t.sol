@@ -42,7 +42,6 @@ contract StakedTokenTest is Test {
             abi.encodeWithSelector(
                 implementation.initialize.selector,
                 address(underlyingAsset),
-                address(rewardsController),
                 admin,
                 "StakedToken",
                 "STK",
@@ -54,9 +53,11 @@ contract StakedTokenTest is Test {
 
         // Grant roles to manager and pauser
         vm.startPrank(admin);
+        
         stakedToken.grantRole(MANAGER_ROLE, manager);
         stakedToken.grantRole(PAUSER_ROLE, pauser);
         stakedToken.grantRole(UPGRADER_ROLE, admin); // So admin can upgrade in tests
+        stakedToken.changeController(address(rewardsController));
         vm.stopPrank();
 
         // Mint some tokens to user for testing

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
+import {StakedToken} from "../../src/safetyModule/StakedToken.sol";
 import {RewardKeeper} from "../../src/safetyModule/rewardsKeeper.sol"; // Adjust import paths to your project structure
 import {RewardKeeperStorage as StorageLib} from "../../src/storage/RewardKeeperStorage.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
@@ -9,23 +10,25 @@ import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 import {DataTypes} from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
 import {RewardsDataTypes} from "@aave/periphery-v3/contracts/rewards/libraries/RewardsDataTypes.sol";
-import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
-import {IEmissionManager} from "@aave/periphery-v3/contracts/rewards/interfaces/IEmissionManager.sol";
+import {RewardsController} from "@aave/periphery-v3/contracts/rewards/RewardsController.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {MockRewardsController} from "../mocks/MockRewardsController.sol";
-import {MockEmissionManager} from "../mocks/MockEmissionManager.sol";
-import {MockPool} from "../mocks/MockPool.sol";
 
-contract RewardKeeperTest is Test {
+import {MockPool} from "../mocks/MockPool.sol";
+import {MockOracle} from "../mocks/MockOracle.sol";
+
+contract SafetyModuleTest is Test {
     RewardKeeper internal rewardKeeper;
+
+    ERC20Mock internal SEAM;
+    StakedToken internal stkSEAM;
 
     // Mocks
     MockPool internal mockPool;
-    MockEmissionManager internal mockEmissionManager;
-    MockRewardsController internal mockRewardsController;
+    RewardsController internal rewardsController;
     ERC20Mock internal mockToken1;
     ERC20Mock internal mockToken2;
+    MockOracle internal oracle;
 
     // Addresses
     address internal admin = address(0xA11CE);
@@ -40,13 +43,29 @@ contract RewardKeeperTest is Test {
         // Deploy mock tokens
         mockToken1 = new ERC20Mock();
         mockToken2 = new ERC20Mock();
+        SEAM = new ERC20Mock();
 
         mockToken1.mint(address(this), 1_000_000 ether);
         mockToken2.mint(address(this), 2_000_000 ether);
+        SEAM.mint(address(this), 1_000_000 ether);
 
-        // Deploy mock RewardsController and EmissionManager
-        mockRewardsController = new MockRewardsController();
-        mockEmissionManager = new MockEmissionManager(address(mockRewardsController));
+        oracle = new MockOracle();
+
+        // deploy stkSEAM
+        StakedToken Imp = new StakedToken();
+        ERC1967Proxy prox = new ERC1967Proxy(
+            address(Imp),
+            abi.encodeWithSelector(
+                Imp.initialize.selector,
+                address(SEAM),
+                admin,
+                "Staked Seam",
+                "stkSEAM",
+                7 days,
+                1 days
+            )
+        );
+        stkSEAM = StakedToken(address(prox));
 
         // Deploy mockPool with two reserve tokens
         address[] memory reserves = new address[](2);
@@ -63,19 +82,35 @@ contract RewardKeeperTest is Test {
             abi.encodeWithSelector(
                 implementation.initialize.selector,
                 address(mockPool),
-                address(mockEmissionManager),
                 admin,
-                address(mockToken1),
-                address(1)
+                address(stkSEAM),
+                address(oracle)
             )
         );
         rewardKeeper = RewardKeeper(address(proxy));
+        
+        rewardsController = new RewardsController(address(rewardKeeper));
+        
+        vm.prank(admin);
+        rewardKeeper.setRewardsController(address(rewardsController));
+
+        vm.prank(admin);
+        stkSEAM.changeController(address(rewardsController));
+        
+        
         mockPool.setTreasury(address(rewardKeeper));
-
+        
         // Give admin the UPGRADER_ROLE for testing upgrades
+        SEAM.mint(admin, 1_000_000 ether);
+        
         vm.startPrank(admin);
+        
         rewardKeeper.grantRole(UPGRADER_ROLE, upgradeAdmin);
-
+        
+        SEAM.approve(address(stkSEAM), 1_000_000_000 ether);
+        
+        stkSEAM.deposit(1000 ether, admin);
+        
         vm.stopPrank();
     }
 
@@ -83,12 +118,12 @@ contract RewardKeeperTest is Test {
         // Check storage layout values
         StorageLib.Layout memory layout = rewardKeeper.getLayout();
 
-        assertEq(address(layout.manager), address(mockEmissionManager), "manager mismatch");
+        assertEq(address(layout.controller), address(rewardsController), "manager mismatch");
         assertEq(address(layout.pool), address(mockPool), "pool mismatch");
-        assertEq(address(layout.controller), address(mockRewardsController), "controller mismatch");
+        assertEq(address(layout.controller), address(rewardsController), "controller mismatch");
         assertEq(layout.period, 1 days, "wrong period");
         assertEq(layout.lastClaim, block.timestamp, "Wrong last claim");
-        assertEq(layout.asset, address(mockToken1), "asset mismatch");
+        assertEq(layout.asset, address(stkSEAM), "asset mismatch");
     }
 
     function testOnlyManagerCanSetPool() public {
@@ -139,10 +174,10 @@ contract RewardKeeperTest is Test {
         rewardKeeper.setPeriod(0);
     }
 
-    function testSetEmissionManagerRevertsWhenZero() public {
+    function testSetRewardsControllerRevertsWhenZero() public {
         vm.prank(admin);
         vm.expectRevert(abi.encodeWithSelector(RewardKeeper.isZeroAddress.selector, address(0)));
-        rewardKeeper.setEmissionManager(address(0));
+        rewardKeeper.setRewardsController(address(0));
     }
 
     function testSetPoolRevertsWhenZero() public {
@@ -216,16 +251,16 @@ contract RewardKeeperTest is Test {
         vm.warp(block.timestamp + 1 days + 1);
 
         // Initially, no strategy for mockToken1 or mockToken2
-        assertEq(mockRewardsController.getTransferStrategy(address(mockToken1)), address(0), "Should be no strategy");
-        assertEq(mockRewardsController.getTransferStrategy(address(mockToken2)), address(0), "Should be no strategy");
+        assertEq(rewardsController.getTransferStrategy(address(mockToken1)), address(0), "Should be no strategy");
+        assertEq(rewardsController.getTransferStrategy(address(mockToken2)), address(0), "Should be no strategy");
 
         // call claimAndSetRate
         vm.prank(address(this));
         rewardKeeper.claimAndSetRate();
 
         // Now, each should have a newly created ERC20TransferStrategy
-        address strategy1 = mockRewardsController.getTransferStrategy(address(mockToken1));
-        address strategy2 = mockRewardsController.getTransferStrategy(address(mockToken2));
+        address strategy1 = rewardsController.getTransferStrategy(address(mockToken1));
+        address strategy2 = rewardsController.getTransferStrategy(address(mockToken2));
 
         assertTrue(strategy1 != address(0), "Strategy1 not set");
         assertTrue(strategy2 != address(0), "Strategy2 not set");
@@ -246,8 +281,8 @@ contract RewardKeeperTest is Test {
         vm.startPrank(address(this));
         rewardKeeper.claimAndSetRate();
 
-        address strategy1 = mockRewardsController.getTransferStrategy(address(mockToken1));
-        address strategy2 = mockRewardsController.getTransferStrategy(address(mockToken2));
+        address strategy1 = rewardsController.getTransferStrategy(address(mockToken1));
+        address strategy2 = rewardsController.getTransferStrategy(address(mockToken2));
 
         mockToken1.transfer(strategy1, 500_000 ether);
         mockToken2.transfer(strategy2, 200_000 ether);

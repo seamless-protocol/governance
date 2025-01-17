@@ -59,13 +59,11 @@ contract StakedToken is
 
     /// @notice Initializes the token storage and inherited contracts.
     /// @param _asset token address of the asset
-    /// @param controller address of the rewards controller
     /// @param initialAdmin Initial admin of the contract
     /// @param _erc20name name of the share token
     /// @param _erc20symbol symbol of the share token
     function initialize(
         address _asset,
-        address controller,
         address initialAdmin,
         string calldata _erc20name,
         string calldata _erc20symbol,
@@ -82,7 +80,6 @@ contract StakedToken is
         Storage.Layout storage $ = Storage.layout();
         $.COOLDOWN_SECONDS = _cooldown;
         $.UNSTAKE_WINDOW = unstake;
-        $.rewardsController = IRewardsController(controller);
 
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
         _grantRole(MANAGER_ROLE, initialAdmin);

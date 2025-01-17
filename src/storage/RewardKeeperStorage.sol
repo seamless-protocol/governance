@@ -8,7 +8,6 @@ import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 
 library RewardKeeperStorage {
     struct Layout {
-        IEmissionManager manager;
         IRewardsController controller;
         IPool pool;
         IEACAggregatorProxy mockOracle;
