@@ -48,15 +48,12 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @notice Initializes the token storage and inherited contracts.
-    function initialize(address pool, address initialAdmin, address stkSeam, address oracle)
-        external
-        initializer
-    {
+    function initialize(address pool, address initialAdmin, address stkSeam, address oracle) external initializer {
         __UUPSUpgradeable_init();
         __Pausable_init();
 
         Storage.Layout storage $ = Storage.layout();
-        
+
         $.pool = IPool(pool);
         $.mockOracle = IEACAggregatorProxy(oracle);
         $.period = 1 days;
@@ -148,11 +145,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         ITransferStrategyBase(transferStrategy).emergencyWithdrawal(token, to, amt);
     }
 
-    function setRewardsController(address controller)
-        external
-        isNotZeroAddress(controller)
-        onlyRole(MANAGER_ROLE)
-    {
+    function setRewardsController(address controller) external isNotZeroAddress(controller) onlyRole(MANAGER_ROLE) {
         Storage.Layout storage $ = Storage.layout();
         $.controller = IRewardsController(controller);
         emit SetRewardsController(controller);

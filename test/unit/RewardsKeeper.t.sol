@@ -56,13 +56,7 @@ contract SafetyModuleTest is Test {
         ERC1967Proxy prox = new ERC1967Proxy(
             address(Imp),
             abi.encodeWithSelector(
-                Imp.initialize.selector,
-                address(SEAM),
-                admin,
-                "Staked Seam",
-                "stkSEAM",
-                7 days,
-                1 days
+                Imp.initialize.selector, address(SEAM), admin, "Staked Seam", "stkSEAM", 7 days, 1 days
             )
         );
         stkSEAM = StakedToken(address(prox));
@@ -80,37 +74,32 @@ contract SafetyModuleTest is Test {
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(implementation),
             abi.encodeWithSelector(
-                implementation.initialize.selector,
-                address(mockPool),
-                admin,
-                address(stkSEAM),
-                address(oracle)
+                implementation.initialize.selector, address(mockPool), admin, address(stkSEAM), address(oracle)
             )
         );
         rewardKeeper = RewardKeeper(address(proxy));
-        
+
         rewardsController = new RewardsController(address(rewardKeeper));
-        
+
         vm.prank(admin);
         rewardKeeper.setRewardsController(address(rewardsController));
 
         vm.prank(admin);
         stkSEAM.changeController(address(rewardsController));
-        
-        
+
         mockPool.setTreasury(address(rewardKeeper));
-        
+
         // Give admin the UPGRADER_ROLE for testing upgrades
         SEAM.mint(admin, 1_000_000 ether);
-        
+
         vm.startPrank(admin);
-        
+
         rewardKeeper.grantRole(UPGRADER_ROLE, upgradeAdmin);
-        
+
         SEAM.approve(address(stkSEAM), 1_000_000_000 ether);
-        
+
         stkSEAM.deposit(1000 ether, admin);
-        
+
         vm.stopPrank();
     }
 

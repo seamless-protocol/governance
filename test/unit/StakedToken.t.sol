@@ -53,7 +53,7 @@ contract StakedTokenTest is Test {
 
         // Grant roles to manager and pauser
         vm.startPrank(admin);
-        
+
         stakedToken.grantRole(MANAGER_ROLE, manager);
         stakedToken.grantRole(PAUSER_ROLE, pauser);
         stakedToken.grantRole(UPGRADER_ROLE, admin); // So admin can upgrade in tests
