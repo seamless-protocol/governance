@@ -92,6 +92,14 @@ contract StakedToken is
         return totalSupply();
     }
 
+    function getScaledUserBalanceAndSupply(address user)
+        external
+        view
+        returns (uint256, uint256)
+    {
+        return (balanceOf(user), totalSupply());
+    }
+
     // Emergency functions
     function enableEmergencyWithdrawalState() external onlyRole(PAUSER_ROLE) whenNotPaused {
         _pause();
@@ -305,6 +313,3 @@ contract StakedToken is
         return address($.rewardsController);
     }
 }
-
-// TODO: TEST: Mint and burn should trigger _update, so _deposit does not need to be modified
-// TODO: Ensure our _update override and the logic in the ERC20Votes override both execute
