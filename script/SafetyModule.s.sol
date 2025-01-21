@@ -3,9 +3,9 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Script.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {EmissionManager} from "@aave/periphery-v3/contracts/rewards/EmissionManager.sol";
 import {RewardsController} from "@aave/periphery-v3/contracts/rewards/RewardsController.sol";
 import {StakedToken} from "../../src/safetyModule/stakedToken.sol";
+import {RewardKeeper} from "../../src/safetyModule/rewardsKeeper.sol";
 
 contract SafetyModuleDeploy is Script {
     function getChainId() public view returns (uint256) {
@@ -20,6 +20,8 @@ contract SafetyModuleDeploy is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployerAddress = vm.addr(deployerPrivateKey);
         address asset = vm.envAddress("ASSET");
+        address pool = vm.envAddress("POOL");
+        address oracle = vm.envAddress("ORACLE");
 
         console.log("Deployer address: ", deployerAddress);
         console.log("Deployer balance: ", deployerAddress.balance);
@@ -30,37 +32,43 @@ contract SafetyModuleDeploy is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        EmissionManager manager = new EmissionManager(deployerAddress);
-        console.log("Deployed EmissionManager to ", address(manager));
-
-        RewardsController controller = new RewardsController(address(manager));
-        console.log("Deployed controller to ", address(controller));
-
         StakedToken implementation = new StakedToken();
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(implementation),
             abi.encodeWithSelector(
                 StakedToken.initialize.selector,
                 asset,
-                address(controller),
                 deployerAddress,
-                "TEST", // "stakedSEAM",
-                "TST", //"stkSEAM",
+                "Staked SEAM", // "stakedSEAM",
+                "stkSEAM", //"stkSEAM",
                 7 days,
                 1 days
             )
         );
+        StakedToken stkToken = StakedToken(address(proxy));
         console.log("Deployed stkSEAM proxy to: ", address(proxy), " implementation: ", address(implementation));
 
-        // deploy transferERC20TransferStrategy for all reward tokens
+        RewardKeeper implementation2 = new RewardKeeper();
+        proxy = new ERC1967Proxy(
+            address(implementation2),
+            abi.encodeWithSelector(
+                implementation2.initialize.selector, pool, deployerAddress, address(stkToken), oracle
+            )
+        );
+        RewardKeeper rewardKeeper = RewardKeeper(address(proxy));
+        console.log("Deployed RewardKeeper to: ", address(proxy), " implementation: ", address(implementation2));
 
-        // set transferStrategies
+        RewardsController controller = new RewardsController(address(rewardKeeper));
+        console.log("Deployed controller to ", address(controller));
 
-        // manager.configureAssets -> set stkSEAM address and reward tokens
+        // set pool treasury to the rewardKeeper contract (externally, unless deployer is owner of pool)
 
-        // deploy rewardKeeper
+        // set reward controller on stkToken and reward keeper
+        rewardKeeper.setRewardsController(address(controller));
+        stkToken.changeController(address(controller));
+        
 
-        // manager.setEmissionAdmin(address(rewardKeeper))
+        
         vm.stopBroadcast();
     }
 }
