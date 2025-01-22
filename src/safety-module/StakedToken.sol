@@ -169,9 +169,8 @@ contract StakedToken is
         override
         whenNotPaused
     {
-        Storage.Layout storage $ = Storage.layout();
-        uint256 cooldownStartTimestamp = $.stakersCooldowns[owner];
-        _validateCooldown(cooldownStartTimestamp, $.cooldownSeconds, $.unstakeWindow);
+        uint256 cooldownStartTimestamp = Storage.layout().stakersCooldowns[owner];
+        _validateCooldown(cooldownStartTimestamp);
         super._withdraw(caller, receiver, owner, assets, shares);
     }
 
@@ -185,12 +184,14 @@ contract StakedToken is
         super._deposit(caller, receiver, assets, shares);
     }
 
-    function _validateCooldown(uint256 cd, uint256 cooldownSeconds, uint256 unstakeWindow)
+    function _validateCooldown(uint256 cd)
         internal
         view
     {
         if (cd == 0) revert CooldownNotInitiated();
 
+        uint256 cooldownSeconds = Storage.layout().cooldownSeconds;
+        uint256 unstakeWindow = Storage.layout().unstakeWindow;
         uint256 cooldownEnd = cd + cooldownSeconds;
         if (block.timestamp <= cooldownEnd) {
             revert CooldownStillActive();
@@ -226,12 +227,13 @@ contract StakedToken is
         // Can remove if we block any transfer during CD
         uint256 balFrom = balanceOf(from);
         uint256 balTo = balanceOf(to);
+        uint256 supply = totalSupply();
         if (from != address(0)) {
-            _handleAction(from, totalSupply(), balFrom, $.rewardsController);
+            _handleAction(from, supply, balFrom);
         }
 
         if (to != address(0) && to != from) {
-            _handleAction(to, totalSupply(), balTo, $.rewardsController);
+            _handleAction(to, supply, balTo);
         }
 
         // Recipient
@@ -250,10 +252,9 @@ contract StakedToken is
     function _handleAction(
         address user,
         uint256 totalSupply,
-        uint256 oldUserBalance,
-        IRewardsController rewardsController
+        uint256 oldUserBalance
     ) internal {
-        rewardsController.handleAction(user, totalSupply, oldUserBalance);
+        Storage.layout().rewardsController.handleAction(user, totalSupply, oldUserBalance);
     }
 
     // Admin Functions
