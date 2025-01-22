@@ -6,8 +6,8 @@ import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interface
 library StakedTokenStorage {
     struct Layout {
         IRewardsController rewardsController;
-        uint256 COOLDOWN_SECONDS;
-        uint256 UNSTAKE_WINDOW;
+        uint256 cooldownSeconds;
+        uint256 unstakeWindow;
         mapping(address => uint256) stakersCooldowns;
     }
 

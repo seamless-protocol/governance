@@ -56,7 +56,7 @@ contract StakedToken is
         string calldata _erc20name,
         string calldata _erc20symbol,
         uint256 _cooldown,
-        uint256 unstake
+        uint256 _unstakeWindow
     ) external initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
@@ -66,8 +66,8 @@ contract StakedToken is
         __Pausable_init();
 
         Storage.Layout storage $ = Storage.layout();
-        $.COOLDOWN_SECONDS = _cooldown;
-        $.UNSTAKE_WINDOW = unstake;
+        $.cooldownSeconds = _cooldown;
+        $.unstakeWindow = _unstakeWindow;
 
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
         _grantRole(MANAGER_ROLE, initialAdmin);
@@ -147,7 +147,7 @@ contract StakedToken is
             return 0;
         }
 
-        uint256 minimalValidCooldownTimestamp = block.timestamp - $.COOLDOWN_SECONDS - $.UNSTAKE_WINDOW;
+        uint256 minimalValidCooldownTimestamp = block.timestamp - $.cooldownSeconds - $.unstakeWindow;
 
         if (minimalValidCooldownTimestamp > toCooldownTimestamp) {
             toCooldownTimestamp = 0;
@@ -177,7 +177,7 @@ contract StakedToken is
     {
         Storage.Layout storage $ = Storage.layout();
         uint256 cooldownStartTimestamp = $.stakersCooldowns[owner];
-        bool isValid = _checkCooldown(cooldownStartTimestamp, $.COOLDOWN_SECONDS, $.UNSTAKE_WINDOW);
+        bool isValid = _checkCooldown(cooldownStartTimestamp, $.cooldownSeconds, $.unstakeWindow);
         if (!isValid) revert CooldownActive();
         super._withdraw(caller, receiver, owner, assets, shares);
     }
@@ -192,20 +192,20 @@ contract StakedToken is
         super._deposit(caller, receiver, assets, shares);
     }
 
-    function _checkCooldown(uint256 cd, uint256 COOLDOWN_SECONDS, uint256 UNSTAKE_WINDOW)
+    function _checkCooldown(uint256 cd, uint256 cooldownSeconds, uint256 unstakeWindow)
         internal
         view
         returns (bool)
     {
         if (cd == 0) return false;
 
-        uint256 cooldownEnd = cd + COOLDOWN_SECONDS;
+        uint256 cooldownEnd = cd + cooldownSeconds;
         if (block.timestamp <= cooldownEnd) {
             return false;
         }
 
         uint256 window = block.timestamp - cooldownEnd;
-        if (window > UNSTAKE_WINDOW) {
+        if (window > unstakeWindow) {
             return false;
         }
         return true;
@@ -274,8 +274,8 @@ contract StakedToken is
 
     function changeTimers(uint256 _cooldown, uint256 _unstake) external override onlyRole(MANAGER_ROLE) {
         Storage.Layout storage $ = Storage.layout();
-        $.COOLDOWN_SECONDS = _cooldown;
-        $.UNSTAKE_WINDOW = _unstake;
+        $.cooldownSeconds = _cooldown;
+        $.unstakeWindow = _unstake;
 
         emit TimersUpdated(_cooldown, _unstake);
     }
@@ -283,12 +283,12 @@ contract StakedToken is
     // Storage getters
     function getCooldown() external view override returns (uint256) {
         Storage.Layout storage $ = Storage.layout();
-        return $.COOLDOWN_SECONDS;
+        return $.cooldownSeconds;
     }
 
     function getUnstakeWindow() external view override returns (uint256) {
         Storage.Layout storage $ = Storage.layout();
-        return $.UNSTAKE_WINDOW;
+        return $.unstakeWindow;
     }
 
     function getStakerCooldown(address user) external view override returns (uint256) {

@@ -22,22 +22,22 @@ contract StakedTokenTester is StakedToken {
     //  COOLDOWN_SECONDS
     // ------------------------------
     function setCooldownSecondsForTest(uint256 cooldown) external {
-        StakedTokenStorage.layout().COOLDOWN_SECONDS = cooldown;
+        StakedTokenStorage.layout().cooldownSeconds = cooldown;
     }
 
     function getCooldownSecondsForTest() external view returns (uint256) {
-        return StakedTokenStorage.layout().COOLDOWN_SECONDS;
+        return StakedTokenStorage.layout().cooldownSeconds;
     }
 
     // ------------------------------
     //  UNSTAKE_WINDOW
     // ------------------------------
     function setUnstakeWindowForTest(uint256 window) external {
-        StakedTokenStorage.layout().UNSTAKE_WINDOW = window;
+        StakedTokenStorage.layout().unstakeWindow = window;
     }
 
     function getUnstakeWindowForTest() external view returns (uint256) {
-        return StakedTokenStorage.layout().UNSTAKE_WINDOW;
+        return StakedTokenStorage.layout().unstakeWindow;
     }
 
     // ------------------------------
