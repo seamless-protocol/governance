@@ -24,7 +24,7 @@ contract StakedToken is
     ERC4626Upgradeable,
     ERC20PermitUpgradeable,
     ERC20VotesUpgradeable,
-    PausableUpgradeable, 
+    PausableUpgradeable,
     IStakedToken
 {
     using SafeERC20 for IERC20;
@@ -80,11 +80,7 @@ contract StakedToken is
         return totalSupply();
     }
 
-    function getScaledUserBalanceAndSupply(address user)
-        external
-        view
-        returns (uint256, uint256)
-    {
+    function getScaledUserBalanceAndSupply(address user) external view returns (uint256, uint256) {
         return (balanceOf(user), totalSupply());
     }
 
@@ -182,10 +178,7 @@ contract StakedToken is
         super._deposit(caller, receiver, assets, shares);
     }
 
-    function _validateCooldown(uint256 cd)
-        internal
-        view
-    {
+    function _validateCooldown(uint256 cd) internal view {
         if (cd == 0) revert CooldownNotInitiated();
 
         uint256 cooldownSeconds = Storage.layout().cooldownSeconds;
@@ -201,7 +194,13 @@ contract StakedToken is
         }
     }
 
-    function decimals() public view virtual override(ERC20Upgradeable, ERC4626Upgradeable, IStakedToken) returns (uint8) {
+    function decimals()
+        public
+        view
+        virtual
+        override(ERC20Upgradeable, ERC4626Upgradeable, IStakedToken)
+        returns (uint8)
+    {
         return super.decimals();
     }
 
@@ -247,16 +246,17 @@ contract StakedToken is
         super._update(from, to, value);
     }
 
-    function _handleAction(
-        address user,
-        uint256 totalSupply,
-        uint256 oldUserBalance
-    ) internal {
+    function _handleAction(address user, uint256 totalSupply, uint256 oldUserBalance) internal {
         Storage.layout().rewardsController.handleAction(user, totalSupply, oldUserBalance);
     }
 
     // Admin Functions
-    function setController(address newController) external override isNotZeroAddress(newController) onlyRole(MANAGER_ROLE) {
+    function setController(address newController)
+        external
+        override
+        isNotZeroAddress(newController)
+        onlyRole(MANAGER_ROLE)
+    {
         Storage.layout().rewardsController = IRewardsController(newController);
         emit RewardsControllerSet(newController);
     }

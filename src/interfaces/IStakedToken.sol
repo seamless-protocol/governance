@@ -19,10 +19,7 @@ interface IStakedToken {
 
     function scaledTotalSupply() external view returns (uint256);
 
-    function getScaledUserBalanceAndSupply(address user)
-        external
-        view
-        returns (uint256, uint256);
+    function getScaledUserBalanceAndSupply(address user) external view returns (uint256, uint256);
 
     // Emergency functions
     function pause() external;
@@ -40,10 +37,7 @@ interface IStakedToken {
 
     function decimals() external view returns (uint8);
 
-    function nonces(address owner)
-        external
-        view
-        returns (uint256);
+    function nonces(address owner) external view returns (uint256);
 
     // Admin Functions
     function setController(address newController) external;

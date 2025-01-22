@@ -136,7 +136,12 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         ITransferStrategyBase(transferStrategy).emergencyWithdrawal(token, to, amt);
     }
 
-    function setRewardsController(address controller) external override isNotZeroAddress(controller) onlyRole(MANAGER_ROLE) {
+    function setRewardsController(address controller)
+        external
+        override
+        isNotZeroAddress(controller)
+        onlyRole(MANAGER_ROLE)
+    {
         Storage.layout().controller = IRewardsController(controller);
         emit SetRewardsController(controller);
     }

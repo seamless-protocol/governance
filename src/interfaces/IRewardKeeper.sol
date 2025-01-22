@@ -19,8 +19,7 @@ interface IRewardKeeper {
     function unpause() external;
     function claimAndSetRate() external;
 
-    function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt)
-        external;
+    function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt) external;
 
     function setRewardsController(address controller) external;
 

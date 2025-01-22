@@ -6,7 +6,6 @@ import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interface
 import {StakedTokenStorage} from "../../src/storage/StakedTokenStorage.sol";
 
 contract StakedTokenTester is StakedToken {
-
     // ------------------------------
     //  REWARDS CONTROLLER
     // ------------------------------

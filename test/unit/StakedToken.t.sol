@@ -88,9 +88,9 @@ contract StakedTokenTest is Test {
         rewardKeeper = RewardKeeper(address(proxy));
 
         rewardsController = new RewardsController(address(rewardKeeper));
-    
+
         mockPool.setTreasury(address(rewardKeeper));
-        
+
         // Grant roles to manager and pauser
         vm.startPrank(admin);
         rewardKeeper.setRewardsController(address(rewardsController));
@@ -174,12 +174,7 @@ contract StakedTokenTest is Test {
         uint256 amountToReceive = 50;
         uint256 toBalance = 10;
 
-        uint256 result = stakedToken.getNextCooldownTimestamp(
-            fromCooldown,
-            amountToReceive,
-            toAddress,
-            toBalance
-        );
+        uint256 result = stakedToken.getNextCooldownTimestamp(fromCooldown, amountToReceive, toAddress, toBalance);
 
         assertEq(result, 0, "Should return zero when toCooldownTimestamp == 0");
     }
@@ -190,7 +185,7 @@ contract StakedTokenTest is Test {
         // set some non-zero toCooldownTimestamp
         testToken.setStakersCooldownForTest(toAddress, 100); // old timestamp
         testToken.setCooldownSecondsForTest(10);
-        testToken.setUnstakeWindowForTest(5); 
+        testToken.setUnstakeWindowForTest(5);
 
         // Move time forward so that minimalValidCooldownTimestamp > 100
         // minimalValidCooldownTimestamp = block.timestamp - 10 - 5
@@ -201,12 +196,7 @@ contract StakedTokenTest is Test {
         uint256 amountToReceive = 50;
         uint256 toBalance = 10;
 
-        uint256 result = stakedToken.getNextCooldownTimestamp(
-            fromCooldown,
-            amountToReceive,
-            toAddress,
-            toBalance
-        );
+        uint256 result = stakedToken.getNextCooldownTimestamp(fromCooldown, amountToReceive, toAddress, toBalance);
 
         // Because 100 < (200 - 10 - 5) => toCooldownTimestamp = 0
         assertEq(result, 0, "Should return zero when toCooldownTimestamp is expired");
@@ -219,7 +209,7 @@ contract StakedTokenTest is Test {
         vm.warp(1000);
         testToken.setStakersCooldownForTest(toAddress, 990); // Not expired => must be > (1000 - 10 - 5) = 985
         testToken.setCooldownSecondsForTest(10);
-        testToken.setUnstakeWindowForTest(5); 
+        testToken.setUnstakeWindowForTest(5);
 
         // minimalValidCooldownTimestamp = 985
         // fromCooldownTimestamp = 900 => that is < 985 => fromCooldownTimestampFinal = block.timestamp (1000)
@@ -236,12 +226,7 @@ contract StakedTokenTest is Test {
         uint256 amountToReceive = 50;
         uint256 toBalance = 100;
 
-        uint256 result = stakedToken.getNextCooldownTimestamp(
-            fromCooldown,
-            amountToReceive,
-            toAddress,
-            toBalance
-        );
+        uint256 result = stakedToken.getNextCooldownTimestamp(fromCooldown, amountToReceive, toAddress, toBalance);
 
         // We expect it to just return existing toCooldownTimestamp of 990
         assertEq(result, 990, "Should return toCooldownTimestamp if fromCooldownTimestampFinal < toCooldown");
@@ -254,7 +239,7 @@ contract StakedTokenTest is Test {
         vm.warp(1000);
 
         // Keep toCooldownTimestamp valid (say 990)
-        testToken.setStakersCooldownForTest(toAddress, 990); 
+        testToken.setStakersCooldownForTest(toAddress, 990);
         testToken.setCooldownSecondsForTest(10);
         testToken.setUnstakeWindowForTest(5);
         // minimalValidCooldownTimestamp = 985
@@ -274,12 +259,7 @@ contract StakedTokenTest is Test {
         // = 148750 / 150
         // = 991.666..., trunc in solidity => 991
 
-        uint256 result = stakedToken.getNextCooldownTimestamp(
-            fromCooldown,
-            amountToReceive,
-            toAddress,
-            toBalance
-        );
+        uint256 result = stakedToken.getNextCooldownTimestamp(fromCooldown, amountToReceive, toAddress, toBalance);
         assertEq(result, 991, "Should return weighted average for fromCooldownTimestampFinal >= toCooldownTimestamp");
     }
 
@@ -289,12 +269,11 @@ contract StakedTokenTest is Test {
 
         // Set block.timestamp
         vm.warp(1000);
-        testToken.setStakersCooldownForTest(toAddress, 990); 
+        testToken.setStakersCooldownForTest(toAddress, 990);
         testToken.setCooldownSecondsForTest(10);
         testToken.setUnstakeWindowForTest(5);
         // minimalValidCooldownTimestamp = 985
 
-        
         uint256 cd = stakedToken.getStakerCooldown(toAddress);
         assertEq(cd, 990);
 
@@ -302,16 +281,11 @@ contract StakedTokenTest is Test {
         // Then 1000 >= 990 => Weighted average => (amountToReceive*1000 + toBalance*990) / (sum)
         // Let amountToReceive=10, toBalance=5 => (10*1000 + 5*990) / (15) => (10000 + 4950) / 15 = 14950 / 15 = 996
         // Actually 996.666..., integer trunc => 996
-        uint256 fromCooldown = 900; 
+        uint256 fromCooldown = 900;
         uint256 amountToReceive = 10;
         uint256 toBalance = 5;
 
-        uint256 result = stakedToken.getNextCooldownTimestamp(
-            fromCooldown,
-            amountToReceive,
-            toAddress,
-            toBalance
-        );
+        uint256 result = stakedToken.getNextCooldownTimestamp(fromCooldown, amountToReceive, toAddress, toBalance);
         assertEq(result, 996, "Should return integer-truncated weighted average using block.timestamp");
     }
 
@@ -540,7 +514,6 @@ contract StakedTokenTest is Test {
         vm.warp(block.timestamp + 10);
         uint256 indexAfter = rewardsController.getUserRewards(assets, user, address(mockToken1));
         assertTrue(indexAfter > 0);
-
     }
 
     function testHandleActionWhenFromIsNotZero() public {
@@ -568,7 +541,6 @@ contract StakedTokenTest is Test {
 
         uint256 indexAfter2 = rewardsController.getUserRewards(assets, user2, address(mockToken1));
         assertTrue(indexAfter2 > 0);
-
     }
 
     function testHandleActionWhenFromIsNotZeroAndActiveCooldown() public {
@@ -579,7 +551,6 @@ contract StakedTokenTest is Test {
 
         address[] memory assets = new address[](1);
         assets[0] = address(stakedToken);
-        
 
         vm.prank(user);
         stakedToken.deposit(1000 ether, user);
@@ -594,12 +565,10 @@ contract StakedTokenTest is Test {
         vm.prank(user);
         stakedToken.transfer(user2, 1000 ether);
 
-        
         uint256 indexAfter = rewardsController.getUserRewards(assets, user, address(mockToken1));
         assertEq(indexAfter, indexBefore);
 
         uint256 indexAfter2 = rewardsController.getUserRewards(assets, user2, address(mockToken1));
         assertTrue(indexAfter2 == 0);
-
     }
 }

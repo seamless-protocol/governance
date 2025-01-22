@@ -66,9 +66,7 @@ contract SafetyModuleDeploy is Script {
         // set reward controller on stkToken and reward keeper
         rewardKeeper.setRewardsController(address(controller));
         stkToken.setController(address(controller));
-        
 
-        
         vm.stopBroadcast();
     }
 }
