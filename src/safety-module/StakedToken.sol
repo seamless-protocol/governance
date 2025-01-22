@@ -171,8 +171,7 @@ contract StakedToken is
     {
         Storage.Layout storage $ = Storage.layout();
         uint256 cooldownStartTimestamp = $.stakersCooldowns[owner];
-        bool isValid = _checkCooldown(cooldownStartTimestamp, $.cooldownSeconds, $.unstakeWindow);
-        if (!isValid) revert CooldownActive();
+        _validateCooldown(cooldownStartTimestamp, $.cooldownSeconds, $.unstakeWindow);
         super._withdraw(caller, receiver, owner, assets, shares);
     }
 
@@ -186,23 +185,21 @@ contract StakedToken is
         super._deposit(caller, receiver, assets, shares);
     }
 
-    function _checkCooldown(uint256 cd, uint256 cooldownSeconds, uint256 unstakeWindow)
+    function _validateCooldown(uint256 cd, uint256 cooldownSeconds, uint256 unstakeWindow)
         internal
         view
-        returns (bool)
     {
-        if (cd == 0) return false;
+        if (cd == 0) revert CooldownNotInitiated();
 
         uint256 cooldownEnd = cd + cooldownSeconds;
         if (block.timestamp <= cooldownEnd) {
-            return false;
+            revert CooldownStillActive();
         }
 
         uint256 window = block.timestamp - cooldownEnd;
         if (window > unstakeWindow) {
-            return false;
+            revert UnstakeWindowExpired();
         }
-        return true;
     }
 
     function decimals() public view virtual override(ERC20Upgradeable, ERC4626Upgradeable, IStakedToken) returns (uint8) {

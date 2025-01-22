@@ -141,7 +141,7 @@ contract StakedTokenTest is Test {
 
         // Without cooldown, withdrawal should revert
         vm.prank(user);
-        vm.expectRevert(IStakedToken.CooldownActive.selector);
+        vm.expectRevert(IStakedToken.CooldownNotInitiated.selector);
         stakedToken.withdraw(1000 ether, user, user);
 
         // Initiate cooldown
@@ -153,7 +153,7 @@ contract StakedTokenTest is Test {
         // Still in cooldown, now we can’t withdraw because it reverts if the block time hasn’t fully passed
         vm.prank(user);
         console.log(block.timestamp);
-        vm.expectRevert(IStakedToken.CooldownActive.selector);
+        vm.expectRevert(IStakedToken.CooldownStillActive.selector);
         stakedToken.withdraw(1000 ether, user, user);
 
         // Advance into the unstake window
@@ -514,7 +514,7 @@ contract StakedTokenTest is Test {
         vm.warp(block.timestamp + 20 days);
 
         vm.prank(user);
-        vm.expectRevert(abi.encodeWithSelector(IStakedToken.CooldownActive.selector));
+        vm.expectRevert(abi.encodeWithSelector(IStakedToken.UnstakeWindowExpired.selector));
         stakedToken.withdraw(1000 ether, user, user);
     }
 

@@ -6,7 +6,9 @@ interface IStakedToken {
     error SendFailed();
     error ZeroAddress();
     error InsufficientStake();
-    error CooldownActive();
+    error CooldownStillActive();
+    error UnstakeWindowExpired();
+    error CooldownNotInitiated();
     error NotInEmergency();
 
     // events
