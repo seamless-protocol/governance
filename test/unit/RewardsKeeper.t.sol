@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import {Test, console} from "forge-std/Test.sol";
 import {StakedToken} from "../../src/safety-module/StakedToken.sol";
 import {RewardKeeper} from "../../src/safety-module/RewardKeeper.sol"; // Adjust import paths to your project structure
+import {IRewardKeeper} from "../../src/interfaces/IRewardKeeper.sol";
 import {RewardKeeperStorage as StorageLib} from "../../src/storage/RewardKeeperStorage.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
@@ -159,19 +160,19 @@ contract SafetyModuleTest is Test {
 
     function testSetPeriodRevertsWhenZero() public {
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(RewardKeeper.InvalidPeriod.selector));
+        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InvalidPeriod.selector));
         rewardKeeper.setPeriod(0);
     }
 
     function testSetRewardsControllerRevertsWhenZero() public {
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(RewardKeeper.isZeroAddress.selector, address(0)));
+        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.isZeroAddress.selector, address(0)));
         rewardKeeper.setRewardsController(address(0));
     }
 
     function testSetPoolRevertsWhenZero() public {
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(RewardKeeper.isZeroAddress.selector, address(0)));
+        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.isZeroAddress.selector, address(0)));
         rewardKeeper.setPool(address(0));
     }
 
@@ -182,7 +183,7 @@ contract SafetyModuleTest is Test {
         vm.startPrank(address(this));
         rewardKeeper.claimAndSetRate();
         vm.warp(block.timestamp + 2 hours);
-        vm.expectRevert(abi.encodeWithSelector(RewardKeeper.InsufficientTimeElapsed.selector));
+        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InsufficientTimeElapsed.selector));
         rewardKeeper.claimAndSetRate();
     }
 
@@ -218,7 +219,7 @@ contract SafetyModuleTest is Test {
         assertEq(layout.previousPeriod, 1 days, "previousPeriod should not change");
 
         vm.warp(block.timestamp + 23 hours);
-        vm.expectRevert(abi.encodeWithSelector(RewardKeeper.InsufficientTimeElapsed.selector));
+        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InsufficientTimeElapsed.selector));
         rewardKeeper.claimAndSetRate();
 
         vm.warp(block.timestamp + 1 hours);
@@ -228,7 +229,7 @@ contract SafetyModuleTest is Test {
         assertEq(layout.previousPeriod, 3 days, "previousPeriod should not change");
 
         vm.warp(block.timestamp + 2 days);
-        vm.expectRevert(abi.encodeWithSelector(RewardKeeper.InsufficientTimeElapsed.selector));
+        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InsufficientTimeElapsed.selector));
         rewardKeeper.claimAndSetRate();
 
         vm.warp(block.timestamp + 1 days);
@@ -283,7 +284,7 @@ contract SafetyModuleTest is Test {
         rewardKeeper.emergencyWithdrawalFromTransferStrategy(address(mockToken1), address(5555), 500_000 ether);
 
         vm.startPrank(admin);
-        vm.expectRevert(abi.encodeWithSelector(RewardKeeper.InvalidRewardToken.selector));
+        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InvalidRewardToken.selector));
         rewardKeeper.emergencyWithdrawalFromTransferStrategy(address(11), admin, 500_000 ether);
 
         vm.expectRevert(); // insufficient funds

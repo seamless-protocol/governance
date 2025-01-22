@@ -14,20 +14,11 @@ import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/
 import {RewardsDataTypes} from "@aave/periphery-v3/contracts/rewards/libraries/RewardsDataTypes.sol";
 import {DataTypes} from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
 import {RewardKeeperStorage as Storage} from "../storage/RewardKeeperStorage.sol";
+import {IRewardKeeper} from "../interfaces/IRewardKeeper.sol";
 import {ERC20TransferStrategy} from "../transfer-strategies/ERC20TransferStrategy.sol";
 
-contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
+contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable, IRewardKeeper {
     using SafeERC20 for IERC20;
-
-    event ClaimedAndSetRate(address[] rewards, uint88[] rates);
-    event SetRewardsController(address controller);
-    event SetPool(address pool);
-    event SetPeriod(uint256 period);
-
-    error isZeroAddress(address target);
-    error InsufficientTimeElapsed();
-    error InvalidPeriod();
-    error InvalidRewardToken();
 
     bytes32 constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     bytes32 constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
@@ -67,17 +58,17 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
 
-    function pause() external onlyRole(PAUSER_ROLE) {
+    function pause() external override onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
-    function unpause() external onlyRole(PAUSER_ROLE) {
+    function unpause() external override onlyRole(PAUSER_ROLE) {
         _unpause();
     }
     /// @notice EmissionManager requires "rewardToken" address be msg.sender
     /// @dev Could use "ConfigureAssets" instead, but that requires oracle and transferStrategy addresses.
 
-    function claimAndSetRate() external whenNotPaused {
+    function claimAndSetRate() external override whenNotPaused {
         Storage.Layout storage $ = Storage.layout();
         // check if period has elapsed, update lastClaim
         if ($.lastClaim > block.timestamp - $.previousPeriod) revert InsufficientTimeElapsed();
@@ -135,6 +126,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
     function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt)
         external
+        override
         isNotZeroAddress(to)
         isNotZeroAddress(token)
         onlyRole(MANAGER_ROLE)
@@ -145,26 +137,26 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         ITransferStrategyBase(transferStrategy).emergencyWithdrawal(token, to, amt);
     }
 
-    function setRewardsController(address controller) external isNotZeroAddress(controller) onlyRole(MANAGER_ROLE) {
+    function setRewardsController(address controller) external override isNotZeroAddress(controller) onlyRole(MANAGER_ROLE) {
         Storage.Layout storage $ = Storage.layout();
         $.controller = IRewardsController(controller);
         emit SetRewardsController(controller);
     }
 
-    function setPool(address newPool) external isNotZeroAddress(newPool) onlyRole(MANAGER_ROLE) {
+    function setPool(address newPool) external override isNotZeroAddress(newPool) onlyRole(MANAGER_ROLE) {
         Storage.Layout storage $ = Storage.layout();
         $.pool = IPool(newPool);
         emit SetPool(newPool);
     }
 
-    function setPeriod(uint256 newPeriod) external onlyRole(MANAGER_ROLE) {
+    function setPeriod(uint256 newPeriod) external override onlyRole(MANAGER_ROLE) {
         if (newPeriod == 0) revert InvalidPeriod();
         Storage.Layout storage $ = Storage.layout();
         $.period = newPeriod;
         emit SetPeriod(newPeriod);
     }
 
-    function getLayout() external view returns (Storage.Layout memory) {
+    function getLayout() external view override returns (Storage.Layout memory) {
         return Storage.layout();
     }
 }

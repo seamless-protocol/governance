@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
 import {StakedToken} from "../../src/safety-module/StakedToken.sol"; // Adjust import paths to your project structure
+import {IStakedToken} from "../../src/interfaces/IStakedToken.sol";
 import {StakedTokenStorage} from "../../src/storage/StakedTokenStorage.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
@@ -140,7 +141,7 @@ contract StakedTokenTest is Test {
 
         // Without cooldown, withdrawal should revert
         vm.prank(user);
-        vm.expectRevert(StakedToken.CooldownActive.selector);
+        vm.expectRevert(IStakedToken.CooldownActive.selector);
         stakedToken.withdraw(1000 ether, user, user);
 
         // Initiate cooldown
@@ -152,7 +153,7 @@ contract StakedTokenTest is Test {
         // Still in cooldown, now we can’t withdraw because it reverts if the block time hasn’t fully passed
         vm.prank(user);
         console.log(block.timestamp);
-        vm.expectRevert(StakedToken.CooldownActive.selector);
+        vm.expectRevert(IStakedToken.CooldownActive.selector);
         stakedToken.withdraw(1000 ether, user, user);
 
         // Advance into the unstake window
@@ -467,7 +468,7 @@ contract StakedTokenTest is Test {
 
         // Zero address revert
         vm.prank(manager);
-        vm.expectRevert(abi.encodeWithSelector(StakedToken.isZeroAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(IStakedToken.isZeroAddress.selector));
         stakedToken.changeController(address(0));
     }
 
@@ -497,7 +498,7 @@ contract StakedTokenTest is Test {
 
     function testCooldownAtZeroBal() public {
         vm.prank(address(1));
-        vm.expectRevert(abi.encodeWithSelector(StakedToken.InsufficientStake.selector));
+        vm.expectRevert(abi.encodeWithSelector(IStakedToken.InsufficientStake.selector));
         stakedToken.cooldown();
     }
 
@@ -513,7 +514,7 @@ contract StakedTokenTest is Test {
         vm.warp(block.timestamp + 20 days);
 
         vm.prank(user);
-        vm.expectRevert(abi.encodeWithSelector(StakedToken.CooldownActive.selector));
+        vm.expectRevert(abi.encodeWithSelector(IStakedToken.CooldownActive.selector));
         stakedToken.withdraw(1000 ether, user, user);
     }
 

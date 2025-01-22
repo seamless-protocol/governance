@@ -7,6 +7,7 @@ import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UU
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
+import {IStakedToken} from "../interfaces/IStakedToken.sol";
 import {StakedTokenStorage as Storage} from "../storage/StakedTokenStorage.sol";
 import {ERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {NoncesUpgradeable} from "openzeppelin-contracts-upgradeable/utils/NoncesUpgradeable.sol";
@@ -23,23 +24,10 @@ contract StakedToken is
     ERC4626Upgradeable,
     ERC20PermitUpgradeable,
     ERC20VotesUpgradeable,
-    PausableUpgradeable
+    PausableUpgradeable, 
+    IStakedToken
 {
     using SafeERC20 for IERC20;
-
-    // errors
-    error SendFailed();
-    error isZeroAddress();
-    error InsufficientStake();
-    error CooldownActive();
-    error NotInEmergency();
-
-    // events
-    event EmergencyActive(bool status);
-    event EmergencyWithdraw(address to, uint256 amt);
-    event RewardsControllerChange(address RewardsController);
-    event Cooldown(address user);
-    event TimersUpdated(uint256 cooldown, uint256 unstake);
 
     bytes32 constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     bytes32 constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
@@ -101,17 +89,17 @@ contract StakedToken is
     }
 
     // Emergency functions
-    function enableEmergencyWithdrawalState() external onlyRole(PAUSER_ROLE) whenNotPaused {
+    function enableEmergencyWithdrawalState() external override onlyRole(PAUSER_ROLE) whenNotPaused {
         _pause();
         emit EmergencyActive(true);
     }
 
-    function endEmergencyWithdrawalState() external onlyRole(PAUSER_ROLE) whenPaused {
+    function endEmergencyWithdrawalState() external override onlyRole(PAUSER_ROLE) whenPaused {
         _unpause();
         emit EmergencyActive(false);
     }
 
-    function emergencyWithdrawal(address to, uint256 amt) external onlyRole(MANAGER_ROLE) {
+    function emergencyWithdrawal(address to, uint256 amt) external override onlyRole(MANAGER_ROLE) {
         bool success = IERC20(asset()).transfer(to, amt);
         if (!success) revert SendFailed();
         emit EmergencyWithdraw(to, amt);
@@ -124,7 +112,7 @@ contract StakedToken is
      * @notice Requires an active stake to activate
      *
      */
-    function cooldown() external {
+    function cooldown() external override {
         if (balanceOf(msg.sender) == 0) revert InsufficientStake();
         Storage.Layout storage $ = Storage.layout();
         $.stakersCooldowns[msg.sender] = block.timestamp;
@@ -152,7 +140,7 @@ contract StakedToken is
         uint256 amountToReceive,
         address toAddress,
         uint256 toBalance
-    ) public view returns (uint256) {
+    ) public view override returns (uint256) {
         Storage.Layout storage $ = Storage.layout();
         uint256 toCooldownTimestamp = $.stakersCooldowns[toAddress];
         if (toCooldownTimestamp == 0) {
@@ -223,7 +211,7 @@ contract StakedToken is
         return true;
     }
 
-    function decimals() public view virtual override(ERC20Upgradeable, ERC4626Upgradeable) returns (uint8) {
+    function decimals() public view virtual override(ERC20Upgradeable, ERC4626Upgradeable, IStakedToken) returns (uint8) {
         return super.decimals();
     }
 
@@ -231,7 +219,7 @@ contract StakedToken is
         public
         view
         virtual
-        override(ERC20PermitUpgradeable, NoncesUpgradeable)
+        override(ERC20PermitUpgradeable, NoncesUpgradeable, IStakedToken)
         returns (uint256)
     {
         return super.nonces(owner);
@@ -278,13 +266,13 @@ contract StakedToken is
     }
 
     // Admin Functions
-    function changeController(address newController) external isNotZeroAddress(newController) onlyRole(MANAGER_ROLE) {
+    function changeController(address newController) external override isNotZeroAddress(newController) onlyRole(MANAGER_ROLE) {
         Storage.Layout storage $ = Storage.layout();
         $.rewardsController = IRewardsController(newController);
         emit RewardsControllerChange(newController);
     }
 
-    function changeTimers(uint256 _cooldown, uint256 _unstake) external onlyRole(MANAGER_ROLE) {
+    function changeTimers(uint256 _cooldown, uint256 _unstake) external override onlyRole(MANAGER_ROLE) {
         Storage.Layout storage $ = Storage.layout();
         $.COOLDOWN_SECONDS = _cooldown;
         $.UNSTAKE_WINDOW = _unstake;
@@ -293,22 +281,22 @@ contract StakedToken is
     }
 
     // Storage getters
-    function getCooldown() external view returns (uint256) {
+    function getCooldown() external view override returns (uint256) {
         Storage.Layout storage $ = Storage.layout();
         return $.COOLDOWN_SECONDS;
     }
 
-    function getUnstakeWindow() external view returns (uint256) {
+    function getUnstakeWindow() external view override returns (uint256) {
         Storage.Layout storage $ = Storage.layout();
         return $.UNSTAKE_WINDOW;
     }
 
-    function getStakerCooldown(address user) external view returns (uint256) {
+    function getStakerCooldown(address user) external view override returns (uint256) {
         Storage.Layout storage $ = Storage.layout();
         return $.stakersCooldowns[user];
     }
 
-    function getRewardsController() external view returns (address) {
+    function getRewardsController() external view override returns (address) {
         Storage.Layout storage $ = Storage.layout();
         return address($.rewardsController);
     }
