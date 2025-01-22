@@ -2,8 +2,8 @@
 pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
-import {StakedToken} from "../../src/safetyModule/StakedToken.sol";
-import {RewardKeeper} from "../../src/safetyModule/rewardsKeeper.sol"; // Adjust import paths to your project structure
+import {StakedToken} from "../../src/safety-module/StakedToken.sol";
+import {RewardKeeper} from "../../src/safety-module/RewardKeeper.sol"; // Adjust import paths to your project structure
 import {RewardKeeperStorage as StorageLib} from "../../src/storage/RewardKeeperStorage.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";

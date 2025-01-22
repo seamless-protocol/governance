@@ -4,8 +4,8 @@ pragma solidity ^0.8.20;
 import "forge-std/Script.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {RewardsController} from "@aave/periphery-v3/contracts/rewards/RewardsController.sol";
-import {StakedToken} from "../../src/safetyModule/stakedToken.sol";
-import {RewardKeeper} from "../../src/safetyModule/rewardsKeeper.sol";
+import {StakedToken} from "../../src/safety-module/StakedToken.sol";
+import {RewardKeeper} from "../../src/safety-module/RewardKeeper.sol";
 
 contract SafetyModuleDeploy is Script {
     function getChainId() public view returns (uint256) {

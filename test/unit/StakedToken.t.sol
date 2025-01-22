@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
-import {StakedToken} from "../../src/safetyModule/stakedToken.sol"; // Adjust import paths to your project structure
+import {StakedToken} from "../../src/safety-module/StakedToken.sol"; // Adjust import paths to your project structure
 import {StakedTokenStorage} from "../../src/storage/StakedTokenStorage.sol";
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
@@ -10,7 +10,7 @@ import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interface
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {RewardsController} from "@aave/periphery-v3/contracts/rewards/RewardsController.sol";
-import {RewardKeeper} from "../../src/safetyModule/rewardsKeeper.sol";
+import {RewardKeeper} from "../../src/safety-module/RewardKeeper.sol";
 import {MockPool} from "../mocks/MockPool.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 import {StakedTokenTester} from "../mocks/StakedTokenTester.sol";

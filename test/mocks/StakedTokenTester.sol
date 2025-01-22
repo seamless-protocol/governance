@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {StakedToken} from "../../src/safetyModule/stakedToken.sol";
+import {StakedToken} from "../../src/safety-module/StakedToken.sol";
 import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
 import {StakedTokenStorage} from "../../src/storage/StakedTokenStorage.sol";
 
