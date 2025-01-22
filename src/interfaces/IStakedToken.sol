@@ -10,7 +10,6 @@ interface IStakedToken {
     error NotInEmergency();
 
     // events
-    event EmergencyActive(bool status);
     event EmergencyWithdraw(address to, uint256 amt);
     event RewardsControllerChange(address RewardsController);
     event Cooldown(address user);
@@ -24,9 +23,9 @@ interface IStakedToken {
         returns (uint256, uint256);
 
     // Emergency functions
-    function enableEmergencyWithdrawalState() external;
+    function pause() external;
 
-    function endEmergencyWithdrawalState() external;
+    function unpause() external;
 
     function emergencyWithdrawal(address to, uint256 amt) external;
     function cooldown() external;

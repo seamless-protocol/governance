@@ -88,20 +88,16 @@ contract StakedToken is
         return (balanceOf(user), totalSupply());
     }
 
-    // Emergency functions
-    function enableEmergencyWithdrawalState() external override onlyRole(PAUSER_ROLE) whenNotPaused {
+    function pause() external override onlyRole(PAUSER_ROLE) whenNotPaused {
         _pause();
-        emit EmergencyActive(true);
     }
 
-    function endEmergencyWithdrawalState() external override onlyRole(PAUSER_ROLE) whenPaused {
+    function unpause() external override onlyRole(PAUSER_ROLE) whenPaused {
         _unpause();
-        emit EmergencyActive(false);
     }
 
     function emergencyWithdrawal(address to, uint256 amt) external override onlyRole(MANAGER_ROLE) {
-        bool success = IERC20(asset()).transfer(to, amt);
-        if (!success) revert SendFailed();
+        IERC20(asset()).safeTransfer(to, amt);
         emit EmergencyWithdraw(to, amt);
     }
 

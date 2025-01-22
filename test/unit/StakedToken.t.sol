@@ -416,11 +416,11 @@ contract StakedTokenTest is Test {
         // Only pauser can enable emergency
         vm.prank(user);
         vm.expectRevert(); // user does not have PAUSER_ROLE
-        stakedToken.enableEmergencyWithdrawalState();
+        stakedToken.pause();
 
         // Pauser triggers emergency
         vm.prank(pauser);
-        stakedToken.enableEmergencyWithdrawalState();
+        stakedToken.pause();
 
         // Contract is paused, normal deposits/withdraws revert
         vm.prank(user);
@@ -444,7 +444,7 @@ contract StakedTokenTest is Test {
 
         // End emergency state
         vm.prank(pauser);
-        stakedToken.endEmergencyWithdrawalState();
+        stakedToken.unpause();
 
         // normal deposit again
         uint256 toAdd = stakedToken.previewDeposit(1 ether);
