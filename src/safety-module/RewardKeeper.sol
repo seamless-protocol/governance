@@ -131,28 +131,24 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         isNotZeroAddress(token)
         onlyRole(MANAGER_ROLE)
     {
-        Storage.Layout storage $ = Storage.layout();
-        address transferStrategy = $.controller.getTransferStrategy(token);
+        address transferStrategy = Storage.layout().controller.getTransferStrategy(token);
         if (transferStrategy == address(0)) revert InvalidRewardToken();
         ITransferStrategyBase(transferStrategy).emergencyWithdrawal(token, to, amt);
     }
 
     function setRewardsController(address controller) external override isNotZeroAddress(controller) onlyRole(MANAGER_ROLE) {
-        Storage.Layout storage $ = Storage.layout();
-        $.controller = IRewardsController(controller);
+        Storage.layout().controller = IRewardsController(controller);
         emit SetRewardsController(controller);
     }
 
     function setPool(address newPool) external override isNotZeroAddress(newPool) onlyRole(MANAGER_ROLE) {
-        Storage.Layout storage $ = Storage.layout();
-        $.pool = IPool(newPool);
+        Storage.layout().pool = IPool(newPool);
         emit SetPool(newPool);
     }
 
     function setPeriod(uint256 newPeriod) external override onlyRole(MANAGER_ROLE) {
         if (newPeriod == 0) revert InvalidPeriod();
-        Storage.Layout storage $ = Storage.layout();
-        $.period = newPeriod;
+        Storage.layout().period = newPeriod;
         emit SetPeriod(newPeriod);
     }
 

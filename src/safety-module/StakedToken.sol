@@ -110,8 +110,7 @@ contract StakedToken is
      */
     function cooldown() external override {
         if (balanceOf(msg.sender) == 0) revert InsufficientStake();
-        Storage.Layout storage $ = Storage.layout();
-        $.stakersCooldowns[msg.sender] = block.timestamp;
+        Storage.layout().stakersCooldowns[msg.sender] = block.timestamp;
 
         emit Cooldown(msg.sender);
     }
@@ -158,7 +157,6 @@ contract StakedToken is
                     / (amountToReceive + toBalance);
             }
         }
-        // $.stakersCooldowns[toAddress] = toCooldownTimestamp;
 
         return toCooldownTimestamp;
     }
@@ -263,8 +261,7 @@ contract StakedToken is
 
     // Admin Functions
     function changeController(address newController) external override isNotZeroAddress(newController) onlyRole(MANAGER_ROLE) {
-        Storage.Layout storage $ = Storage.layout();
-        $.rewardsController = IRewardsController(newController);
+        Storage.layout().rewardsController = IRewardsController(newController);
         emit RewardsControllerChange(newController);
     }
 
@@ -278,22 +275,18 @@ contract StakedToken is
 
     // Storage getters
     function getCooldown() external view override returns (uint256) {
-        Storage.Layout storage $ = Storage.layout();
-        return $.cooldownSeconds;
+        return Storage.layout().cooldownSeconds;
     }
 
     function getUnstakeWindow() external view override returns (uint256) {
-        Storage.Layout storage $ = Storage.layout();
-        return $.unstakeWindow;
+        return Storage.layout().unstakeWindow;
     }
 
     function getStakerCooldown(address user) external view override returns (uint256) {
-        Storage.Layout storage $ = Storage.layout();
-        return $.stakersCooldowns[user];
+        return Storage.layout().stakersCooldowns[user];
     }
 
     function getRewardsController() external view override returns (address) {
-        Storage.Layout storage $ = Storage.layout();
-        return address($.rewardsController);
+        return address(Storage.layout().rewardsController);
     }
 }
