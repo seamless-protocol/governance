@@ -9,7 +9,7 @@ interface IRewardKeeper {
     event SetPool(address pool);
     event SetPeriod(uint256 period);
 
-    error isZeroAddress(address target);
+    error ZeroAddress(address target);
     error InsufficientTimeElapsed();
     error InvalidPeriod();
     error InvalidRewardToken();

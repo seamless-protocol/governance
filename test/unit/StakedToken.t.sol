@@ -468,7 +468,7 @@ contract StakedTokenTest is Test {
 
         // Zero address revert
         vm.prank(manager);
-        vm.expectRevert(abi.encodeWithSelector(IStakedToken.isZeroAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(IStakedToken.ZeroAddress.selector));
         stakedToken.changeController(address(0));
     }
 

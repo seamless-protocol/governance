@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 interface IStakedToken {
     // errors
     error SendFailed();
-    error isZeroAddress();
+    error ZeroAddress();
     error InsufficientStake();
     error CooldownActive();
     error NotInEmergency();

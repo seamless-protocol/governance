@@ -35,7 +35,7 @@ contract StakedToken is
 
     modifier isNotZeroAddress(address target) {
         if (target == address(0)) {
-            revert isZeroAddress();
+            revert ZeroAddress();
         }
         _;
     }

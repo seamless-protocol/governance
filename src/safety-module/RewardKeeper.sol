@@ -28,7 +28,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
     modifier isNotZeroAddress(address target) {
         if (target == address(0)) {
-            revert isZeroAddress(target);
+            revert ZeroAddress(target);
         }
         _;
     }

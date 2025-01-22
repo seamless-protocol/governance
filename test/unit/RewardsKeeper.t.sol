@@ -166,13 +166,13 @@ contract SafetyModuleTest is Test {
 
     function testSetRewardsControllerRevertsWhenZero() public {
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.isZeroAddress.selector, address(0)));
+        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.ZeroAddress.selector, address(0)));
         rewardKeeper.setRewardsController(address(0));
     }
 
     function testSetPoolRevertsWhenZero() public {
         vm.prank(admin);
-        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.isZeroAddress.selector, address(0)));
+        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.ZeroAddress.selector, address(0)));
         rewardKeeper.setPool(address(0));
     }
 
