@@ -13,9 +13,9 @@ interface IStakedToken {
 
     // events
     event EmergencyWithdraw(address to, uint256 amt);
-    event RewardsControllerChange(address RewardsController);
+    event RewardsControllerSet(address RewardsController);
     event Cooldown(address user);
-    event TimersUpdated(uint256 cooldown, uint256 unstake);
+    event TimersSet(uint256 cooldown, uint256 unstake);
 
     function scaledTotalSupply() external view returns (uint256);
 
@@ -46,9 +46,9 @@ interface IStakedToken {
         returns (uint256);
 
     // Admin Functions
-    function changeController(address newController) external;
+    function setController(address newController) external;
 
-    function changeTimers(uint256 _cooldown, uint256 _unstake) external;
+    function setTimers(uint256 _cooldown, uint256 _unstake) external;
 
     // Storage getters
     function getCooldown() external view returns (uint256);

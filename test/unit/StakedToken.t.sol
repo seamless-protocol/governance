@@ -94,11 +94,11 @@ contract StakedTokenTest is Test {
         // Grant roles to manager and pauser
         vm.startPrank(admin);
         rewardKeeper.setRewardsController(address(rewardsController));
-        stakedToken.changeController(address(rewardsController));
+        stakedToken.setController(address(rewardsController));
         stakedToken.grantRole(MANAGER_ROLE, manager);
         stakedToken.grantRole(PAUSER_ROLE, pauser);
         stakedToken.grantRole(UPGRADER_ROLE, admin); // So admin can upgrade in tests
-        stakedToken.changeController(address(rewardsController));
+        stakedToken.setController(address(rewardsController));
         vm.stopPrank();
 
         // Mint some tokens to user for testing
@@ -459,17 +459,17 @@ contract StakedTokenTest is Test {
         // Only manager can change
         vm.prank(user);
         vm.expectRevert(); // user is not manager
-        stakedToken.changeController(newController);
+        stakedToken.setController(newController);
 
-        // Manager can change
+        // Manager can set
         vm.prank(manager);
-        stakedToken.changeController(newController);
+        stakedToken.setController(newController);
         assertEq(stakedToken.getRewardsController(), newController, "Controller not updated");
 
         // Zero address revert
         vm.prank(manager);
         vm.expectRevert(abi.encodeWithSelector(IStakedToken.ZeroAddress.selector));
-        stakedToken.changeController(address(0));
+        stakedToken.setController(address(0));
     }
 
     function testChangeTimers() public {
@@ -479,10 +479,10 @@ contract StakedTokenTest is Test {
         // Non-manager attempt
         vm.prank(user);
         vm.expectRevert(); // user not manager
-        stakedToken.changeTimers(newCooldown, newUnstakeWindow);
+        stakedToken.setTimers(newCooldown, newUnstakeWindow);
 
         vm.prank(manager);
-        stakedToken.changeTimers(newCooldown, newUnstakeWindow);
+        stakedToken.setTimers(newCooldown, newUnstakeWindow);
         assertEq(stakedToken.getCooldown(), newCooldown, "Cooldown not updated");
         assertEq(stakedToken.getUnstakeWindow(), newUnstakeWindow, "Unstake window not updated");
     }

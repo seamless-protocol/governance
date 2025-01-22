@@ -160,8 +160,6 @@ contract StakedToken is
 
         return toCooldownTimestamp;
     }
-    // override _withdraw to check for cooldown
-    // @notice block withdrawals when contract is paused aka in emergency state
 
     function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
         internal
@@ -258,17 +256,17 @@ contract StakedToken is
     }
 
     // Admin Functions
-    function changeController(address newController) external override isNotZeroAddress(newController) onlyRole(MANAGER_ROLE) {
+    function setController(address newController) external override isNotZeroAddress(newController) onlyRole(MANAGER_ROLE) {
         Storage.layout().rewardsController = IRewardsController(newController);
-        emit RewardsControllerChange(newController);
+        emit RewardsControllerSet(newController);
     }
 
-    function changeTimers(uint256 _cooldown, uint256 _unstake) external override onlyRole(MANAGER_ROLE) {
+    function setTimers(uint256 _cooldown, uint256 _unstake) external override onlyRole(MANAGER_ROLE) {
         Storage.Layout storage $ = Storage.layout();
         $.cooldownSeconds = _cooldown;
         $.unstakeWindow = _unstake;
 
-        emit TimersUpdated(_cooldown, _unstake);
+        emit TimersSet(_cooldown, _unstake);
     }
 
     // Storage getters

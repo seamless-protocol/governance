@@ -86,7 +86,7 @@ contract SafetyModuleTest is Test {
         rewardKeeper.setRewardsController(address(rewardsController));
 
         vm.prank(admin);
-        stkSEAM.changeController(address(rewardsController));
+        stkSEAM.setController(address(rewardsController));
 
         mockPool.setTreasury(address(rewardKeeper));
 

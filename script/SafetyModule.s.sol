@@ -65,7 +65,7 @@ contract SafetyModuleDeploy is Script {
 
         // set reward controller on stkToken and reward keeper
         rewardKeeper.setRewardsController(address(controller));
-        stkToken.changeController(address(controller));
+        stkToken.setController(address(controller));
         
 
         
