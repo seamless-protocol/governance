@@ -10,7 +10,7 @@ library RewardKeeperStorage {
     struct Layout {
         IRewardsController controller;
         IPool pool;
-        IEACAggregatorProxy mockOracle;
+        IEACAggregatorProxy oracle;
         address asset;
         uint256 period;
         uint256 previousPeriod;

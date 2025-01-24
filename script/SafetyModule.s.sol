@@ -7,7 +7,7 @@ import {RewardsController} from "@aave/periphery-v3/contracts/rewards/RewardsCon
 import {StakedToken} from "../../src/safety-module/StakedToken.sol";
 import {RewardKeeper} from "../../src/safety-module/RewardKeeper.sol";
 
-contract SafetyModuleDeploy is Script {
+contract SafetyModule is Script {
     function getChainId() public view returns (uint256) {
         uint256 chainId;
         assembly {
@@ -52,7 +52,7 @@ contract SafetyModuleDeploy is Script {
         proxy = new ERC1967Proxy(
             address(implementation2),
             abi.encodeWithSelector(
-                implementation2.initialize.selector, pool, deployerAddress, address(stkToken), oracle
+                RewardKeeper.initialize.selector, pool, deployerAddress, address(stkToken), oracle
             )
         );
         RewardKeeper rewardKeeper = RewardKeeper(address(proxy));

@@ -9,6 +9,8 @@ import {RewardKeeperStorage as StorageLib} from "../../src/storage/RewardKeeperS
 import {ERC20Mock} from "openzeppelin-contracts/mocks/token/ERC20Mock.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
+import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
+import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
 import {DataTypes} from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
 import {RewardsDataTypes} from "@aave/periphery-v3/contracts/rewards/libraries/RewardsDataTypes.sol";
 import {RewardsController} from "@aave/periphery-v3/contracts/rewards/RewardsController.sol";
@@ -106,14 +108,21 @@ contract SafetyModuleTest is Test {
 
     function testInitializeSetsValues() public {
         // Check storage layout values
-        StorageLib.Layout memory layout = rewardKeeper.getLayout();
+        IRewardsController _controller = rewardKeeper.getController();
+        IPool _pool = rewardKeeper.getPool();
+        IEACAggregatorProxy _oracle = rewardKeeper.getOracle();
+        address _asset = rewardKeeper.getAsset();
+        uint256 _period = rewardKeeper.getPeriod();
+        uint256 _previousPeriod = rewardKeeper.getPreviousPeriod();
+        uint256 _lastClaim = rewardKeeper.getLastClaim();
 
-        assertEq(address(layout.controller), address(rewardsController), "manager mismatch");
-        assertEq(address(layout.pool), address(mockPool), "pool mismatch");
-        assertEq(address(layout.controller), address(rewardsController), "controller mismatch");
-        assertEq(layout.period, 1 days, "wrong period");
-        assertEq(layout.lastClaim, block.timestamp, "Wrong last claim");
-        assertEq(layout.asset, address(stkSEAM), "asset mismatch");
+        assertEq(address(_controller), address(rewardsController), "manager mismatch");
+        assertEq(address(_pool), address(mockPool), "pool mismatch");
+        assertEq(address(_oracle), address(oracle), "controller mismatch");
+        assertEq(_previousPeriod, 0);
+        assertEq(_period, 1 days, "wrong period");
+        assertEq(_lastClaim, block.timestamp, "Wrong last claim");
+        assertEq(_asset, address(stkSEAM), "asset mismatch");
     }
 
     function testOnlyManagerCanSetPool() public {
@@ -123,8 +132,8 @@ contract SafetyModuleTest is Test {
         vm.prank(admin);
         rewardKeeper.setPool(address(0xABC));
 
-        StorageLib.Layout memory layout = rewardKeeper.getLayout();
-        assertEq(address(layout.pool), address(0xABC), "Pool not updated");
+        IPool pool = rewardKeeper.getPool();
+        assertEq(address(pool), address(0xABC), "Pool not updated");
     }
 
     function testOnlyManagerCanSetPeriod() public {
@@ -134,8 +143,8 @@ contract SafetyModuleTest is Test {
         vm.prank(admin);
         rewardKeeper.setPeriod(2 days);
 
-        StorageLib.Layout memory layout = rewardKeeper.getLayout();
-        assertEq(layout.period, 2 days, "Period not updated");
+        uint256 _period = rewardKeeper.getPeriod();
+        assertEq(_period, 2 days, "Period not updated");
     }
 
     function testPauseAndUnpause() public {
@@ -195,9 +204,10 @@ contract SafetyModuleTest is Test {
         rewardKeeper.claimAndSetRate();
 
         // Check that lastClaim updated
-        StorageLib.Layout memory layout = rewardKeeper.getLayout();
-        assertEq(layout.lastClaim, block.timestamp, "lastClaim mismatch after claimAndSetRate");
-        assertEq(layout.previousPeriod, 1 days, "previousPeriod mismatch after claim");
+        uint256 lastClaim = rewardKeeper.getLastClaim();
+        uint256 previousPeriod = rewardKeeper.getPreviousPeriod();
+        assertEq(lastClaim, block.timestamp, "lastClaim mismatch after claimAndSetRate");
+        assertEq(previousPeriod, 1 days, "previousPeriod mismatch after claim");
     }
 
     function testClaimAndSetRateWithChangingPeriods() public {
@@ -208,15 +218,17 @@ contract SafetyModuleTest is Test {
         rewardKeeper.claimAndSetRate();
 
         // Check that lastClaim updated
-        StorageLib.Layout memory layout = rewardKeeper.getLayout();
-        assertEq(layout.lastClaim, block.timestamp, "lastClaim mismatch after claimAndSetRate");
-        assertEq(layout.previousPeriod, 1 days, "previousPeriod mismatch after claim");
+        uint256 lastClaim = rewardKeeper.getLastClaim();
+        uint256 previousPeriod = rewardKeeper.getPreviousPeriod();
+        assertEq(lastClaim, block.timestamp, "lastClaim mismatch after claimAndSetRate");
+        assertEq(previousPeriod, 1 days, "previousPeriod mismatch after claim");
 
         vm.prank(admin);
         rewardKeeper.setPeriod(3 days);
-        layout = rewardKeeper.getLayout();
-        assertEq(layout.period, 3 days, "period incorrect");
-        assertEq(layout.previousPeriod, 1 days, "previousPeriod should not change");
+        uint256 period = rewardKeeper.getPeriod();
+        previousPeriod = rewardKeeper.getPreviousPeriod();
+        assertEq(period, 3 days, "period incorrect");
+        assertEq(previousPeriod, 1 days, "previousPeriod should not change");
 
         vm.warp(block.timestamp + 23 hours);
         vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InsufficientTimeElapsed.selector));
@@ -224,9 +236,10 @@ contract SafetyModuleTest is Test {
 
         vm.warp(block.timestamp + 1 hours);
         rewardKeeper.claimAndSetRate();
-        layout = rewardKeeper.getLayout();
-        assertEq(layout.period, 3 days, "period incorrect");
-        assertEq(layout.previousPeriod, 3 days, "previousPeriod should not change");
+        period = rewardKeeper.getPeriod();
+        previousPeriod = rewardKeeper.getPreviousPeriod();
+        assertEq(period, 3 days, "period incorrect");
+        assertEq(previousPeriod, 3 days, "previousPeriod should not change");
 
         vm.warp(block.timestamp + 2 days);
         vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InsufficientTimeElapsed.selector));
@@ -284,7 +297,7 @@ contract SafetyModuleTest is Test {
         rewardKeeper.emergencyWithdrawalFromTransferStrategy(address(mockToken1), address(5555), 500_000 ether);
 
         vm.startPrank(admin);
-        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InvalidRewardToken.selector));
+        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.TransferStrategyNotSet.selector));
         rewardKeeper.emergencyWithdrawalFromTransferStrategy(address(11), admin, 500_000 ether);
 
         vm.expectRevert(); // insufficient funds

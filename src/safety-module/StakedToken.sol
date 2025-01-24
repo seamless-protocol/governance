@@ -47,12 +47,12 @@ contract StakedToken is
 
     /// @notice Initializes the token storage and inherited contracts.
     /// @param _asset token address of the asset
-    /// @param initialAdmin Initial admin of the contract
+    /// @param _initialAdmin Initial admin of the contract
     /// @param _erc20name name of the share token
     /// @param _erc20symbol symbol of the share token
     function initialize(
         address _asset,
-        address initialAdmin,
+        address _initialAdmin,
         string calldata _erc20name,
         string calldata _erc20symbol,
         uint256 _cooldown,
@@ -69,8 +69,8 @@ contract StakedToken is
         $.cooldownSeconds = _cooldown;
         $.unstakeWindow = _unstakeWindow;
 
-        _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
-        _grantRole(MANAGER_ROLE, initialAdmin);
+        _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
+        _grantRole(MANAGER_ROLE, _initialAdmin);
     }
 
     /// @inheritdoc UUPSUpgradeable
@@ -84,11 +84,11 @@ contract StakedToken is
         return (balanceOf(user), totalSupply());
     }
 
-    function pause() external override onlyRole(PAUSER_ROLE) whenNotPaused {
+    function pause() external override onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
-    function unpause() external override onlyRole(PAUSER_ROLE) whenPaused {
+    function unpause() external override onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 
@@ -163,8 +163,7 @@ contract StakedToken is
         override
         whenNotPaused
     {
-        uint256 cooldownStartTimestamp = Storage.layout().stakersCooldowns[owner];
-        _validateCooldown(cooldownStartTimestamp);
+        _validateCooldown(owner);
         super._withdraw(caller, receiver, owner, assets, shares);
     }
 
@@ -178,12 +177,13 @@ contract StakedToken is
         super._deposit(caller, receiver, assets, shares);
     }
 
-    function _validateCooldown(uint256 cd) internal view {
-        if (cd == 0) revert CooldownNotInitiated();
+    function _validateCooldown(address user) internal view {
+        uint256 cooldownStartTimestamp = getStakerCooldown(user);
+        if (cooldownStartTimestamp == 0) revert CooldownNotInitiated();
 
-        uint256 cooldownSeconds = Storage.layout().cooldownSeconds;
-        uint256 unstakeWindow = Storage.layout().unstakeWindow;
-        uint256 cooldownEnd = cd + cooldownSeconds;
+        uint256 cooldownSeconds = getCooldown();
+        uint256 unstakeWindow = getUnstakeWindow();
+        uint256 cooldownEnd = cooldownStartTimestamp + cooldownSeconds;
         if (block.timestamp <= cooldownEnd) {
             revert CooldownStillActive();
         }
@@ -247,7 +247,7 @@ contract StakedToken is
     }
 
     function _handleAction(address user, uint256 totalSupply, uint256 oldUserBalance) internal {
-        Storage.layout().rewardsController.handleAction(user, totalSupply, oldUserBalance);
+        getRewardsController().handleAction(user, totalSupply, oldUserBalance);
     }
 
     // Admin Functions
@@ -270,19 +270,19 @@ contract StakedToken is
     }
 
     // Storage getters
-    function getCooldown() external view override returns (uint256) {
+    function getCooldown() public view override returns (uint256) {
         return Storage.layout().cooldownSeconds;
     }
 
-    function getUnstakeWindow() external view override returns (uint256) {
+    function getUnstakeWindow() public view override returns (uint256) {
         return Storage.layout().unstakeWindow;
     }
 
-    function getStakerCooldown(address user) external view override returns (uint256) {
+    function getStakerCooldown(address user) public view override returns (uint256) {
         return Storage.layout().stakersCooldowns[user];
     }
 
-    function getRewardsController() external view override returns (address) {
-        return address(Storage.layout().rewardsController);
+    function getRewardsController() public view override returns (IRewardsController) {
+        return Storage.layout().rewardsController;
     }
 }

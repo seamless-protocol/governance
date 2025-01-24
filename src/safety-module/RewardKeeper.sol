@@ -24,8 +24,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     bytes32 constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     bytes32 constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
-    // address constant ORACLE_MOCK = 0x602823807C919A92B63cF5C126387c4759976072;
-
     modifier isNotZeroAddress(address target) {
         if (target == address(0)) {
             revert ZeroAddress(target);
@@ -46,7 +44,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         Storage.Layout storage $ = Storage.layout();
 
         $.pool = IPool(pool);
-        $.mockOracle = IEACAggregatorProxy(oracle);
+        $.oracle = IEACAggregatorProxy(oracle);
         $.period = 1 days;
         $.lastClaim = block.timestamp;
         $.asset = stkSeam;
@@ -70,16 +68,22 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
     function claimAndSetRate() external override whenNotPaused {
         Storage.Layout storage $ = Storage.layout();
+
+        IPool pool = getPool();
+        IRewardsController controller = getController();
+        address asset = getAsset();
+        address[] memory rewardTokens = pool.getReservesList();
+        uint256 period = getPeriod();
+
         // check if period has elapsed, update lastClaim
         if ($.lastClaim > block.timestamp - $.previousPeriod) revert InsufficientTimeElapsed();
         $.lastClaim = block.timestamp;
-        $.previousPeriod = $.period;
-
-        address[] memory rewardTokens = $.pool.getReservesList();
+        $.previousPeriod = period;
 
         // claim rewards
         // assume its coming to this contract for now
-        $.pool.mintToTreasury(rewardTokens);
+        
+        pool.mintToTreasury(rewardTokens);
 
         // get new Emission rates
         uint88[] memory newRates = new uint88[](rewardTokens.length);
@@ -87,39 +91,39 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
             IERC20 token = IERC20(rewardTokens[i]);
 
             // withdraw reward tokens
-            $.pool.withdraw(rewardTokens[i], type(uint256).max, address(this));
+            pool.withdraw(rewardTokens[i], type(uint256).max, address(this));
 
             uint256 balance = token.balanceOf(address(this));
 
             // there will be dust from rounding here... it can stay in the contract and get accounted for next time.
-            uint88 rate = uint88((balance) / $.period);
+            uint88 rate = uint88((balance) / period);
             newRates[i] = rate;
 
             ERC20TransferStrategy transferStrategy =
-                ERC20TransferStrategy($.controller.getTransferStrategy(rewardTokens[i]));
+                ERC20TransferStrategy(controller.getTransferStrategy(rewardTokens[i]));
 
             if (address(transferStrategy) == address(0)) {
                 RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
-                transferStrategy = new ERC20TransferStrategy(token, address($.controller), address(this));
+                transferStrategy = new ERC20TransferStrategy(token, address(controller), address(this));
                 config[0].emissionPerSecond = 0;
                 config[0].totalSupply = token.totalSupply(); // Not sure if this is correct...
-                config[0].distributionEnd = uint32(block.timestamp + $.period);
-                config[0].asset = $.asset;
+                config[0].distributionEnd = uint32(block.timestamp + period);
+                config[0].asset = asset;
                 config[0].reward = rewardTokens[i];
                 config[0].transferStrategy = ITransferStrategyBase(address(transferStrategy));
-                config[0].rewardOracle = $.mockOracle;
-                $.controller.configureAssets(config);
+                config[0].rewardOracle = $.oracle;
+                controller.configureAssets(config);
             } else {
                 // set distributonEnd here
-                $.controller.setDistributionEnd($.asset, rewardTokens[i], uint32(block.timestamp + $.period));
+                controller.setDistributionEnd(asset, rewardTokens[i], uint32(block.timestamp + period));
             }
 
             // ensures dust is not sent.
-            token.transfer(address(transferStrategy), rate * $.period);
+            token.transfer(address(transferStrategy), rate * period);
         }
 
         // set emissions per second
-        $.controller.setEmissionPerSecond($.asset, rewardTokens, newRates);
+        controller.setEmissionPerSecond(asset, rewardTokens, newRates);
 
         emit ClaimedAndSetRate(rewardTokens, newRates);
     }
@@ -131,8 +135,8 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         isNotZeroAddress(token)
         onlyRole(MANAGER_ROLE)
     {
-        address transferStrategy = Storage.layout().controller.getTransferStrategy(token);
-        if (transferStrategy == address(0)) revert InvalidRewardToken();
+        address transferStrategy = getController().getTransferStrategy(token);
+        if (transferStrategy == address(0)) revert TransferStrategyNotSet();
         ITransferStrategyBase(transferStrategy).emergencyWithdrawal(token, to, amt);
     }
 
@@ -157,7 +161,31 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         emit SetPeriod(newPeriod);
     }
 
-    function getLayout() external view override returns (Storage.Layout memory) {
-        return Storage.layout();
+    function getController() public view override returns (IRewardsController) {
+        return Storage.layout().controller;
+    }
+
+    function getPool() public view override returns (IPool) {
+        return Storage.layout().pool;
+    }
+
+    function getOracle() public view override returns (IEACAggregatorProxy) {
+        return Storage.layout().oracle;
+    }
+
+    function getAsset() public view override returns (address) {
+        return Storage.layout().asset;
+    }
+
+    function getPeriod() public view override returns (uint256) {
+        return Storage.layout().period;
+    }
+
+    function getPreviousPeriod() public view override returns (uint256) {
+        return Storage.layout().previousPeriod;
+    }
+
+    function getLastClaim() public view override returns (uint256) {
+        return Storage.layout().lastClaim;
     }
 }

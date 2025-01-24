@@ -121,7 +121,7 @@ contract StakedTokenTest is Test {
     function testInitialization() public {
         // Basic check that initialization was correct
         assertEq(stakedToken.asset(), address(underlyingAsset), "Incorrect underlying asset");
-        assertEq(stakedToken.getRewardsController(), address(rewardsController), "Incorrect rewards controller");
+        assertEq(address(stakedToken.getRewardsController()), address(rewardsController), "Incorrect rewards controller");
         assertEq(stakedToken.getCooldown(), defaultCooldown, "Incorrect default cooldown");
         assertEq(stakedToken.getUnstakeWindow(), defaultUnstakeWindow, "Incorrect default unstake window");
 
@@ -438,7 +438,7 @@ contract StakedTokenTest is Test {
         // Manager can set
         vm.prank(manager);
         stakedToken.setController(newController);
-        assertEq(stakedToken.getRewardsController(), newController, "Controller not updated");
+        assertEq(address(stakedToken.getRewardsController()), newController, "Controller not updated");
 
         // Zero address revert
         vm.prank(manager);
