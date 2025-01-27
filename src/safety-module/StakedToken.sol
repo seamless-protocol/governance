@@ -247,6 +247,9 @@ contract StakedToken is
     }
 
     function _handleAction(address user, uint256 totalSupply, uint256 oldUserBalance) internal {
+        if (address(getRewardsController()) == address(0)) {
+            return;
+        }
         getRewardsController().handleAction(user, totalSupply, oldUserBalance);
     }
 

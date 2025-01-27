@@ -189,7 +189,6 @@ contract SafetyModuleTest is Test {
         // will never have block.timestamp = 1. This would cause math issues. So warp to the future.
         vm.warp(block.timestamp + 5000 days);
 
-        vm.startPrank(address(this));
         rewardKeeper.claimAndSetRate();
         vm.warp(block.timestamp + 2 hours);
         vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InsufficientTimeElapsed.selector));
@@ -197,51 +196,78 @@ contract SafetyModuleTest is Test {
     }
 
     function testClaimAndSetRateSucceedsIfPeriodElapsed() public {
-        // Wait 1 day to surpass the period
         vm.warp(block.timestamp + 1 days + 1);
 
-        vm.prank(address(this));
         rewardKeeper.claimAndSetRate();
 
         // Check that lastClaim updated
         uint256 lastClaim = rewardKeeper.getLastClaim();
         uint256 previousPeriod = rewardKeeper.getPreviousPeriod();
         assertEq(lastClaim, block.timestamp, "lastClaim mismatch after claimAndSetRate");
-        assertEq(previousPeriod, 1 days, "previousPeriod mismatch after claim");
+        assertEq(previousPeriod, 1 days - 2, "previousPeriod mismatch after claim");
+
+        vm.warp(block.timestamp + 1 days + 30);
+        uint256 nextMidnight = ((block.timestamp / 1 days) + 1) * 1 days;
+        uint256 nextPeriod = nextMidnight - block.timestamp;
+        rewardKeeper.claimAndSetRate();
+        lastClaim = rewardKeeper.getLastClaim();
+        previousPeriod = rewardKeeper.getPreviousPeriod();
+        assertEq(lastClaim, block.timestamp, "lastClaim mismatch after claimAndSetRate");
+        assertEq(previousPeriod, nextPeriod, "previousPeriod mismatch after claim 2");
+    }
+
+    function testClaimAndSetRate_ExtremelyLateKeeper() public {
+        vm.warp(block.timestamp + 5000 days);
+        
+        rewardKeeper.claimAndSetRate();
+
+        //   - Move time forward by 2 days + some hours, e.g. 2.5 days
+        vm.warp(block.timestamp + 2 * 86400 + 3600 * 12);
+
+        // Act
+        rewardKeeper.claimAndSetRate();
+        uint256 lastClaim = rewardKeeper.getLastClaim();
+        uint256 previousPeriod = rewardKeeper.getPreviousPeriod();
+        assertEq(lastClaim, block.timestamp, "lastClaim mismatch after claimAndSetRate");
+        assertEq(previousPeriod, 12 hours - 1, "previousPeriod mismatch after claim");
+
     }
 
     function testClaimAndSetRateWithChangingPeriods() public {
-        // Wait 1 day to surpass the period
+        
         vm.warp(block.timestamp + 1 days + 1);
-
-        vm.prank(address(this));
+        
         rewardKeeper.claimAndSetRate();
 
         // Check that lastClaim updated
         uint256 lastClaim = rewardKeeper.getLastClaim();
         uint256 previousPeriod = rewardKeeper.getPreviousPeriod();
         assertEq(lastClaim, block.timestamp, "lastClaim mismatch after claimAndSetRate");
-        assertEq(previousPeriod, 1 days, "previousPeriod mismatch after claim");
+        assertEq(previousPeriod, 1 days - 2, "previousPeriod mismatch after claim");
 
         vm.prank(admin);
         rewardKeeper.setPeriod(3 days);
         uint256 period = rewardKeeper.getPeriod();
         previousPeriod = rewardKeeper.getPreviousPeriod();
         assertEq(period, 3 days, "period incorrect");
-        assertEq(previousPeriod, 1 days, "previousPeriod should not change");
+        assertEq(previousPeriod, 1 days - 2, "previousPeriod should not change");
 
         vm.warp(block.timestamp + 23 hours);
+        console.log(block.timestamp);
         vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InsufficientTimeElapsed.selector));
         rewardKeeper.claimAndSetRate();
 
         vm.warp(block.timestamp + 1 hours);
+        uint256 nextMidnight = ((block.timestamp / 3 days) + 1) * 3 days;
+        uint256 nextPeriod = nextMidnight - block.timestamp;
         rewardKeeper.claimAndSetRate();
         period = rewardKeeper.getPeriod();
         previousPeriod = rewardKeeper.getPreviousPeriod();
+        
         assertEq(period, 3 days, "period incorrect");
-        assertEq(previousPeriod, 3 days, "previousPeriod should not change");
+        assertEq(previousPeriod, nextPeriod, "previousPeriod should not change");
 
-        vm.warp(block.timestamp + 2 days);
+        vm.warp(block.timestamp + (nextPeriod - 1));
         vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InsufficientTimeElapsed.selector));
         rewardKeeper.claimAndSetRate();
 

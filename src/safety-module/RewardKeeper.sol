@@ -63,8 +63,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     function unpause() external override onlyRole(PAUSER_ROLE) {
         _unpause();
     }
-    /// @notice EmissionManager requires "rewardToken" address be msg.sender
-    /// @dev Could use "ConfigureAssets" instead, but that requires oracle and transferStrategy addresses.
 
     function claimAndSetRate() external override whenNotPaused {
         Storage.Layout storage $ = Storage.layout();
@@ -74,6 +72,9 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         address asset = getAsset();
         address[] memory rewardTokens = pool.getReservesList();
         uint256 period = getPeriod();
+        uint256 nextMidnight = ((block.timestamp / period) + 1) * period;
+        period = nextMidnight - block.timestamp;
+        
 
         // check if period has elapsed, update lastClaim
         if ($.lastClaim > block.timestamp - $.previousPeriod) revert InsufficientTimeElapsed();
