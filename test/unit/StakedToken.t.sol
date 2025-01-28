@@ -34,6 +34,7 @@ contract StakedTokenTest is Test {
     address internal manager = address(0xBEEF);
     address internal pauser = address(0xDEAD);
     address internal user = address(0xCAFE);
+    address internal treasury = address(0xEAAE);
 
     // Roles
     bytes32 constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
@@ -73,7 +74,7 @@ contract StakedTokenTest is Test {
         address[] memory reserves = new address[](2);
         reserves[0] = address(mockToken1);
         reserves[1] = address(mockToken2);
-        mockPool = new MockPool(reserves, address(this));
+        mockPool = new MockPool(reserves, treasury);
 
         mockPool.setReserveData(address(mockToken1), address(mockToken1));
         mockPool.setReserveData(address(mockToken2), address(mockToken2));
@@ -82,7 +83,7 @@ contract StakedTokenTest is Test {
         proxy = new ERC1967Proxy(
             address(implementation2),
             abi.encodeWithSelector(
-                implementation2.initialize.selector, address(mockPool), admin, address(stakedToken), address(oracle)
+                implementation2.initialize.selector, address(mockPool), admin, address(stakedToken), address(oracle), treasury
             )
         );
         rewardKeeper = RewardKeeper(address(proxy));

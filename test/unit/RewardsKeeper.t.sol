@@ -20,7 +20,7 @@ import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/Paus
 import {MockPool} from "../mocks/MockPool.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
 
-contract SafetyModuleTest is Test {
+contract RewardKeeperTest is Test {
     RewardKeeper internal rewardKeeper;
 
     ERC20Mock internal SEAM;
@@ -36,6 +36,7 @@ contract SafetyModuleTest is Test {
     // Addresses
     address internal admin = address(0xA11CE);
     address internal upgradeAdmin = address(0xBABE);
+    address internal treasury = address(0xEAAE);
 
     // Roles (same as in the contract, for convenience)
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
@@ -68,7 +69,7 @@ contract SafetyModuleTest is Test {
         address[] memory reserves = new address[](2);
         reserves[0] = address(mockToken1);
         reserves[1] = address(mockToken2);
-        mockPool = new MockPool(reserves, address(this));
+        mockPool = new MockPool(reserves, treasury);
 
         mockPool.setReserveData(address(mockToken1), address(mockToken1));
         mockPool.setReserveData(address(mockToken2), address(mockToken2));
@@ -77,7 +78,7 @@ contract SafetyModuleTest is Test {
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(implementation),
             abi.encodeWithSelector(
-                implementation.initialize.selector, address(mockPool), admin, address(stkSEAM), address(oracle)
+                implementation.initialize.selector, address(mockPool), admin, address(stkSEAM), address(oracle), treasury
             )
         );
         rewardKeeper = RewardKeeper(address(proxy));

@@ -12,6 +12,7 @@ library RewardKeeperStorage {
         IPool pool;
         IEACAggregatorProxy oracle;
         address asset;
+        address treasury;
         uint256 period;
         uint256 previousPeriod;
         uint256 lastClaim;

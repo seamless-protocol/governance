@@ -23,7 +23,7 @@ contract MockPool {
         // no-op for testing
         for (uint256 i; i < rewards.length; i++) {
             ERC20Mock token = ERC20Mock(_reservesData[rewards[i]].aTokenAddress);
-            token.mint(msg.sender, 1000 ether);
+            token.mint(_treasury, 1000 ether);
         }
     }
 

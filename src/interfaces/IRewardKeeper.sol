@@ -113,4 +113,10 @@ interface IRewardKeeper {
      * @return The last claim timestamp.
      */
     function getLastClaim() external view  returns (uint256);
+
+    /**
+     * @notice Returns the treasury address.
+     * @return treasury address.
+     */
+    function getTreasury() external view returns (address);
 }

@@ -37,7 +37,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @notice Initializes the token storage and inherited contracts.
-    function initialize(address pool, address initialAdmin, address stkSeam, address oracle) external initializer {
+    function initialize(address pool, address initialAdmin, address stkSeam, address oracle, address treasury) external initializer {
         __UUPSUpgradeable_init();
         __Pausable_init();
 
@@ -48,6 +48,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         $.period = 1 days;
         $.lastClaim = block.timestamp;
         $.asset = stkSeam;
+        $.treasury = treasury;
 
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
         _grantRole(MANAGER_ROLE, initialAdmin);
@@ -90,7 +91,10 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         uint88[] memory newRates = new uint88[](rewardTokens.length);
         for (uint8 i; i < rewardTokens.length; i++) {
             IERC20 token = IERC20(rewardTokens[i]);
-
+            DataTypes.ReserveData memory data = pool.getReserveData(address(token));
+            address treasury = getTreasury();
+            IERC20(data.aTokenAddress).transferFrom(treasury, address(this), IERC20(data.aTokenAddress).balanceOf(treasury));
+             
             // withdraw reward tokens
             pool.withdraw(rewardTokens[i], type(uint256).max, address(this));
 
@@ -188,5 +192,9 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
     function getLastClaim() public view override returns (uint256) {
         return Storage.layout().lastClaim;
+    }
+
+    function getTreasury() public view override returns (address) {
+        return Storage.layout().treasury;
     }
 }
