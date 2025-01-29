@@ -28,10 +28,11 @@ contract MockPool {
     }
 
     // We’ll simulate some aToken addresses here
-    function setReserveData(address underlyingAsset, address aTokenAddress) external {
+    function setReserveData(address underlyingAsset, address aTokenAddress) external returns (address) {
         DataTypes.ReserveData storage data = _reservesData[underlyingAsset];
         ERC20Mock aToken = new ERC20Mock();
         data.aTokenAddress = address(aToken);
+        return address(aToken);
     }
 
     function setTreasury(address treasure) external {

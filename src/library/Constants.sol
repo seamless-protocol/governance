@@ -44,4 +44,9 @@ library Constants {
 
     // https://docs.base.org/base-contracts#ethereum-mainnet
     address public constant BASE_L1_BRIDGE = 0x3154Cf16ccdb4C6d922629664174b904d80F2C35;
+
+    address public constant FUNDS_ADMIN = 0xEA432Ec2b3afEE38faEbfaA767Bd350F1c819a9c;
+    address public constant POOL_ADDRESS = 0x8F44Fd754285aa6A2b8B9B97739B79746e0475a7;
+    address public constant TREASURY_ADDRESS = 0x982F3A0e3183896f9970b8A9Ea6B69Cd53AF1089;
+    address public constant ORACLE_PLACEHOLDER = 0x602823807C919A92B63cF5C126387c4759976072;
 }

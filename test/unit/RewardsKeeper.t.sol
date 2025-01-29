@@ -71,8 +71,8 @@ contract RewardKeeperTest is Test {
         reserves[1] = address(mockToken2);
         mockPool = new MockPool(reserves, treasury);
 
-        mockPool.setReserveData(address(mockToken1), address(mockToken1));
-        mockPool.setReserveData(address(mockToken2), address(mockToken2));
+        address a1 = mockPool.setReserveData(address(mockToken1), address(mockToken1));
+        address a2 = mockPool.setReserveData(address(mockToken2), address(mockToken2));
 
         RewardKeeper implementation = new RewardKeeper();
         ERC1967Proxy proxy = new ERC1967Proxy(
@@ -83,6 +83,11 @@ contract RewardKeeperTest is Test {
         );
         rewardKeeper = RewardKeeper(address(proxy));
 
+        vm.startPrank(treasury);
+        IERC20(a1).approve(address(rewardKeeper), 10000000000 ether);
+        IERC20(a2).approve(address(rewardKeeper), 10000000000 ether);
+        vm.stopPrank();
+
         rewardsController = new RewardsController(address(rewardKeeper));
 
         vm.prank(admin);
@@ -90,8 +95,6 @@ contract RewardKeeperTest is Test {
 
         vm.prank(admin);
         stkSEAM.setController(address(rewardsController));
-
-        mockPool.setTreasury(address(rewardKeeper));
 
         // Give admin the UPGRADER_ROLE for testing upgrades
         SEAM.mint(admin, 1_000_000 ether);
@@ -310,6 +313,9 @@ contract RewardKeeperTest is Test {
 
         vm.startPrank(address(this));
         rewardKeeper.claimAndSetRate();
+
+        mockToken1.transfer(address(mockPool), 1 ether);
+        mockToken2.transfer(address(mockPool), 1 ether);
 
         address strategy1 = rewardsController.getTransferStrategy(address(mockToken1));
         address strategy2 = rewardsController.getTransferStrategy(address(mockToken2));

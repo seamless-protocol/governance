@@ -73,8 +73,8 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         address asset = getAsset();
         address[] memory rewardTokens = pool.getReservesList();
         uint256 period = getPeriod();
-        uint256 nextMidnight = ((block.timestamp / period) + 1) * period;
-        period = nextMidnight - block.timestamp;
+        // uint256 nextMidnight = ((block.timestamp / period) + 1) * period;
+        period = (((block.timestamp / period) + 1) * period) - block.timestamp;
         
 
         // check if period has elapsed, update lastClaim
@@ -83,26 +83,41 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         $.previousPeriod = period;
 
         // claim rewards
-        // assume its coming to this contract for now
         
         pool.mintToTreasury(rewardTokens);
 
         // get new Emission rates
         uint88[] memory newRates = new uint88[](rewardTokens.length);
+        // count for >0 balances
+        uint256 count;
         for (uint8 i; i < rewardTokens.length; i++) {
-            IERC20 token = IERC20(rewardTokens[i]);
-            DataTypes.ReserveData memory data = pool.getReserveData(address(token));
+            
+            DataTypes.ReserveData memory data = pool.getReserveData(rewardTokens[i]);
+            IERC20 token = IERC20(data.aTokenAddress);
             address treasury = getTreasury();
-            IERC20(data.aTokenAddress).transferFrom(treasury, address(this), IERC20(data.aTokenAddress).balanceOf(treasury));
+            uint256 balance = token.balanceOf(treasury);
+            if (balance == 0) {
+                newRates[i] = 0;
+                continue;
+            }
+            IERC20(data.aTokenAddress).transferFrom(treasury, address(this), balance);
              
             // withdraw reward tokens
-            pool.withdraw(rewardTokens[i], type(uint256).max, address(this));
+            try pool.withdraw(rewardTokens[i], type(uint256).max, address(this)) {
 
-            uint256 balance = token.balanceOf(address(this));
+            } catch {
+                newRates[i] = 0;
+                continue;
+            }
+
+            // reuse variables
+            token = IERC20(rewardTokens[i]);
+            balance = token.balanceOf(address(this));
 
             // there will be dust from rounding here... it can stay in the contract and get accounted for next time.
             uint88 rate = uint88((balance) / period);
             newRates[i] = rate;
+            count++;
 
             ERC20TransferStrategy transferStrategy =
                 ERC20TransferStrategy(controller.getTransferStrategy(rewardTokens[i]));
@@ -127,10 +142,22 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
             token.transfer(address(transferStrategy), rate * period);
         }
 
-        // set emissions per second
-        controller.setEmissionPerSecond(asset, rewardTokens, newRates);
+        // Iterate through newRates to create new arrays without 0 balances
+        uint88[] memory emissionRates = new uint88[](count);
+        address[] memory filteredRewardTokens = new address[](count);
+        uint256 j;
+        for (uint256 k; k < newRates.length; k++) {
+            if (newRates[k] > 0) {
+                emissionRates[j] = newRates[k];
+                filteredRewardTokens[j] = rewardTokens[k];
+                j++;
+            }
+        }
 
-        emit ClaimedAndSetRate(rewardTokens, newRates);
+        // set emissions per second
+        controller.setEmissionPerSecond(asset, filteredRewardTokens, emissionRates);
+
+        emit ClaimedAndSetRate(filteredRewardTokens, emissionRates);
     }
 
     function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt)

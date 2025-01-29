@@ -76,8 +76,8 @@ contract StakedTokenTest is Test {
         reserves[1] = address(mockToken2);
         mockPool = new MockPool(reserves, treasury);
 
-        mockPool.setReserveData(address(mockToken1), address(mockToken1));
-        mockPool.setReserveData(address(mockToken2), address(mockToken2));
+        address a1 = mockPool.setReserveData(address(mockToken1), address(mockToken1));
+        address a2 = mockPool.setReserveData(address(mockToken2), address(mockToken2));
 
         RewardKeeper implementation2 = new RewardKeeper();
         proxy = new ERC1967Proxy(
@@ -90,7 +90,10 @@ contract StakedTokenTest is Test {
 
         rewardsController = new RewardsController(address(rewardKeeper));
 
-        mockPool.setTreasury(address(rewardKeeper));
+        vm.startPrank(treasury);
+        IERC20(a1).approve(address(rewardKeeper), 10000000000 ether);
+        IERC20(a2).approve(address(rewardKeeper), 10000000000 ether);
+        vm.stopPrank();
 
         // Grant roles to manager and pauser
         vm.startPrank(admin);

@@ -5,9 +5,24 @@ import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interface
 
 library StakedTokenStorage {
     struct Layout {
+        /**
+         * @notice interface for rewards controller
+         */
         IRewardsController rewardsController;
+
+        /**
+         * @notice Amount of time user must wait before being able to withdraw
+         */
         uint256 cooldownSeconds;
+
+        /**
+         * @notice Amount of time user has to withdraw once cooldown elapses
+         */
         uint256 unstakeWindow;
+
+        /**
+         * @notice Maps user => timestamp they initiated a cooldown
+         */
         mapping(address => uint256) stakersCooldowns;
     }
 

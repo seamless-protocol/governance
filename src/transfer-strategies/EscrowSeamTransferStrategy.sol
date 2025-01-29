@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {ISeamTransferStrategy} from "../interfaces/ISeamTransferStrategy.sol";
-import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IEscrowSeam} from "../interfaces/IEscrowSeam.sol";
 import {ITransferStrategyBase} from "../interfaces/ITransferStrategyBase.sol";
 import {TransferStrategyBase} from "./TransferStrategyBase.sol";
