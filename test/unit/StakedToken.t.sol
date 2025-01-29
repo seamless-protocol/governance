@@ -582,4 +582,119 @@ contract StakedTokenTest is Test {
         uint256 indexAfter2 = rewardsController.getUserRewards(assets, user2, address(mockToken1));
         assertTrue(indexAfter2 == 0);
     }
+
+    function testClaimManyUsersAndWithdraw() public {
+        uint256 userCount = 2;
+        vm.warp(block.timestamp + 5 days);
+        rewardKeeper.claimAndSetRate();
+        address[] memory rewardTokens = mockPool.getReservesList();
+        address[] memory assets = new address[](1);
+        assets[0] = address(stakedToken);
+
+        for (uint256 k = 1; k <= userCount; k++) {
+            address player = address(uint160(k));
+            uint256 random = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender)));
+            random = ((random % 5000) + 1) * 1e18;
+            deal(address(underlyingAsset), player, random);
+            vm.startPrank(player);
+            underlyingAsset.approve(address(stakedToken), random);
+            stakedToken.deposit(random, player);
+            vm.stopPrank();
+            vm.warp(block.timestamp + 3);
+        }
+
+        vm.warp(block.timestamp + 2 hours);
+        (, uint256 rate, ,uint256 endTime) = rewardsController.getRewardsData(address(stakedToken), address(mockToken1));
+        uint256 expectedPeriod = rewardKeeper.getPreviousPeriod();
+        assertEq(1000 ether / expectedPeriod, rate, "wrong rate 0");
+        uint256 leftOver = 1000 ether - (rate * expectedPeriod);
+        uint256 transferBal0 = mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1)));
+        assertEq(mockToken1.balanceOf(address(rewardKeeper)), leftOver, "Wrong leftover 0");
+        assertEq(transferBal0, rate * expectedPeriod, "wrong bal 0");
+
+        vm.warp(block.timestamp + 26 hours);
+        rewardKeeper.claimAndSetRate();
+
+        (, rate, , endTime) = rewardsController.getRewardsData(address(stakedToken), address(mockToken1));
+        expectedPeriod = rewardKeeper.getPreviousPeriod();
+        assertEq((1000 ether + leftOver) / expectedPeriod, rate, "wrong rate 1");
+        leftOver = (1000 ether + leftOver) - (rate * expectedPeriod);
+        
+        assertEq(mockToken1.balanceOf(address(rewardKeeper)), leftOver, "Wrong leftover 1");
+        assertEq(mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1))), rate * expectedPeriod + transferBal0, "wrong bal 1");
+
+        for (uint256 i = 1; i <= userCount; i++) {
+            address player = address(uint160(i));
+            vm.startPrank(player);
+            console.log(player, 1);
+            (, uint256[] memory claimedAmounts) = rewardsController.claimAllRewards(assets, player);
+            for (uint256 j; j < claimedAmounts.length; j++) {
+                assertTrue(claimedAmounts[j] > 0);
+            }
+            vm.stopPrank();
+        }
+        transferBal0 = mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1)));
+        vm.warp(block.timestamp + 26 hours);
+        rewardKeeper.claimAndSetRate();
+        vm.warp(block.timestamp + 26 hours);
+        
+        (, rate, , endTime) = rewardsController.getRewardsData(address(stakedToken), address(mockToken1));
+        expectedPeriod = rewardKeeper.getPreviousPeriod();
+        assertEq((1000 ether + leftOver) / expectedPeriod, rate, "wrong rate 2");
+        leftOver = (1000 ether + leftOver) - (rate * expectedPeriod);
+        
+        assertEq(mockToken1.balanceOf(address(rewardKeeper)), leftOver, "Wrong leftover 2");
+        assertEq(mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1))), rate * expectedPeriod + transferBal0, "wrong bal 2");
+        
+        uint256 rewards1 = rewardsController.getUserRewards(assets, address(uint160(1)), address(mockToken1));
+        uint256 rewards2 = rewardsController.getUserRewards(assets, address(uint160(2)), address(mockToken1));
+        assertEq(mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1))), rewards1 + rewards2, "wrong total rewards");
+
+        for (uint256 i = 1; i <= userCount; i++) {
+            address player = address(uint160(i));
+            vm.startPrank(player);
+            console.log(player, 2);
+            (, uint256[] memory claimedAmounts) = rewardsController.claimAllRewards(assets, player);
+            for (uint256 j; j < claimedAmounts.length; j++) {
+                assertTrue(claimedAmounts[j] > 0, "Claim Amount Not greater than zero");
+            }
+            vm.warp(block.timestamp + 30);
+            console.log(player, 3);
+            (, claimedAmounts) = rewardsController.claimAllRewards(assets, player);
+            for (uint256 j; j < claimedAmounts.length; j++) {
+                assertTrue(claimedAmounts[j] == 0, "Claim Amount not zero");
+            }
+
+            vm.stopPrank();
+        }
+
+        (, rate, , endTime) = rewardsController.getRewardsData(address(stakedToken), address(mockToken1));
+        expectedPeriod = rewardKeeper.getPreviousPeriod();
+        assertEq((1000 ether + leftOver) / expectedPeriod, rate, "wrong rate 2");
+        leftOver = (1000 ether + leftOver) - (rate * expectedPeriod);
+        
+        assertEq(mockToken1.balanceOf(address(rewardKeeper)), leftOver, "Wrong leftover 2");
+        assertEq(mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1))), 0, "wrong bal 2");
+        
+        // for (uint256 i = 1; i <= userCount; i++) {
+        //     address player = address(uint160(i));
+        //     rewardKeeper.claimAndSetRate();
+        //     vm.startPrank(player);
+        //     stakedToken.cooldown();
+
+        //     vm.warp(block.timestamp + 3 days + 2);
+        //     console.log(player, 4);
+        //     stakedToken.redeem(stakedToken.balanceOf(player), player, player);
+        //     (, uint256[] memory claimedAmounts) = rewardsController.claimAllRewards(assets, player);
+        //     for (uint256 j; j < claimedAmounts.length; j++) {
+        //         assertTrue(claimedAmounts[j] > 0);
+        //     }
+        //     vm.warp(block.timestamp + 2 hours);
+        //     console.log(player, 5);
+        //     (, claimedAmounts) = rewardsController.claimAllRewards(assets, player);
+        //     for (uint256 j; j < claimedAmounts.length; j++) {
+        //         assertTrue(claimedAmounts[j] == 0);
+        //     }
+        // }
+    }
 }
