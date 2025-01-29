@@ -604,7 +604,7 @@ contract StakedTokenTest is Test {
         }
 
         vm.warp(block.timestamp + 2 hours);
-        (, uint256 rate, ,uint256 endTime) = rewardsController.getRewardsData(address(stakedToken), address(mockToken1));
+        (, uint256 rate,, uint256 endTime) = rewardsController.getRewardsData(address(stakedToken), address(mockToken1));
         uint256 expectedPeriod = rewardKeeper.getPreviousPeriod();
         assertEq(1000 ether / expectedPeriod, rate, "wrong rate 0");
         uint256 leftOver = 1000 ether - (rate * expectedPeriod);
@@ -615,13 +615,17 @@ contract StakedTokenTest is Test {
         vm.warp(block.timestamp + 26 hours);
         rewardKeeper.claimAndSetRate();
 
-        (, rate, , endTime) = rewardsController.getRewardsData(address(stakedToken), address(mockToken1));
+        (, rate,, endTime) = rewardsController.getRewardsData(address(stakedToken), address(mockToken1));
         expectedPeriod = rewardKeeper.getPreviousPeriod();
         assertEq((1000 ether + leftOver) / expectedPeriod, rate, "wrong rate 1");
         leftOver = (1000 ether + leftOver) - (rate * expectedPeriod);
-        
+
         assertEq(mockToken1.balanceOf(address(rewardKeeper)), leftOver, "Wrong leftover 1");
-        assertEq(mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1))), rate * expectedPeriod + transferBal0, "wrong bal 1");
+        assertEq(
+            mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1))),
+            rate * expectedPeriod + transferBal0,
+            "wrong bal 1"
+        );
 
         for (uint256 i = 1; i <= userCount; i++) {
             address player = address(uint160(i));
@@ -637,19 +641,26 @@ contract StakedTokenTest is Test {
         vm.warp(block.timestamp + 26 hours);
         rewardKeeper.claimAndSetRate();
         vm.warp(block.timestamp + 26 hours);
-        
-        (, rate, , endTime) = rewardsController.getRewardsData(address(stakedToken), address(mockToken1));
+
+        (, rate,, endTime) = rewardsController.getRewardsData(address(stakedToken), address(mockToken1));
         expectedPeriod = rewardKeeper.getPreviousPeriod();
         uint256 oldLeftover = leftOver;
         assertEq((1000 ether + leftOver) / expectedPeriod, rate, "wrong rate 2");
         leftOver = (1000 ether + leftOver) - (rate * expectedPeriod);
-        
+
         assertEq(mockToken1.balanceOf(address(rewardKeeper)), leftOver, "Wrong leftover 2");
-        assertEq(mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1))), rate * expectedPeriod + transferBal0, "wrong bal 2");
-        
+        assertEq(
+            mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1))),
+            rate * expectedPeriod + transferBal0,
+            "wrong bal 2"
+        );
+
         uint256 rewards1 = rewardsController.getUserRewards(assets, address(uint160(1)), address(mockToken1));
         uint256 rewards2 = rewardsController.getUserRewards(assets, address(uint160(2)), address(mockToken1));
-        assertTrue(mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1))) >= rewards1 + rewards2, "wrong total rewards");
+        assertTrue(
+            mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1))) >= rewards1 + rewards2,
+            "wrong total rewards"
+        );
 
         for (uint256 i = 1; i <= userCount; i++) {
             address player = address(uint160(i));
@@ -669,14 +680,14 @@ contract StakedTokenTest is Test {
             vm.stopPrank();
         }
 
-        (, rate, , endTime) = rewardsController.getRewardsData(address(stakedToken), address(mockToken1));
+        (, rate,, endTime) = rewardsController.getRewardsData(address(stakedToken), address(mockToken1));
         expectedPeriod = rewardKeeper.getPreviousPeriod();
         assertEq((1000 ether + oldLeftover) / expectedPeriod, rate, "wrong rate 3");
         leftOver = (1000 ether + oldLeftover) - (rate * expectedPeriod);
-        
+
         assertEq(mockToken1.balanceOf(address(rewardKeeper)), leftOver, "Wrong leftover 3");
         assertTrue(mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1))) < 10, "wrong bal 3");
-        
+
         for (uint256 i = 1; i <= userCount; i++) {
             address player = address(uint160(i));
             rewardKeeper.claimAndSetRate();
