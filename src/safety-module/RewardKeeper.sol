@@ -98,7 +98,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
             address treasury = getTreasury();
             uint256 balance = token.balanceOf(treasury);
             if (balance == 0) {
-                newRates[i] = 0;
+                // newRates[i] = 0;
                 continue;
             }
             IERC20(data.aTokenAddress).transferFrom(treasury, address(this), balance);
@@ -106,7 +106,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
             // withdraw reward tokens
             try pool.withdraw(rewardTokens[i], type(uint256).max, address(this)) {}
             catch {
-                newRates[i] = 0;
                 continue;
             }
 
@@ -116,6 +115,9 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
             // there will be dust from rounding here... it can stay in the contract and get accounted for next time.
             uint88 rate = uint88((balance) / period);
+            if (rate == 0) {
+                continue;
+            }
             newRates[i] = rate;
             count++;
 
@@ -133,9 +135,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
                 config[0].transferStrategy = ITransferStrategyBase(address(transferStrategy));
                 config[0].rewardOracle = $.oracle;
                 controller.configureAssets(config);
-            } else {
-                // set distributonEnd here
-                controller.setDistributionEnd(asset, rewardTokens[i], uint32(block.timestamp + period));
             }
 
             // ensures dust is not sent.
@@ -156,6 +155,9 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
         // set emissions per second
         controller.setEmissionPerSecond(asset, filteredRewardTokens, emissionRates);
+        for (uint256 k; k < emissionRates.length; k++) {
+            controller.setDistributionEnd(asset, filteredRewardTokens[k], uint32(block.timestamp + period));
+        }
 
         emit ClaimedAndSetRate(filteredRewardTokens, emissionRates);
     }
