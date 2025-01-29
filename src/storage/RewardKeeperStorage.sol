@@ -12,38 +12,31 @@ library RewardKeeperStorage {
          * @notice interface for rewards controller
          */
         IRewardsController controller;
-
         /**
          * @notice interface for Aave V3 pool
          */
         IPool pool;
-
         /**
          * @notice interface for oracle contract
          * @dev only used for compatibility with rewards controller
          */
         IEACAggregatorProxy oracle;
-
         /**
          * @notice address of the asset token (i.e. SEAM)
          */
         address asset;
-
         /**
          * @notice address of the aToken treasury contract
          */
         address treasury;
-
         /**
          * @notice The amount of time between claims, i.e. 1 day
          */
         uint256 period;
-
         /**
          * @notice The previously set period
          */
         uint256 previousPeriod;
-
         /**
          * @notice holds the timestamp of the last time claim was called
          */

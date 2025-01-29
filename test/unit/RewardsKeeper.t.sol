@@ -78,7 +78,12 @@ contract RewardKeeperTest is Test {
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(implementation),
             abi.encodeWithSelector(
-                implementation.initialize.selector, address(mockPool), admin, address(stkSEAM), address(oracle), treasury
+                implementation.initialize.selector,
+                address(mockPool),
+                admin,
+                address(stkSEAM),
+                address(oracle),
+                treasury
             )
         );
         rewardKeeper = RewardKeeper(address(proxy));
@@ -222,7 +227,7 @@ contract RewardKeeperTest is Test {
 
     function testClaimAndSetRate_ExtremelyLateKeeper() public {
         vm.warp(block.timestamp + 5000 days);
-        
+
         rewardKeeper.claimAndSetRate();
 
         //   - Move time forward by 2 days + some hours, e.g. 2.5 days
@@ -234,13 +239,11 @@ contract RewardKeeperTest is Test {
         uint256 previousPeriod = rewardKeeper.getPreviousPeriod();
         assertEq(lastClaim, block.timestamp, "lastClaim mismatch after claimAndSetRate");
         assertEq(previousPeriod, 12 hours - 1, "previousPeriod mismatch after claim");
-
     }
 
     function testClaimAndSetRateWithChangingPeriods() public {
-        
         vm.warp(block.timestamp + 1 days + 1);
-        
+
         rewardKeeper.claimAndSetRate();
 
         // Check that lastClaim updated
@@ -267,7 +270,7 @@ contract RewardKeeperTest is Test {
         rewardKeeper.claimAndSetRate();
         period = rewardKeeper.getPeriod();
         previousPeriod = rewardKeeper.getPreviousPeriod();
-        
+
         assertEq(period, 3 days, "period incorrect");
         assertEq(previousPeriod, nextPeriod, "previousPeriod should not change");
 

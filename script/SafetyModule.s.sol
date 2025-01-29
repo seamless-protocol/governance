@@ -51,9 +51,7 @@ contract SafetyModule is Script {
         RewardKeeper implementation2 = new RewardKeeper();
         proxy = new ERC1967Proxy(
             address(implementation2),
-            abi.encodeWithSelector(
-                RewardKeeper.initialize.selector, pool, deployerAddress, address(stkToken), oracle
-            )
+            abi.encodeWithSelector(RewardKeeper.initialize.selector, pool, deployerAddress, address(stkToken), oracle)
         );
         RewardKeeper rewardKeeper = RewardKeeper(address(proxy));
         console.log("Deployed RewardKeeper to: ", address(proxy), " implementation: ", address(implementation2));

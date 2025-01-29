@@ -37,7 +37,10 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @notice Initializes the token storage and inherited contracts.
-    function initialize(address pool, address initialAdmin, address stkSeam, address oracle, address treasury) external initializer {
+    function initialize(address pool, address initialAdmin, address stkSeam, address oracle, address treasury)
+        external
+        initializer
+    {
         __UUPSUpgradeable_init();
         __Pausable_init();
 
@@ -75,7 +78,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         uint256 period = getPeriod();
         // uint256 nextMidnight = ((block.timestamp / period) + 1) * period;
         period = (((block.timestamp / period) + 1) * period) - block.timestamp;
-        
 
         // check if period has elapsed, update lastClaim
         if ($.lastClaim > block.timestamp - $.previousPeriod) revert InsufficientTimeElapsed();
@@ -83,7 +85,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         $.previousPeriod = period;
 
         // claim rewards
-        
+
         pool.mintToTreasury(rewardTokens);
 
         // get new Emission rates
@@ -91,7 +93,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         // count for >0 balances
         uint256 count;
         for (uint8 i; i < rewardTokens.length; i++) {
-            
             DataTypes.ReserveData memory data = pool.getReserveData(rewardTokens[i]);
             IERC20 token = IERC20(data.aTokenAddress);
             address treasury = getTreasury();
@@ -101,11 +102,10 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
                 continue;
             }
             IERC20(data.aTokenAddress).transferFrom(treasury, address(this), balance);
-             
-            // withdraw reward tokens
-            try pool.withdraw(rewardTokens[i], type(uint256).max, address(this)) {
 
-            } catch {
+            // withdraw reward tokens
+            try pool.withdraw(rewardTokens[i], type(uint256).max, address(this)) {}
+            catch {
                 newRates[i] = 0;
                 continue;
             }

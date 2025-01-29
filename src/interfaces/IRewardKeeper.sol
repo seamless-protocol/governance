@@ -76,43 +76,43 @@ interface IRewardKeeper {
      * @notice Returns the current rewards controller contract address.
      * @return The `IRewardsController` implementation currently in use.
      */
-    function getController() external view  returns (IRewardsController);
+    function getController() external view returns (IRewardsController);
 
     /**
      * @notice Returns the current Aave Pool address used for minting/withdrawing rewards.
      * @return The `IPool` address currently in use.
      */
-    function getPool() external view  returns (IPool);
+    function getPool() external view returns (IPool);
 
     /**
      * @notice Retrieves the current oracle contract used for reward configuration.
      * @return The `IEACAggregatorProxy` oracle address.
      */
-    function getOracle() external view  returns (IEACAggregatorProxy);
+    function getOracle() external view returns (IEACAggregatorProxy);
 
     /**
      * @notice Returns the staking token asset address.
      * @return The address of the asset used for reward distribution.
      */
-    function getAsset() external view  returns (address);
+    function getAsset() external view returns (address);
 
     /**
      * @notice Returns the length of time (in seconds) used for calculating reward emissions.
      * @return The current emission period in seconds.
      */
-    function getPeriod() external view  returns (uint256);
+    function getPeriod() external view returns (uint256);
 
     /**
      * @notice Returns the previously used emission period (in seconds) prior to the latest update.
      * @return The previous emission period in seconds.
      */
-    function getPreviousPeriod() external view  returns (uint256);
+    function getPreviousPeriod() external view returns (uint256);
 
     /**
      * @notice Returns the last recorded timestamp when rewards were claimed and rates were updated.
      * @return The last claim timestamp.
      */
-    function getLastClaim() external view  returns (uint256);
+    function getLastClaim() external view returns (uint256);
 
     /**
      * @notice Returns the treasury address.

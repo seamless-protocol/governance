@@ -9,7 +9,7 @@ import {StakedToken} from "../../src/safety-module/StakedToken.sol";
 import {RewardKeeper} from "../../src/safety-module/RewardKeeper.sol"; // Adjust import paths to your project structure
 import {IRewardKeeper} from "../../src/interfaces/IRewardKeeper.sol";
 import {RewardKeeperStorage as StorageLib} from "../../src/storage/RewardKeeperStorage.sol";
-import {IERC20} from '@aave/core-v3/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
+import {IERC20} from "@aave/core-v3/contracts/dependencies/openzeppelin/contracts/IERC20.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
 import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
@@ -42,7 +42,7 @@ contract SeamForkTest is Test {
 
     function setUp() public {
         vm.createSelectFork(vm.envString("FORK_URL"), 25298789);
-        
+
         // deploy stkSEAM
         StakedToken imp = new StakedToken();
         ERC1967Proxy prox = new ERC1967Proxy(
@@ -52,34 +52,38 @@ contract SeamForkTest is Test {
             )
         );
         stkSEAM = StakedToken(address(prox));
-        
+
         // deploy reward keeper
         RewardKeeper implementation = new RewardKeeper();
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(implementation),
             abi.encodeWithSelector(
-                implementation.initialize.selector, address(pool), admin, address(stkSEAM), address(oracle), address(treasury)
+                implementation.initialize.selector,
+                address(pool),
+                admin,
+                address(stkSEAM),
+                address(oracle),
+                address(treasury)
             )
         );
         rewardKeeper = RewardKeeper(address(proxy));
-        
+
         // deploy reward controller
         rewardsController = new RewardsController(address(rewardKeeper));
-        
+
         vm.prank(admin);
         rewardKeeper.setRewardsController(address(rewardsController));
-        
+
         vm.prank(admin);
         stkSEAM.setController(address(rewardsController));
-        
+
         vm.startPrank(fundsAdmin);
-        
+
         address[] memory rewardTokens = pool.getReservesList();
         for (uint256 i; i < rewardTokens.length; i++) {
             DataTypes.ReserveData memory data = pool.getReserveData(rewardTokens[i]);
             treasury.approve(IERC20(data.aTokenAddress), address(rewardKeeper), type(uint256).max);
         }
-
     }
 
     function testClaimAndSetRateSucceedsIfPeriodElapsed() public {
@@ -105,7 +109,6 @@ contract SeamForkTest is Test {
     }
 
     function testHandleAction() public {
-
         rewardKeeper.claimAndSetRate();
         address[] memory rewardTokens = pool.getReservesList();
         address[] memory assets = new address[](1);
@@ -138,7 +141,6 @@ contract SeamForkTest is Test {
     }
 
     function testClaim() public {
-
         rewardKeeper.claimAndSetRate();
         address[] memory rewardTokens = pool.getReservesList();
         address[] memory assets = new address[](1);
@@ -165,7 +167,7 @@ contract SeamForkTest is Test {
         address[] memory rewardTokens = pool.getReservesList();
         address[] memory assets = new address[](1);
         assets[0] = address(stkSEAM);
-        
+
         for (uint256 k = 1; k <= userCount; k++) {
             address player = address(uint160(k));
             uint256 random = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender)));
@@ -179,7 +181,7 @@ contract SeamForkTest is Test {
         }
 
         vm.warp(block.timestamp + 2 hours);
-        
+
         for (uint256 i = 1; i <= userCount; i++) {
             address player = address(uint160(i));
             vm.startPrank(player);
@@ -202,7 +204,7 @@ contract SeamForkTest is Test {
         address[] memory rewardTokens = pool.getReservesList();
         address[] memory assets = new address[](1);
         assets[0] = address(stkSEAM);
-        
+
         for (uint256 k = 1; k <= userCount; k++) {
             address player = address(uint160(k));
             uint256 random = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender)));
@@ -216,7 +218,7 @@ contract SeamForkTest is Test {
         }
 
         vm.warp(block.timestamp + 2 hours);
-        
+
         for (uint256 i = 1; i <= userCount; i++) {
             address player = address(uint160(i));
             vm.startPrank(player);
@@ -245,7 +247,7 @@ contract SeamForkTest is Test {
             for (uint256 j; j < claimedAmounts.length; j++) {
                 assertTrue(claimedAmounts[j] > 0);
             }
-            
+
             vm.stopPrank();
         }
         vm.warp(block.timestamp + 26 hours);
@@ -269,6 +271,5 @@ contract SeamForkTest is Test {
                 assertTrue(claimedAmounts[j] == 0);
             }
         }
-
     }
 }

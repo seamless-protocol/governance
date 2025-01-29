@@ -9,17 +9,14 @@ library StakedTokenStorage {
          * @notice interface for rewards controller
          */
         IRewardsController rewardsController;
-
         /**
          * @notice Amount of time user must wait before being able to withdraw
          */
         uint256 cooldownSeconds;
-
         /**
          * @notice Amount of time user has to withdraw once cooldown elapses
          */
         uint256 unstakeWindow;
-
         /**
          * @notice Maps user => timestamp they initiated a cooldown
          */
