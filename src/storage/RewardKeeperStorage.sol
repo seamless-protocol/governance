@@ -5,6 +5,7 @@ import {IEmissionManager} from "@aave/periphery-v3/contracts/rewards/interfaces/
 import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
 import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
+import {IStaticATokenFactory} from "static-a-token-v3/src/interfaces/IStaticATokenFactory.sol";
 
 library RewardKeeperStorage {
     struct Layout {
@@ -21,6 +22,10 @@ library RewardKeeperStorage {
          * @dev only used for compatibility with rewards controller
          */
         IEACAggregatorProxy oracle;
+        /**
+         * @notice interface for the static AToken factory
+         */
+        IStaticATokenFactory factory;
         /**
          * @notice address of the asset token (i.e. SEAM)
          */

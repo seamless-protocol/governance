@@ -16,6 +16,8 @@ import {DataTypes} from "@aave/core-v3/contracts/protocol/libraries/types/DataTy
 import {RewardKeeperStorage as Storage} from "../storage/RewardKeeperStorage.sol";
 import {IRewardKeeper} from "../interfaces/IRewardKeeper.sol";
 import {ERC20TransferStrategy} from "../transfer-strategies/ERC20TransferStrategy.sol";
+import {IStaticATokenFactory} from "static-a-token-v3/src/interfaces/IStaticATokenFactory.sol";
+import {StaticATokenLM} from "static-a-token-v3/src/StaticATokenLM.sol";
 
 contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable, IRewardKeeper {
     using SafeERC20 for IERC20;
@@ -37,7 +39,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @notice Initializes the token storage and inherited contracts.
-    function initialize(address pool, address initialAdmin, address stkSeam, address oracle, address treasury)
+    function initialize(address pool, address initialAdmin, address stkSeam, address oracle, address treasury, address factory)
         external
         initializer
     {
@@ -52,6 +54,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         $.lastClaim = block.timestamp;
         $.asset = stkSeam;
         $.treasury = treasury;
+        $.factory = IStaticATokenFactory(factory);
 
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
         _grantRole(MANAGER_ROLE, initialAdmin);
@@ -76,7 +79,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         address asset = getAsset();
         address[] memory rewardTokens = pool.getReservesList();
         uint256 period = getPeriod();
-        // uint256 nextMidnight = ((block.timestamp / period) + 1) * period;
+        
         period = (((block.timestamp / period) + 1) * period) - block.timestamp;
 
         // check if period has elapsed, update lastClaim
@@ -93,24 +96,22 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         // count for >0 balances
         uint256 count;
         for (uint8 i; i < rewardTokens.length; i++) {
-            DataTypes.ReserveData memory data = pool.getReserveData(rewardTokens[i]);
-            IERC20 token = IERC20(data.aTokenAddress);
+            // DataTypes.ReserveData memory data = pool.getReserveData(rewardTokens[i]);
+            IERC20 token = IERC20(pool.getReserveData(rewardTokens[i]).aTokenAddress);
             address treasury = getTreasury();
             uint256 balance = token.balanceOf(treasury);
             if (balance == 0) {
-                // newRates[i] = 0;
                 continue;
             }
-            IERC20(data.aTokenAddress).transferFrom(treasury, address(this), balance);
 
-            // withdraw reward tokens
-            try pool.withdraw(rewardTokens[i], type(uint256).max, address(this)) {}
-            catch {
-                continue;
-            }
+            //TODO: try moving this to end
+            token.transferFrom(treasury, address(this), balance);
+            
+            // deposit reward tokens
+            StaticATokenLM(getFactory().getStaticAToken(address(token))).deposit(token.balanceOf(address(this)), address(this));
 
             // reuse variables
-            token = IERC20(rewardTokens[i]);
+            token = IERC20(getFactory().getStaticAToken(address(token)));
             balance = token.balanceOf(address(this));
 
             // there will be dust from rounding here... it can stay in the contract and get accounted for next time.
@@ -122,7 +123,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
             count++;
 
             ERC20TransferStrategy transferStrategy =
-                ERC20TransferStrategy(controller.getTransferStrategy(rewardTokens[i]));
+                ERC20TransferStrategy(controller.getTransferStrategy(address(token)));
 
             if (address(transferStrategy) == address(0)) {
                 RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
@@ -131,7 +132,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
                 config[0].totalSupply = token.totalSupply(); // Not sure if this is correct...
                 config[0].distributionEnd = uint32(block.timestamp + period);
                 config[0].asset = asset;
-                config[0].reward = rewardTokens[i];
+                config[0].reward = address(token);
                 config[0].transferStrategy = ITransferStrategyBase(address(transferStrategy));
                 config[0].rewardOracle = $.oracle;
                 controller.configureAssets(config);
@@ -205,6 +206,10 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
     function getOracle() public view override returns (IEACAggregatorProxy) {
         return Storage.layout().oracle;
+    }
+
+    function getFactory() public view override returns (IStaticATokenFactory) {
+        return Storage.layout().factory;
     }
 
     function getAsset() public view override returns (address) {
