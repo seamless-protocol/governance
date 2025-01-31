@@ -11,6 +11,7 @@ import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interface
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {RewardsController} from "@aave/periphery-v3/contracts/rewards/RewardsController.sol";
+import {AToken} from "@aave/core-v3/contracts/protocol/tokenization/AToken.sol";
 import {RewardKeeper} from "../../src/safety-module/RewardKeeper.sol";
 import {MockPool} from "../mocks/MockPool.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
@@ -75,10 +76,10 @@ contract StakedTokenTest is Test {
         reserves[0] = address(mockToken1);
         reserves[1] = address(mockToken2);
         mockPool = new MockPool(reserves, treasury);
-
+        
         address a1 = mockPool.setReserveData(address(mockToken1), address(mockToken1));
         address a2 = mockPool.setReserveData(address(mockToken2), address(mockToken2));
-
+        
         RewardKeeper implementation2 = new RewardKeeper();
         proxy = new ERC1967Proxy(
             address(implementation2),

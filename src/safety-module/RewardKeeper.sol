@@ -8,6 +8,7 @@ import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
+import {IAToken} from "@aave/core-v3/contracts/interfaces/IAToken.sol";
 import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
 import {ITransferStrategyBase} from "@aave/periphery-v3/contracts/rewards/interfaces/ITransferStrategyBase.sol";
 import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
@@ -15,7 +16,7 @@ import {RewardsDataTypes} from "@aave/periphery-v3/contracts/rewards/libraries/R
 import {DataTypes} from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
 import {RewardKeeperStorage as Storage} from "../storage/RewardKeeperStorage.sol";
 import {IRewardKeeper} from "../interfaces/IRewardKeeper.sol";
-import {ERC20TransferStrategy} from "../transfer-strategies/ERC20TransferStrategy.sol";
+import {ATokenTransferStrategy} from "../transfer-strategies/ATokenTransferStrategy.sol";
 
 contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable, IRewardKeeper {
     using SafeERC20 for IERC20;
@@ -94,24 +95,18 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         uint256 count;
         for (uint8 i; i < rewardTokens.length; i++) {
             DataTypes.ReserveData memory data = pool.getReserveData(rewardTokens[i]);
-            IERC20 token = IERC20(data.aTokenAddress);
+            IAToken token = IAToken(data.aTokenAddress);
             address treasury = getTreasury();
             uint256 balance = token.balanceOf(treasury);
             if (balance == 0) {
                 // newRates[i] = 0;
                 continue;
             }
-            IERC20(data.aTokenAddress).transferFrom(treasury, address(this), balance);
-
-            // withdraw reward tokens
-            try pool.withdraw(rewardTokens[i], type(uint256).max, address(this)) {}
-            catch {
-                continue;
-            }
+            token.transferFrom(treasury, address(this), balance);
 
             // reuse variables
-            token = IERC20(rewardTokens[i]);
-            balance = token.balanceOf(address(this));
+            // use scaledBalanceOf for 
+            balance = token.scaledBalanceOf(address(this));
 
             // there will be dust from rounding here... it can stay in the contract and get accounted for next time.
             uint88 rate = uint88((balance) / period);
@@ -121,12 +116,12 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
             newRates[i] = rate;
             count++;
 
-            ERC20TransferStrategy transferStrategy =
-                ERC20TransferStrategy(controller.getTransferStrategy(rewardTokens[i]));
+            ATokenTransferStrategy transferStrategy =
+                ATokenTransferStrategy(controller.getTransferStrategy(address(token)));
 
             if (address(transferStrategy) == address(0)) {
                 RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
-                transferStrategy = new ERC20TransferStrategy(token, address(controller), address(this));
+                transferStrategy = new ATokenTransferStrategy(IERC20(address(token)), address(controller), address(this), rewardTokens[i], address(getPool()));
                 config[0].emissionPerSecond = 0;
                 config[0].totalSupply = token.totalSupply(); // Not sure if this is correct...
                 config[0].distributionEnd = uint32(block.timestamp + period);
