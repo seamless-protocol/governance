@@ -4,8 +4,8 @@ pragma solidity ^0.8.20;
 import "forge-std/Script.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {RewardsController} from "@aave/periphery-v3/contracts/rewards/RewardsController.sol";
-import {StakedToken} from "../../src/safety-module/StakedToken.sol";
-import {RewardKeeper} from "../../src/safety-module/RewardKeeper.sol";
+import {StakedToken} from "../src/safety-module/StakedToken.sol";
+import {RewardKeeper} from "../src/safety-module/RewardKeeper.sol";
 
 contract SafetyModule is Script {
     function getChainId() public view returns (uint256) {
@@ -51,9 +51,7 @@ contract SafetyModule is Script {
         RewardKeeper implementation2 = new RewardKeeper();
         proxy = new ERC1967Proxy(
             address(implementation2),
-            abi.encodeWithSelector(
-                RewardKeeper.initialize.selector, pool, deployerAddress, address(stkToken), oracle
-            )
+            abi.encodeWithSelector(RewardKeeper.initialize.selector, pool, deployerAddress, address(stkToken), oracle)
         );
         RewardKeeper rewardKeeper = RewardKeeper(address(proxy));
         console.log("Deployed RewardKeeper to: ", address(proxy), " implementation: ", address(implementation2));

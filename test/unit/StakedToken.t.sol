@@ -121,7 +121,9 @@ contract StakedTokenTest is Test {
     function testInitialization() public {
         // Basic check that initialization was correct
         assertEq(stakedToken.asset(), address(underlyingAsset), "Incorrect underlying asset");
-        assertEq(address(stakedToken.getRewardsController()), address(rewardsController), "Incorrect rewards controller");
+        assertEq(
+            address(stakedToken.getRewardsController()), address(rewardsController), "Incorrect rewards controller"
+        );
         assertEq(stakedToken.getCooldown(), defaultCooldown, "Incorrect default cooldown");
         assertEq(stakedToken.getUnstakeWindow(), defaultUnstakeWindow, "Incorrect default unstake window");
 

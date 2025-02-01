@@ -108,6 +108,7 @@ contract SeamGovernor is
     function _getVotes(address account, uint256 timepoint, bytes memory /*params*/ )
         internal
         view
+        virtual
         override(GovernorUpgradeable, GovernorVotesUpgradeable)
         returns (uint256)
     {

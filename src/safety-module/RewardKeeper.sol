@@ -82,7 +82,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
         // claim rewards
         // assume its coming to this contract for now
-        
+
         pool.mintToTreasury(rewardTokens);
 
         // get new Emission rates
