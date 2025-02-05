@@ -39,10 +39,14 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @notice Initializes the token storage and inherited contracts.
-    function initialize(address pool, address initialAdmin, address stkSeam, address oracle, address treasury, address factory)
-        external
-        initializer
-    {
+    function initialize(
+        address pool,
+        address initialAdmin,
+        address stkSeam,
+        address oracle,
+        address treasury,
+        address factory
+    ) external initializer {
         __UUPSUpgradeable_init();
         __Pausable_init();
 
@@ -74,10 +78,15 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @inheritdoc IRewardKeeper
-    function claimLMRewards(address to, address asset) external override isNotZeroAddress(to) onlyRole(MANAGER_ROLE) returns(bool) {
-        
+    function claimLMRewards(address to, address asset)
+        external
+        override
+        isNotZeroAddress(to)
+        onlyRole(MANAGER_ROLE)
+        returns (bool)
+    {
         IRewardsController controller = getController();
-        
+
         address staticAToken = getFactory().getStaticAToken(asset);
         StaticATokenTransferStrategy transferStrategy =
             StaticATokenTransferStrategy(controller.getTransferStrategy(staticAToken));
@@ -86,7 +95,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         }
         transferStrategy.claimRewards(to);
         return true;
-        
     }
 
     /// @inheritdoc IRewardKeeper
@@ -95,10 +103,10 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         address asset = getAsset();
         IPool pool = getPool();
         IRewardsController controller = getController();
-        
+
         address[] memory rewardTokens = pool.getReservesList();
         uint256 period = getPeriod();
-        
+
         period = (((block.timestamp / period) + 1) * period) - block.timestamp;
 
         // check if period has elapsed, update lastClaim
@@ -124,19 +132,18 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
             }
 
             token.transferFrom(getTreasury(), address(this), balance);
-            
+
             // deposit reward tokens
             address staticAToken = getFactory().getStaticAToken(address(rewardTokens[i]));
             token.approve(staticAToken, token.balanceOf(address(this)));
-            try IStaticATokenLM(staticAToken).deposit(token.balanceOf(address(this)), address(this), 0, false) {
-
-            } catch {
+            try IStaticATokenLM(staticAToken).deposit(token.balanceOf(address(this)), address(this), 0, false) {}
+            catch {
                 continue;
             }
-            
+
             token = IERC20(staticAToken);
             balance = token.balanceOf(address(this));
-            
+
             // there will be dust from rounding here... it can stay in the contract and get accounted for next time.
             uint88 rate = uint88((balance) / period);
             if (rate == 0) {
@@ -164,7 +171,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
             // ensures dust is not sent.
             token.transfer(address(transferStrategy), rate * period);
         }
-        
+
         // Iterate through newRates to create new arrays without 0 balances
         uint88[] memory emissionRates = new uint88[](count);
         address[] memory filteredRewardTokens = new address[](count);
@@ -186,7 +193,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
         emit ClaimedAndSetRate(filteredRewardTokens, emissionRates);
     }
-    
+
     /// @inheritdoc IRewardKeeper
     function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt)
         external

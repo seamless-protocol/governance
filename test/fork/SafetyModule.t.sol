@@ -267,7 +267,6 @@
 //                 }
 //                 console.log(rewards[j], " has claimed: ", claimedAmounts[j]);
 //             }
-            
 
 //             for (uint256 j; j < rewardTokens.length; j++) {
 //                 address aToken = pool.getReserveData(rewardTokens[j]).aTokenAddress;
@@ -340,13 +339,13 @@
 //         rewardKeeper.grantRole(keccak256("MANAGER_ROLE"), address(this));
 //         uint256 timesSuccessful;
 //         for (uint256 i; i < rewardTokens.length; i++) {
-            
+
 //             try rewardKeeper.claimLMRewards(address(this), rewardTokens[i]) {
 //                 timesSuccessful++;
 //             } catch {
-                
+
 //             }
-            
+
 //         }
 //         assertTrue(timesSuccessful > 0);
 //     }

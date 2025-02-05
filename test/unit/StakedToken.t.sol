@@ -598,7 +598,7 @@ contract StakedTokenTest is Test {
     //     vm.warp(block.timestamp + 5 days);
     //     rewardKeeper.claimAndSetRate();
     //     IERC20 token1 = IERC20(factory.getStaticAToken(address(mockToken1)));
-        
+
     //     address[] memory assets = new address[](1);
     //     assets[0] = address(stakedToken);
 

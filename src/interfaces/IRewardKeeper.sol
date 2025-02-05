@@ -59,7 +59,7 @@ interface IRewardKeeper {
      * @param amt The amount of tokens to withdraw.
      */
     function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt) external;
-    
+
     /**
      * @notice Performs a manual token withdrawal
      * @dev Caller must have the `MANAGER_ROLE`.

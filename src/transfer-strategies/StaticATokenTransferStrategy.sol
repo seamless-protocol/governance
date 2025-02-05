@@ -33,7 +33,7 @@ contract StaticATokenTransferStrategy is IERC20TransferStrategy, TransferStrateg
         override(ITransferStrategyBase, TransferStrategyBase)
         onlyIncentivesController
         returns (bool)
-    {   
+    {
         if (amount == 0) {
             return true;
         }
