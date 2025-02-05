@@ -11,6 +11,7 @@ interface IRewardKeeper {
     event SetRewardsController(address controller);
     event SetPool(address pool);
     event SetPeriod(uint256 period);
+    event ManualWithdraw(address token, address receiver, uint256 amount);
 
     error ZeroAddress(address target);
     error InsufficientTimeElapsed();
@@ -28,6 +29,13 @@ interface IRewardKeeper {
      * @dev Caller must have the `PAUSER_ROLE`.
      */
     function unpause() external;
+
+    /**
+     * @notice Claims any accrued liquidity rewards from static tokens held in transfer strategy
+     * @dev Caller must have the `MANAGER_ROLE`.
+     * @param to the address of the recipient
+     */
+    function claimLMRewards(address to, address asset) external returns (bool);
 
     /**
      * @notice Claims rewards from the underlying Aave pool, sets new emission rates, and updates state.
@@ -50,6 +58,15 @@ interface IRewardKeeper {
      * @param amt The amount of tokens to withdraw.
      */
     function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt) external;
+    
+    /**
+     * @notice Performs a manual token withdrawal
+     * @dev Caller must have the `MANAGER_ROLE`.
+     * @param token The address of the token to withdraw.
+     * @param to The recipient address for the withdrawn tokens.
+     * @param amt The amount of tokens to withdraw.
+     */
+    function withdrawTokens(address token, address to, uint256 amt) external;
 
     /**
      * @notice Sets a new rewards controller contract.

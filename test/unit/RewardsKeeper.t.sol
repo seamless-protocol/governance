@@ -19,6 +19,7 @@ import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/Paus
 
 import {MockPool} from "../mocks/MockPool.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
+import {MockFactory} from "../mocks/MockFactory.sol";
 
 contract RewardKeeperTest is Test {
     RewardKeeper internal rewardKeeper;
@@ -32,6 +33,7 @@ contract RewardKeeperTest is Test {
     ERC20Mock internal mockToken1;
     ERC20Mock internal mockToken2;
     MockOracle internal oracle;
+    MockFactory internal factory;
 
     // Addresses
     address internal admin = address(0xA11CE);
@@ -74,6 +76,9 @@ contract RewardKeeperTest is Test {
         address a1 = mockPool.setReserveData(address(mockToken1), address(mockToken1));
         address a2 = mockPool.setReserveData(address(mockToken2), address(mockToken2));
 
+        factory = new MockFactory();
+        factory.createStaticATokens(reserves);
+
         RewardKeeper implementation = new RewardKeeper();
         ERC1967Proxy proxy = new ERC1967Proxy(
             address(implementation),
@@ -83,7 +88,8 @@ contract RewardKeeperTest is Test {
                 admin,
                 address(stkSEAM),
                 address(oracle),
-                treasury
+                treasury,
+                address(factory)
             )
         );
         rewardKeeper = RewardKeeper(address(proxy));
@@ -286,17 +292,20 @@ contract RewardKeeperTest is Test {
         // Wait 1 day
         vm.warp(block.timestamp + 1 days + 1);
 
+        address sa1 = factory.getStaticAToken(address(mockToken1));
+        address sa2 = factory.getStaticAToken(address(mockToken2));
+
         // Initially, no strategy for mockToken1 or mockToken2
-        assertEq(rewardsController.getTransferStrategy(address(mockToken1)), address(0), "Should be no strategy");
-        assertEq(rewardsController.getTransferStrategy(address(mockToken2)), address(0), "Should be no strategy");
+        assertEq(rewardsController.getTransferStrategy(sa1), address(0), "Should be no strategy");
+        assertEq(rewardsController.getTransferStrategy(sa2), address(0), "Should be no strategy");
 
         // call claimAndSetRate
         vm.prank(address(this));
         rewardKeeper.claimAndSetRate();
 
         // Now, each should have a newly created ERC20TransferStrategy
-        address strategy1 = rewardsController.getTransferStrategy(address(mockToken1));
-        address strategy2 = rewardsController.getTransferStrategy(address(mockToken2));
+        address strategy1 = rewardsController.getTransferStrategy(sa1);
+        address strategy2 = rewardsController.getTransferStrategy(sa2);
 
         assertTrue(strategy1 != address(0), "Strategy1 not set");
         assertTrue(strategy2 != address(0), "Strategy2 not set");
@@ -317,14 +326,11 @@ contract RewardKeeperTest is Test {
         vm.startPrank(address(this));
         rewardKeeper.claimAndSetRate();
 
-        mockToken1.transfer(address(mockPool), 1 ether);
-        mockToken2.transfer(address(mockPool), 1 ether);
+        address sa1 = factory.getStaticAToken(address(mockToken1));
+        address sa2 = factory.getStaticAToken(address(mockToken2));
 
-        address strategy1 = rewardsController.getTransferStrategy(address(mockToken1));
-        address strategy2 = rewardsController.getTransferStrategy(address(mockToken2));
-
-        mockToken1.transfer(strategy1, 500_000 ether);
-        mockToken2.transfer(strategy2, 200_000 ether);
+        address strategy1 = rewardsController.getTransferStrategy(sa1);
+        address strategy2 = rewardsController.getTransferStrategy(sa2);
 
         vm.stopPrank();
 
@@ -337,12 +343,24 @@ contract RewardKeeperTest is Test {
         rewardKeeper.emergencyWithdrawalFromTransferStrategy(address(11), admin, 500_000 ether);
 
         vm.expectRevert(); // insufficient funds
-        rewardKeeper.emergencyWithdrawalFromTransferStrategy(address(mockToken1), address(admin), 500_001_000 ether);
+        rewardKeeper.emergencyWithdrawalFromTransferStrategy(sa1, address(admin), 500_001_000 ether);
 
-        uint256 balBefore = mockToken1.balanceOf(admin);
-        rewardKeeper.emergencyWithdrawalFromTransferStrategy(address(mockToken1), address(admin), 500_000 ether);
-        uint256 balAfter = mockToken1.balanceOf(admin);
+        uint256 balBefore = IERC20(sa1).balanceOf(admin);
+        rewardKeeper.emergencyWithdrawalFromTransferStrategy(sa1, address(admin), 1 ether);
+        uint256 balAfter = IERC20(sa1).balanceOf(admin);
 
-        assertEq(balAfter, balBefore + 500_000 ether, "Withdrawal failed");
+        assertEq(balAfter, balBefore + 1 ether, "Withdrawal failed");
+    }
+
+    function testWithdrawTokens() public {
+        mockToken1.transfer(address(rewardKeeper), 100);
+        vm.expectRevert();
+        rewardKeeper.withdrawTokens(address(mockToken1), address(this), 100);
+
+        vm.prank(admin);
+        rewardKeeper.withdrawTokens(address(mockToken1), admin, 100);
+
+        uint256 balAdmin = mockToken1.balanceOf(admin);
+        assertEq(balAdmin, 100, "Wrong balance");
     }
 }

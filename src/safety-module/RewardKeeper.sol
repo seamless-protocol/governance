@@ -15,9 +15,9 @@ import {RewardsDataTypes} from "@aave/periphery-v3/contracts/rewards/libraries/R
 import {DataTypes} from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
 import {RewardKeeperStorage as Storage} from "../storage/RewardKeeperStorage.sol";
 import {IRewardKeeper} from "../interfaces/IRewardKeeper.sol";
-import {ERC20TransferStrategy} from "../transfer-strategies/ERC20TransferStrategy.sol";
-import {IStaticATokenFactory} from "static-a-token-v3/src/interfaces/IStaticATokenFactory.sol";
-import {StaticATokenLM} from "static-a-token-v3/src/StaticATokenLM.sol";
+import {StaticATokenTransferStrategy} from "../transfer-strategies/StaticATokenTransferStrategy.sol";
+import {IStaticATokenFactory} from "../interfaces/IStaticATokenFactory.sol";
+import {IStaticATokenLM} from "../interfaces/IStaticATokenLM.sol";
 
 contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable, IRewardKeeper {
     using SafeERC20 for IERC20;
@@ -71,12 +71,27 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         _unpause();
     }
 
+    function claimLMRewards(address to, address asset) external override isNotZeroAddress(to) onlyRole(MANAGER_ROLE) returns(bool) {
+        
+        IRewardsController controller = getController();
+        
+        address staticAToken = getFactory().getStaticAToken(asset);
+        StaticATokenTransferStrategy transferStrategy =
+            StaticATokenTransferStrategy(controller.getTransferStrategy(staticAToken));
+        if (address(transferStrategy) == address(0)) {
+            return false;
+        }
+        transferStrategy.claimRewards(to);
+        return true;
+        
+    }
+
     function claimAndSetRate() external override whenNotPaused {
         Storage.Layout storage $ = Storage.layout();
-
+        address asset = getAsset();
         IPool pool = getPool();
         IRewardsController controller = getController();
-        address asset = getAsset();
+        
         address[] memory rewardTokens = pool.getReservesList();
         uint256 period = getPeriod();
         
@@ -98,22 +113,26 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         for (uint8 i; i < rewardTokens.length; i++) {
             // DataTypes.ReserveData memory data = pool.getReserveData(rewardTokens[i]);
             IERC20 token = IERC20(pool.getReserveData(rewardTokens[i]).aTokenAddress);
-            address treasury = getTreasury();
-            uint256 balance = token.balanceOf(treasury);
+            // address treasury = getTreasury();
+            uint256 balance = token.balanceOf(getTreasury());
             if (balance == 0) {
                 continue;
             }
 
-            //TODO: try moving this to end
-            token.transferFrom(treasury, address(this), balance);
+            token.transferFrom(getTreasury(), address(this), balance);
             
             // deposit reward tokens
-            StaticATokenLM(getFactory().getStaticAToken(address(token))).deposit(token.balanceOf(address(this)), address(this));
+            address staticAToken = getFactory().getStaticAToken(address(rewardTokens[i]));
+            token.approve(staticAToken, token.balanceOf(address(this)));
+            try IStaticATokenLM(staticAToken).deposit(token.balanceOf(address(this)), address(this), 0, false) {
 
-            // reuse variables
-            token = IERC20(getFactory().getStaticAToken(address(token)));
+            } catch {
+                continue;
+            }
+            
+            token = IERC20(staticAToken);
             balance = token.balanceOf(address(this));
-
+            
             // there will be dust from rounding here... it can stay in the contract and get accounted for next time.
             uint88 rate = uint88((balance) / period);
             if (rate == 0) {
@@ -122,12 +141,12 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
             newRates[i] = rate;
             count++;
 
-            ERC20TransferStrategy transferStrategy =
-                ERC20TransferStrategy(controller.getTransferStrategy(address(token)));
+            StaticATokenTransferStrategy transferStrategy =
+                StaticATokenTransferStrategy(controller.getTransferStrategy(address(token)));
 
             if (address(transferStrategy) == address(0)) {
                 RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
-                transferStrategy = new ERC20TransferStrategy(token, address(controller), address(this));
+                transferStrategy = new StaticATokenTransferStrategy(token, address(controller), address(this));
                 config[0].emissionPerSecond = 0;
                 config[0].totalSupply = token.totalSupply(); // Not sure if this is correct...
                 config[0].distributionEnd = uint32(block.timestamp + period);
@@ -141,15 +160,16 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
             // ensures dust is not sent.
             token.transfer(address(transferStrategy), rate * period);
         }
-
+        
         // Iterate through newRates to create new arrays without 0 balances
         uint88[] memory emissionRates = new uint88[](count);
         address[] memory filteredRewardTokens = new address[](count);
+        IStaticATokenFactory factory = getFactory();
         uint256 j;
         for (uint256 k; k < newRates.length; k++) {
             if (newRates[k] > 0) {
                 emissionRates[j] = newRates[k];
-                filteredRewardTokens[j] = rewardTokens[k];
+                filteredRewardTokens[j] = factory.getStaticAToken(rewardTokens[k]);
                 j++;
             }
         }
@@ -162,7 +182,8 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
         emit ClaimedAndSetRate(filteredRewardTokens, emissionRates);
     }
-
+    error FAIL(uint256 count);
+    
     function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt)
         external
         override
@@ -173,6 +194,11 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         address transferStrategy = getController().getTransferStrategy(token);
         if (transferStrategy == address(0)) revert TransferStrategyNotSet();
         ITransferStrategyBase(transferStrategy).emergencyWithdrawal(token, to, amt);
+    }
+
+    function withdrawTokens(address token, address to, uint256 amt) external override onlyRole(MANAGER_ROLE) {
+        IERC20(token).safeTransfer(to, amt);
+        emit ManualWithdraw(token, to, amt);
     }
 
     function setRewardsController(address controller)
@@ -208,7 +234,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         return Storage.layout().oracle;
     }
 
-    function getFactory() public view override returns (IStaticATokenFactory) {
+    function getFactory() public view returns (IStaticATokenFactory) {
         return Storage.layout().factory;
     }
 
