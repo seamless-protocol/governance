@@ -63,14 +63,17 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
 
+    /// @inheritdoc IRewardKeeper
     function pause() external override onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
+    /// @inheritdoc IRewardKeeper
     function unpause() external override onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 
+    /// @inheritdoc IRewardKeeper
     function claimLMRewards(address to, address asset) external override isNotZeroAddress(to) onlyRole(MANAGER_ROLE) returns(bool) {
         
         IRewardsController controller = getController();
@@ -86,6 +89,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         
     }
 
+    /// @inheritdoc IRewardKeeper
     function claimAndSetRate() external override whenNotPaused {
         Storage.Layout storage $ = Storage.layout();
         address asset = getAsset();
@@ -182,8 +186,8 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
         emit ClaimedAndSetRate(filteredRewardTokens, emissionRates);
     }
-    error FAIL(uint256 count);
     
+    /// @inheritdoc IRewardKeeper
     function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt)
         external
         override
@@ -196,11 +200,13 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         ITransferStrategyBase(transferStrategy).emergencyWithdrawal(token, to, amt);
     }
 
+    /// @inheritdoc IRewardKeeper
     function withdrawTokens(address token, address to, uint256 amt) external override onlyRole(MANAGER_ROLE) {
         IERC20(token).safeTransfer(to, amt);
         emit ManualWithdraw(token, to, amt);
     }
 
+    /// @inheritdoc IRewardKeeper
     function setRewardsController(address controller)
         external
         override
@@ -211,49 +217,60 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         emit SetRewardsController(controller);
     }
 
+    /// @inheritdoc IRewardKeeper
     function setPool(address newPool) external override isNotZeroAddress(newPool) onlyRole(MANAGER_ROLE) {
         Storage.layout().pool = IPool(newPool);
         emit SetPool(newPool);
     }
 
+    /// @inheritdoc IRewardKeeper
     function setPeriod(uint256 newPeriod) external override onlyRole(MANAGER_ROLE) {
         if (newPeriod == 0) revert InvalidPeriod();
         Storage.layout().period = newPeriod;
         emit SetPeriod(newPeriod);
     }
 
+    /// @inheritdoc IRewardKeeper
     function getController() public view override returns (IRewardsController) {
         return Storage.layout().controller;
     }
 
+    /// @inheritdoc IRewardKeeper
     function getPool() public view override returns (IPool) {
         return Storage.layout().pool;
     }
 
+    /// @inheritdoc IRewardKeeper
     function getOracle() public view override returns (IEACAggregatorProxy) {
         return Storage.layout().oracle;
     }
 
+    /// @inheritdoc IRewardKeeper
     function getFactory() public view returns (IStaticATokenFactory) {
         return Storage.layout().factory;
     }
 
+    /// @inheritdoc IRewardKeeper
     function getAsset() public view override returns (address) {
         return Storage.layout().asset;
     }
 
+    /// @inheritdoc IRewardKeeper
     function getPeriod() public view override returns (uint256) {
         return Storage.layout().period;
     }
 
+    /// @inheritdoc IRewardKeeper
     function getPreviousPeriod() public view override returns (uint256) {
         return Storage.layout().previousPeriod;
     }
 
+    /// @inheritdoc IRewardKeeper
     function getLastClaim() public view override returns (uint256) {
         return Storage.layout().lastClaim;
     }
 
+    /// @inheritdoc IRewardKeeper
     function getTreasury() public view override returns (address) {
         return Storage.layout().treasury;
     }

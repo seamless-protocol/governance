@@ -76,34 +76,34 @@ contract StakedToken is
     /// @inheritdoc UUPSUpgradeable
     function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
 
+    /// @inheritdoc IStakedToken
     function scaledTotalSupply() external view returns (uint256) {
         return totalSupply();
     }
 
+    /// @inheritdoc IStakedToken
     function getScaledUserBalanceAndSupply(address user) external view returns (uint256, uint256) {
         return (balanceOf(user), totalSupply());
     }
 
+    /// @inheritdoc IStakedToken
     function pause() external override onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
+    /// @inheritdoc IStakedToken
     function unpause() external override onlyRole(PAUSER_ROLE) {
         _unpause();
     }
 
+    /// @inheritdoc IStakedToken
     function emergencyWithdrawal(address to, uint256 amt) external override onlyRole(MANAGER_ROLE) {
         IERC20(asset()).safeTransfer(to, amt);
         emit EmergencyWithdraw(to, amt);
     }
 
     // Cooldown
-
-    /**
-     * @dev Begins the cooldown period to unstake
-     * @notice Requires an active stake to activate
-     *
-     */
+    /// @inheritdoc IStakedToken
     function cooldown() external override {
         if (balanceOf(msg.sender) == 0) revert InsufficientStake();
         Storage.layout().stakersCooldowns[msg.sender] = block.timestamp;
@@ -111,21 +111,7 @@ contract StakedToken is
         emit Cooldown(msg.sender);
     }
 
-    /**
-     * @dev Calculates the how is gonna be a new cooldown timestamp depending on the sender/receiver situation
-     *  - If the timestamp of the sender is "better" or the timestamp of the recipient is 0, we take the one of the recipient
-     *  - Weighted average of from/to cooldown timestamps if:
-     *    # The sender doesn't have the cooldown activated (timestamp 0).
-     *    # The sender timestamp is expired
-     *    # The sender has a "worse" timestamp
-     *  - If the receiver's cooldown timestamp expired (too old), the next is 0
-     * @param fromCooldownTimestamp Cooldown timestamp of the sender
-     * @param amountToReceive Amount
-     * @param toAddress Address of the recipient
-     * @param toBalance Current balance of the receiver
-     * @return The new cooldown timestamp
-     *
-     */
+    /// @inheritdoc IStakedToken
     function getNextCooldownTimestamp(
         uint256 fromCooldownTimestamp,
         uint256 amountToReceive,
@@ -157,6 +143,15 @@ contract StakedToken is
         return toCooldownTimestamp;
     }
 
+    /**
+     * @dev override of ERC4626 Withdraw
+     * @notice adds validate cooldown before withdraw and pausable
+     * @param caller address of caller
+     * @param receiver address to receive
+     * @param owner token owner
+     * @param assets amount of asset to withdraw
+     * @param shares the amount of shares to burn
+     */
     function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
         internal
         virtual
@@ -167,7 +162,14 @@ contract StakedToken is
         super._withdraw(caller, receiver, owner, assets, shares);
     }
 
-    // override _deposit to revert if contract is paused
+    /**
+     * @dev override of ERC4626 deposit
+     * @notice adds pausable
+     * @param caller address of caller
+     * @param receiver address to receive
+     * @param assets amount of asset to deposit
+     * @param shares the amount of shares to mint
+     */
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares)
         internal
         virtual
@@ -177,6 +179,10 @@ contract StakedToken is
         super._deposit(caller, receiver, assets, shares);
     }
 
+    /**
+     * @dev ensures the user's cooldown has correctly elapsed
+     * @param user address of user
+     */
     function _validateCooldown(address user) internal view {
         uint256 cooldownStartTimestamp = getStakerCooldown(user);
         if (cooldownStartTimestamp == 0) revert CooldownNotInitiated();
@@ -194,6 +200,7 @@ contract StakedToken is
         }
     }
 
+    /// @inheritdoc IStakedToken
     function decimals()
         public
         view
@@ -204,6 +211,7 @@ contract StakedToken is
         return super.decimals();
     }
 
+    /// @inheritdoc IStakedToken
     function nonces(address owner)
         public
         view
@@ -214,7 +222,13 @@ contract StakedToken is
         return super.nonces(owner);
     }
 
-    // _update override
+    /**
+     * @dev override of ERC20 update
+     * @notice adds custom logic to transfers (handling action on reward controller)
+     * @param from sending address
+     * @param to receiving address
+     * @param value amount of tokens to transfer
+     */
     function _update(address from, address to, uint256 value)
         internal
         override(ERC20Upgradeable, ERC20VotesUpgradeable)
@@ -246,6 +260,12 @@ contract StakedToken is
         super._update(from, to, value);
     }
 
+    /**
+     * @dev triggers the reward controller to update reward indexes
+     * @param user address of user
+     * @param totalSupply supply of stakedToken
+     * @param oldUserBalance previous balance of user
+     */
     function _handleAction(address user, uint256 totalSupply, uint256 oldUserBalance) internal {
         if (address(getRewardsController()) == address(0)) {
             return;
@@ -254,6 +274,7 @@ contract StakedToken is
     }
 
     // Admin Functions
+    /// @inheritdoc IStakedToken
     function setController(address newController)
         external
         override
@@ -264,6 +285,7 @@ contract StakedToken is
         emit RewardsControllerSet(newController);
     }
 
+    /// @inheritdoc IStakedToken
     function setTimers(uint256 _cooldown, uint256 _unstake) external override onlyRole(MANAGER_ROLE) {
         Storage.Layout storage $ = Storage.layout();
         $.cooldownSeconds = _cooldown;
@@ -273,18 +295,22 @@ contract StakedToken is
     }
 
     // Storage getters
+    /// @inheritdoc IStakedToken
     function getCooldown() public view override returns (uint256) {
         return Storage.layout().cooldownSeconds;
     }
 
+    /// @inheritdoc IStakedToken
     function getUnstakeWindow() public view override returns (uint256) {
         return Storage.layout().unstakeWindow;
     }
 
+    /// @inheritdoc IStakedToken
     function getStakerCooldown(address user) public view override returns (uint256) {
         return Storage.layout().stakersCooldowns[user];
     }
 
+    /// @inheritdoc IStakedToken
     function getRewardsController() public view override returns (IRewardsController) {
         return Storage.layout().rewardsController;
     }

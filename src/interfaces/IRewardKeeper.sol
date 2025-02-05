@@ -5,6 +5,7 @@ import {RewardKeeperStorage as Storage} from "../storage/RewardKeeperStorage.sol
 import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
+import {IStaticATokenFactory} from "./IStaticATokenFactory.sol";
 
 interface IRewardKeeper {
     event ClaimedAndSetRate(address[] rewards, uint88[] rates);
@@ -136,4 +137,10 @@ interface IRewardKeeper {
      * @return treasury address.
      */
     function getTreasury() external view returns (address);
+
+    /**
+     * @notice Returns the static AToken factory interface.
+     * @return factory interface.
+     */
+    function getFactory() external view returns (IStaticATokenFactory);
 }
