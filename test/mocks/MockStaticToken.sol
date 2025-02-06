@@ -18,4 +18,8 @@ contract StaticERC20Mock is ERC20 {
         _mint(to, amount);
         return amount;
     }
+
+    function previewDeposit(uint256 assets) public view virtual returns (uint256) {
+        return assets;
+    }
 }

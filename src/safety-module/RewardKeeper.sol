@@ -17,7 +17,7 @@ import {RewardKeeperStorage as Storage} from "../storage/RewardKeeperStorage.sol
 import {IRewardKeeper} from "../interfaces/IRewardKeeper.sol";
 import {StaticATokenTransferStrategy} from "../transfer-strategies/StaticATokenTransferStrategy.sol";
 import {IStaticATokenFactory} from "static-a-token-v3/src/interfaces/IStaticATokenFactory.sol";
-import {IStaticATokenLM} from "static-a-token-v3/src/interfaces/IStaticATokenLM.sol";
+import {StaticATokenLM} from "static-a-token-v3/src/StaticATokenLM.sol";
 
 contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable, IRewardKeeper {
     using SafeERC20 for IERC20;
@@ -120,53 +120,53 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
         // get new Emission rates
         uint88[] memory newRates = new uint88[](rewardTokens.length);
+
         // count for >0 balances
         uint256 count;
         for (uint8 i; i < rewardTokens.length; i++) {
-            // DataTypes.ReserveData memory data = pool.getReserveData(rewardTokens[i]);
             IERC20 token = IERC20(pool.getReserveData(rewardTokens[i]).aTokenAddress);
-            // address treasury = getTreasury();
+            
             uint256 balance = token.balanceOf(getTreasury());
             if (balance == 0) {
                 continue;
             }
 
+            // Transfer and deposit tokens
+            // Must occur before calculating rate in order to satisfy all reward types
+            StaticATokenLM staticToken = StaticATokenLM(getFactory().getStaticAToken(address(rewardTokens[i])));
             token.transferFrom(getTreasury(), address(this), balance);
-
-            // deposit reward tokens
-            address staticAToken = getFactory().getStaticAToken(address(rewardTokens[i]));
-            token.approve(staticAToken, token.balanceOf(address(this)));
-            IStaticATokenLM(staticAToken).deposit(token.balanceOf(address(this)), address(this), 0, false);
-
-            token = IERC20(staticAToken);
-            balance = token.balanceOf(address(this));
+            token.approve(address(staticToken), token.balanceOf(address(this)));
+            staticToken.deposit(token.balanceOf(address(this)), address(this), 0, false);
 
             // there will be dust from rounding here... it can stay in the contract and get accounted for next time.
-            uint88 rate = uint88((balance) / period);
-            if (rate == 0) {
+            newRates[i] = uint88(staticToken.balanceOf(address(this)) / period); // uint88((balance) / period);
+
+            // if rate is 0, claim amount too small. Leave in contract for next time.
+            // note: We could move all transfers to end of loop, which is preferred, but rate calculation and this check would have to occur
+            // at the end as well, meaning we would be deploying/activating a transfer strategy even if this loop should skip.
+            if (newRates[i] == 0) {
                 continue;
             }
-            newRates[i] = rate;
             count++;
 
             StaticATokenTransferStrategy transferStrategy =
-                StaticATokenTransferStrategy(controller.getTransferStrategy(address(token)));
+                StaticATokenTransferStrategy(controller.getTransferStrategy(address(staticToken)));
 
             if (address(transferStrategy) == address(0)) {
                 RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
-                transferStrategy = new StaticATokenTransferStrategy(token, address(controller), address(this));
+                transferStrategy = new StaticATokenTransferStrategy(IERC20(address(staticToken)), address(controller), address(this));
                 config[0].emissionPerSecond = 0;
-                config[0].totalSupply = token.totalSupply(); // Not sure if this is correct...
+                config[0].totalSupply = StaticATokenLM(address(staticToken)).totalSupply(); 
                 config[0].distributionEnd = uint32(block.timestamp + period);
                 config[0].asset = asset;
-                config[0].reward = address(token);
+                config[0].reward = address(staticToken);
                 config[0].transferStrategy = ITransferStrategyBase(address(transferStrategy));
                 config[0].rewardOracle = $.oracle;
                 controller.configureAssets(config);
             }
 
             // ensures dust is not sent.
-            token.transfer(address(transferStrategy), rate * period);
+            staticToken.transfer(address(transferStrategy), newRates[i] * period);
         }
 
         // Iterate through newRates to create new arrays without 0 balances
