@@ -33,7 +33,7 @@ contract SeamGovernorV2Upgrade is Test {
         address user1 = makeAddr("user1");
 
         seam.exposed_mint(user1, seamAmount);
-        
+
         vm.startPrank(user1);
 
         seam.delegate(user1);
