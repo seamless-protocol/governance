@@ -16,8 +16,8 @@ import {DataTypes} from "@aave/core-v3/contracts/protocol/libraries/types/DataTy
 import {RewardKeeperStorage as Storage} from "../storage/RewardKeeperStorage.sol";
 import {IRewardKeeper} from "../interfaces/IRewardKeeper.sol";
 import {StaticATokenTransferStrategy} from "../transfer-strategies/StaticATokenTransferStrategy.sol";
-import {IStaticATokenFactory} from "../interfaces/IStaticATokenFactory.sol";
-import {IStaticATokenLM} from "../interfaces/IStaticATokenLM.sol";
+import {IStaticATokenFactory} from "static-a-token-v3/src/interfaces/IStaticATokenFactory.sol";
+import {IStaticATokenLM} from "static-a-token-v3/src/interfaces/IStaticATokenLM.sol";
 
 contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable, IRewardKeeper {
     using SafeERC20 for IERC20;
@@ -136,10 +136,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
             // deposit reward tokens
             address staticAToken = getFactory().getStaticAToken(address(rewardTokens[i]));
             token.approve(staticAToken, token.balanceOf(address(this)));
-            try IStaticATokenLM(staticAToken).deposit(token.balanceOf(address(this)), address(this), 0, false) {}
-            catch {
-                continue;
-            }
+            IStaticATokenLM(staticAToken).deposit(token.balanceOf(address(this)), address(this), 0, false);
 
             token = IERC20(staticAToken);
             balance = token.balanceOf(address(this));

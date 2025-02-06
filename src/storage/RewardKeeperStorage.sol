@@ -5,7 +5,7 @@ import {IEmissionManager} from "@aave/periphery-v3/contracts/rewards/interfaces/
 import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
 import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
-import {IStaticATokenFactory} from "../interfaces/IStaticATokenFactory.sol";
+import {IStaticATokenFactory} from "static-a-token-v3/src/interfaces/IStaticATokenFactory.sol";
 
 library RewardKeeperStorage {
     struct Layout {

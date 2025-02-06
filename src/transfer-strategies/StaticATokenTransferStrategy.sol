@@ -6,7 +6,7 @@ import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol"
 import {IERC20TransferStrategy} from "../interfaces/IERC20TransferStrategy.sol";
 import {ITransferStrategyBase} from "../interfaces/ITransferStrategyBase.sol";
 import {TransferStrategyBase} from "./TransferStrategyBase.sol";
-import {IStaticATokenLM} from "../interfaces/IStaticATokenLM.sol";
+import {IStaticATokenLM} from "static-a-token-v3/src/interfaces/IStaticATokenLM.sol";
 
 /// @title ERC20 transfer strategy
 /// @notice Transfer strategy for the ERC20 token

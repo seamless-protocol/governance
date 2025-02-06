@@ -5,6 +5,9 @@ openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contr
 openzeppelin-contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts
 @aave/core-v3/=lib/aave-v3-core/
 @aave/periphery-v3/=lib/aave-v3-periphery/
-
+static-a-token-v3=lib/static-a-token-v3
+staticLib=lib/static-a-token-v3/lib
+solidity-utils/contracts=lib/static-a-token-v3/lib/aave-helpers/lib/solidity-utils/src/contracts
+aave-v3-periphery/contracts=lib/static-a-token-v3/lib/aave-v3-periphery/contracts
 
 
