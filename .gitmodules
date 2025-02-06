@@ -10,3 +10,6 @@
 [submodule "lib/aave-v3-periphery"]
 	path = lib/aave-v3-periphery
 	url = https://github.com/seamless-protocol/aave-v3-periphery
+[submodule "lib/static-a-token-v3"]
+	path = lib/static-a-token-v3
+	url = https://github.com/seamless-protocol/static-a-token-v3
