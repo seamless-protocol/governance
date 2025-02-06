@@ -6,8 +6,6 @@ import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol"
 import {IERC20TransferStrategy} from "../interfaces/IERC20TransferStrategy.sol";
 import {ITransferStrategyBase} from "../interfaces/ITransferStrategyBase.sol";
 
-
-
 /// @title ERC20 transfer strategy
 /// @notice Transfer strategy for the ERC20 token
 /// @dev This contract should be used in order to claim ERC20 tokens for users.
@@ -15,6 +13,6 @@ import {ITransferStrategyBase} from "../interfaces/ITransferStrategyBase.sol";
 interface IStaticATokenTransferStrategy is ITransferStrategyBase {
     event RewardsClaimed(address rewardAddress, uint256 amount);
     event PerformTransfer(address indexed to, uint256 amount);
-    
+
     function claimRewards(address to, address reward) external;
 }

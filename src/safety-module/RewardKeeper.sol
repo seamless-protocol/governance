@@ -132,7 +132,8 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
             // Transfer and deposit tokens
             // Must occur before calculating rate in order to satisfy all reward types
-            StaticATokenLM staticToken = StaticATokenLM(getStaticATokenFactory().getStaticAToken(address(rewardTokens[i])));
+            StaticATokenLM staticToken =
+                StaticATokenLM(getStaticATokenFactory().getStaticAToken(address(rewardTokens[i])));
             token.transferFrom(getTreasury(), address(this), balance);
             token.approve(address(staticToken), token.balanceOf(address(this)));
             staticToken.deposit(token.balanceOf(address(this)), address(this), 0, false);

@@ -49,8 +49,6 @@ contract SeamForkTest is Test {
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
-    
-
     function setUp() public {
         vm.createSelectFork(vm.envString("FORK_URL"), 25298789);
 
@@ -303,7 +301,7 @@ contract SeamForkTest is Test {
                 if (IERC20(aToken).balanceOf(player) > 0) {
                     try pool.withdraw(rewardTokens[j], type(uint256).max, player) {} // this is to activate treasury accrual
                     catch {
-                        console.log("Failed withdraw at: ", aToken); 
+                        console.log("Failed withdraw at: ", aToken);
                     }
                 }
             }
@@ -379,13 +377,10 @@ contract SeamForkTest is Test {
 
                 // 2. Call the function using a low-level call to avoid reverting the entire test
                 //    if `claimLMRewards` fails. (Alternatively, you can use try/catch.)
-                
-                (bool success, ) = address(rewardKeeper).call(
+
+                (bool success,) = address(rewardKeeper).call(
                     abi.encodeWithSelector(
-                        rewardKeeper.claimLMRewards.selector,
-                        address(this),
-                        rewardTokens[i],
-                        rewards[k]
+                        rewardKeeper.claimLMRewards.selector, address(this), rewardTokens[i], rewards[k]
                     )
                 );
 
@@ -395,37 +390,31 @@ contract SeamForkTest is Test {
 
                     // 3. Now retrieve the logs emitted during the call
                     Vm.Log[] memory entries = vm.getRecordedLogs();
-                    bytes32 transferSig = keccak256("Transfer(address,address,uint256)"); 
-                    // If your Transfer event is ERC20-standard, that's the signature. 
+                    bytes32 transferSig = keccak256("Transfer(address,address,uint256)");
+                    // If your Transfer event is ERC20-standard, that's the signature.
                     // Or if you have a different Transfer signature, use keccak256(...) accordingly.
 
                     for (uint256 j = 0; j < entries.length; j++) {
                         // The address that emitted the event (important if multiple contracts can emit Transfer)
                         address emitter = entries[j].emitter;
 
-                        // Check if it's from the contract we expect (rewardToken) 
+                        // Check if it's from the contract we expect (rewardToken)
                         // and if it matches the standard ERC20 Transfer signature.
-                        if (
-                            emitter == rewards[k] && 
-                            entries[j].topics[0] == transferSig
-                        ) {
+                        if (emitter == rewards[k] && entries[j].topics[0] == transferSig) {
                             // For an ERC20 Transfer event, from/to are indexed, so they appear in topics[1] and topics[2].
                             // address from = address(uint160(uint256(entries[i].topics[1])));
-                            address to   = address(uint160(uint256(entries[j].topics[2])));
+                            address to = address(uint160(uint256(entries[j].topics[2])));
 
                             // The `amount` is non-indexed and sits in the data field.
                             // uint256 amount = abi.decode(entries[i].data, (uint256));
 
                             // Check that the parameters match exactly what you expect
                             assertTrue(to == address(this), "sent to wrong address");
-
                         }
                     }
-                    
                 }
             }
             assertTrue(timesSuccessful > 0, "Not successful");
         }
-        
     }
 }
