@@ -22,10 +22,9 @@ import {IStaticATokenLM} from "static-a-token-v3/src/interfaces/IStaticATokenLM.
 import {TransparentUpgradeableProxy} from "solidity-utils/contracts/transparent-proxy/TransparentUpgradeableProxy.sol";
 import {ITransparentProxyFactory} from
     "solidity-utils/contracts/transparent-proxy/interfaces/ITransparentProxyFactory.sol";
-import {StaticATokenFactoryUpgrade} from "../upgrade/StaticATokenFactoryUpgrade.sol";
-import {StaticATokenLMHarness} from "../upgrade/StaticATokenLMHarness.sol";
-import {StaticATokenLMUpgrade} from "../upgrade/StaticATokenLMUpgrade.sol";
+import {StaticATokenLMHarness} from "static-a-token-v3/tests/harness/StaticATokenLMHarness.sol";
 import {StaticATokenLM} from "static-a-token-v3/src/StaticATokenLM.sol";
+import {StaticATokenFactory} from "static-a-token-v3/src/StaticATokenFactory.sol";
 
 contract SeamForkTest is Test {
     Seam public SEAM = Seam(Constants.SEAM_ADDRESS);
@@ -43,19 +42,21 @@ contract SeamForkTest is Test {
     address internal upgradeAdmin = address(0xBABE);
     AaveEcosystemReserveV2 internal treasury = AaveEcosystemReserveV2(payable(Constants.TREASURY_ADDRESS));
     address internal asset = address(Constants.SEAM_ADDRESS);
-    address internal factory = address(Constants.STATIC_FACTORY);
+    address internal factory = address(Constants.STATIC_ATOKEN_FACTORY);
 
     // Roles (same as in the contract, for convenience)
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
-    // for static AToken upgrade
-    StaticATokenLMHarness staticATokenImplementation;
-    StaticATokenFactoryUpgrade staticATokenFactoryImplementation;
+    
 
     function setUp() public {
         vm.createSelectFork(vm.envString("FORK_URL"), 25298789);
+
+        // for static AToken upgrade
+        StaticATokenLMHarness staticATokenImplementation;
+        StaticATokenFactory staticATokenFactoryImplementation;
 
         // deploy stkSEAM
         StakedToken imp = new StakedToken();
@@ -102,7 +103,7 @@ contract SeamForkTest is Test {
         vm.stopPrank();
 
         staticATokenImplementation = new StaticATokenLMHarness(pool, IRewardsController(Constants.REWARDS_CONTROLLER));
-        staticATokenFactoryImplementation = new StaticATokenFactoryUpgrade(
+        staticATokenFactoryImplementation = new StaticATokenFactory(
             pool,
             Constants.SHORT_TIMELOCK_ADDRESS,
             ITransparentProxyFactory(Constants.TRANSPARENT_PROXY_FACTORY),
@@ -112,7 +113,7 @@ contract SeamForkTest is Test {
         vm.startPrank(Constants.SHORT_TIMELOCK_ADDRESS);
         for (uint256 i = 0; i < tokens.length; i++) {
             TransparentUpgradeableProxy(payable(tokens[i])).upgradeToAndCall(
-                address(staticATokenImplementation), abi.encodeWithSelector(StaticATokenLMUpgrade.initializeV2.selector)
+                address(staticATokenImplementation), abi.encodeWithSelector(StaticATokenLM.initializeV2.selector)
             );
         }
         TransparentUpgradeableProxy(payable(factory)).upgradeTo(address(staticATokenFactoryImplementation));
@@ -300,9 +301,9 @@ contract SeamForkTest is Test {
             for (uint256 j; j < rewardTokens.length; j++) {
                 address aToken = pool.getReserveData(rewardTokens[j]).aTokenAddress;
                 if (IERC20(aToken).balanceOf(player) > 0) {
-                    try pool.withdraw(rewardTokens[j], type(uint256).max, player) {}
+                    try pool.withdraw(rewardTokens[j], type(uint256).max, player) {} // this is to activate treasury accrual
                     catch {
-                        console.log("Failed withdraw at: ", aToken); // this is to activate treasury accrual
+                        console.log("Failed withdraw at: ", aToken); 
                     }
                 }
             }

@@ -142,5 +142,5 @@ interface IRewardKeeper {
      * @notice Returns the static AToken factory interface.
      * @return factory interface.
      */
-    function getFactory() external view returns (IStaticATokenFactory);
+    function getStaticATokenFactory() external view returns (IStaticATokenFactory);
 }

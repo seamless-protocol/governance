@@ -25,7 +25,7 @@ library RewardKeeperStorage {
         /**
          * @notice interface for the static AToken factory
          */
-        IStaticATokenFactory factory;
+        IStaticATokenFactory staticATokenFactory;
         /**
          * @notice address of the asset token (i.e. SEAM)
          */

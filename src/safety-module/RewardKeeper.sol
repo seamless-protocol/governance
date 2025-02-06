@@ -58,7 +58,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         $.lastClaim = block.timestamp;
         $.asset = stkSeam;
         $.treasury = treasury;
-        $.factory = IStaticATokenFactory(factory);
+        $.staticATokenFactory = IStaticATokenFactory(factory);
 
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
         _grantRole(MANAGER_ROLE, initialAdmin);
@@ -87,7 +87,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     {
         IRewardsController controller = getController();
 
-        address staticAToken = getFactory().getStaticAToken(asset);
+        address staticAToken = getStaticATokenFactory().getStaticAToken(asset);
         StaticATokenTransferStrategy transferStrategy =
             StaticATokenTransferStrategy(controller.getTransferStrategy(staticAToken));
         if (address(transferStrategy) == address(0)) {
@@ -132,7 +132,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
             // Transfer and deposit tokens
             // Must occur before calculating rate in order to satisfy all reward types
-            StaticATokenLM staticToken = StaticATokenLM(getFactory().getStaticAToken(address(rewardTokens[i])));
+            StaticATokenLM staticToken = StaticATokenLM(getStaticATokenFactory().getStaticAToken(address(rewardTokens[i])));
             token.transferFrom(getTreasury(), address(this), balance);
             token.approve(address(staticToken), token.balanceOf(address(this)));
             staticToken.deposit(token.balanceOf(address(this)), address(this), 0, false);
@@ -172,7 +172,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         // Iterate through newRates to create new arrays without 0 balances
         uint88[] memory emissionRates = new uint88[](count);
         address[] memory filteredRewardTokens = new address[](count);
-        IStaticATokenFactory factory = getFactory();
+        IStaticATokenFactory factory = getStaticATokenFactory();
         uint256 j;
         for (uint256 k; k < newRates.length; k++) {
             if (newRates[k] > 0) {
@@ -192,7 +192,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @inheritdoc IRewardKeeper
-    function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt)
+    function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amount)
         external
         override
         isNotZeroAddress(to)
@@ -201,13 +201,13 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     {
         address transferStrategy = getController().getTransferStrategy(token);
         if (transferStrategy == address(0)) revert TransferStrategyNotSet();
-        ITransferStrategyBase(transferStrategy).emergencyWithdrawal(token, to, amt);
+        ITransferStrategyBase(transferStrategy).emergencyWithdrawal(token, to, amount);
     }
 
     /// @inheritdoc IRewardKeeper
-    function withdrawTokens(address token, address to, uint256 amt) external override onlyRole(MANAGER_ROLE) {
-        IERC20(token).safeTransfer(to, amt);
-        emit ManualWithdraw(token, to, amt);
+    function withdrawTokens(address token, address to, uint256 amount) external override onlyRole(MANAGER_ROLE) {
+        IERC20(token).safeTransfer(to, amount);
+        emit ManualWithdraw(token, to, amount);
     }
 
     /// @inheritdoc IRewardKeeper
@@ -250,8 +250,8 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @inheritdoc IRewardKeeper
-    function getFactory() public view returns (IStaticATokenFactory) {
-        return Storage.layout().factory;
+    function getStaticATokenFactory() public view returns (IStaticATokenFactory) {
+        return Storage.layout().staticATokenFactory;
     }
 
     /// @inheritdoc IRewardKeeper
