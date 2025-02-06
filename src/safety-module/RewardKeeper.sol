@@ -124,7 +124,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         uint256 count;
         for (uint8 i; i < rewardTokens.length; i++) {
             IERC20 token = IERC20(pool.getReserveData(rewardTokens[i]).aTokenAddress);
-            
+
             uint256 balance = token.balanceOf(getTreasury());
             if (balance == 0) {
                 continue;
@@ -153,9 +153,10 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
             if (address(transferStrategy) == address(0)) {
                 RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
-                transferStrategy = new StaticATokenTransferStrategy(IERC20(address(staticToken)), address(controller), address(this));
+                transferStrategy =
+                    new StaticATokenTransferStrategy(IERC20(address(staticToken)), address(controller), address(this));
                 config[0].emissionPerSecond = 0;
-                config[0].totalSupply = StaticATokenLM(address(staticToken)).totalSupply(); 
+                config[0].totalSupply = StaticATokenLM(address(staticToken)).totalSupply();
                 config[0].distributionEnd = uint32(block.timestamp + period);
                 config[0].asset = asset;
                 config[0].reward = address(staticToken);

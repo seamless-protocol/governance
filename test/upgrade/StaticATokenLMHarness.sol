@@ -1,7 +1,7 @@
 pragma solidity ^0.8.10;
 
-import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
-import {IRewardsController} from 'aave-v3-periphery/contracts/rewards/interfaces/IRewardsController.sol';
+import {IPool} from "aave-v3-core/contracts/interfaces/IPool.sol";
+import {IRewardsController} from "aave-v3-periphery/contracts/rewards/interfaces/IRewardsController.sol";
 import {StaticATokenLMUpgrade} from "./StaticATokenLMUpgrade.sol";
 
 contract StaticATokenLMHarness is StaticATokenLMUpgrade {

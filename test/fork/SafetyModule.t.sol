@@ -11,7 +11,7 @@ import {IRewardKeeper} from "../../src/interfaces/IRewardKeeper.sol";
 import {RewardKeeperStorage as StorageLib} from "../../src/storage/RewardKeeperStorage.sol";
 import {IERC20} from "@aave/core-v3/contracts/dependencies/openzeppelin/contracts/IERC20.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
-import {IRewardsController} from 'aave-v3-periphery/contracts/rewards/interfaces/IRewardsController.sol';
+import {IRewardsController} from "aave-v3-periphery/contracts/rewards/interfaces/IRewardsController.sol";
 import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
 import {DataTypes} from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
 import {RewardsDataTypes} from "@aave/periphery-v3/contracts/rewards/libraries/RewardsDataTypes.sol";
@@ -25,7 +25,7 @@ import {ITransparentProxyFactory} from
 import {StaticATokenFactoryUpgrade} from "../upgrade/StaticATokenFactoryUpgrade.sol";
 import {StaticATokenLMHarness} from "../upgrade/StaticATokenLMHarness.sol";
 import {StaticATokenLMUpgrade} from "../upgrade/StaticATokenLMUpgrade.sol";
-import {StaticATokenLM} from 'static-a-token-v3/src/StaticATokenLM.sol';
+import {StaticATokenLM} from "static-a-token-v3/src/StaticATokenLM.sol";
 
 contract SeamForkTest is Test {
     Seam public SEAM = Seam(Constants.SEAM_ADDRESS);
@@ -115,11 +115,8 @@ contract SeamForkTest is Test {
                 address(staticATokenImplementation), abi.encodeWithSelector(StaticATokenLMUpgrade.initializeV2.selector)
             );
         }
-        TransparentUpgradeableProxy(payable(factory)).upgradeTo(
-            address(staticATokenFactoryImplementation)
-        );
+        TransparentUpgradeableProxy(payable(factory)).upgradeTo(address(staticATokenFactoryImplementation));
         vm.stopPrank();
-
     }
 
     function testClaimAndSetRateSucceedsIfPeriodElapsed() public {
@@ -269,10 +266,9 @@ contract SeamForkTest is Test {
             for (uint256 j; j < rewardTokens.length; j++) {
                 address aToken = pool.getReserveData(rewardTokens[j]).aTokenAddress;
                 if (IERC20(aToken).balanceOf(player) > 0) {
-                    try pool.withdraw(rewardTokens[j], type(uint256).max, player) {
-
-                    } catch {
-                        console.log("Failed withdraw at: ", aToken);// this is to activate treasury accrual
+                    try pool.withdraw(rewardTokens[j], type(uint256).max, player) {}
+                    catch {
+                        console.log("Failed withdraw at: ", aToken); // this is to activate treasury accrual
                     }
                 }
             }
@@ -286,7 +282,8 @@ contract SeamForkTest is Test {
             address player = address(uint160(i));
             vm.startPrank(player);
             console.log(player, 2);
-            (address[] memory rewards, uint256[] memory claimedAmounts) = rewardsController.claimAllRewards(assets, player);
+            (address[] memory rewards, uint256[] memory claimedAmounts) =
+                rewardsController.claimAllRewards(assets, player);
             for (uint256 j; j < claimedAmounts.length; j++) {
                 assertTrue(claimedAmounts[j] > 0, "Claim Amount Incorrect");
             }
@@ -303,10 +300,9 @@ contract SeamForkTest is Test {
             for (uint256 j; j < rewardTokens.length; j++) {
                 address aToken = pool.getReserveData(rewardTokens[j]).aTokenAddress;
                 if (IERC20(aToken).balanceOf(player) > 0) {
-                    try pool.withdraw(rewardTokens[j], type(uint256).max, player) {
-
-                    } catch {
-                        console.log("Failed withdraw at: ", aToken);// this is to activate treasury accrual
+                    try pool.withdraw(rewardTokens[j], type(uint256).max, player) {}
+                    catch {
+                        console.log("Failed withdraw at: ", aToken); // this is to activate treasury accrual
                     }
                 }
             }
@@ -323,7 +319,8 @@ contract SeamForkTest is Test {
             vm.warp(block.timestamp + 7 days + 2);
             console.log(player, 4);
             stkSEAM.redeem(stkSEAM.balanceOf(player), player, player);
-            (address[] memory rewards, uint256[] memory claimedAmounts) = rewardsController.claimAllRewards(assets, player);
+            (address[] memory rewards, uint256[] memory claimedAmounts) =
+                rewardsController.claimAllRewards(assets, player);
             for (uint256 j; j < claimedAmounts.length; j++) {
                 if (rewards[j] != brokenAddr) {
                     assertTrue(claimedAmounts[j] > 0, "Claim Amount Incorrect 2");
@@ -339,10 +336,9 @@ contract SeamForkTest is Test {
             for (uint256 j; j < rewardTokens.length; j++) {
                 address aToken = pool.getReserveData(rewardTokens[j]).aTokenAddress;
                 if (IERC20(aToken).balanceOf(player) > 0) {
-                    try pool.withdraw(rewardTokens[j], type(uint256).max, player) {
-
-                    } catch {
-                        console.log("Failed withdraw at: ", aToken);// this is to activate treasury accrual
+                    try pool.withdraw(rewardTokens[j], type(uint256).max, player) {}
+                    catch {
+                        console.log("Failed withdraw at: ", aToken); // this is to activate treasury accrual
                     }
                 }
             }
@@ -371,13 +367,9 @@ contract SeamForkTest is Test {
         rewardKeeper.grantRole(keccak256("MANAGER_ROLE"), address(this));
         uint256 timesSuccessful;
         for (uint256 i; i < rewardTokens.length; i++) {
-
             try rewardKeeper.claimLMRewards(address(this), rewardTokens[i]) {
                 timesSuccessful++;
-            } catch {
-
-            }
-
+            } catch {}
         }
         assertTrue(timesSuccessful > 0);
     }
