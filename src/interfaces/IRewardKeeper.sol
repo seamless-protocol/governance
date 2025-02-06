@@ -35,8 +35,10 @@ interface IRewardKeeper {
      * @notice Claims any accrued liquidity rewards from static tokens held in transfer strategy
      * @dev Caller must have the `MANAGER_ROLE`.
      * @param to the address of the recipient
+     * @param asset the address of the asset corresponding to transfer strategy
+     * @param reward the address of the reward token on the transfer strategy
      */
-    function claimLMRewards(address to, address asset) external returns (bool);
+    function claimLMRewards(address to, address asset, address reward) external returns (bool);
 
     /**
      * @notice Claims rewards from the underlying Aave pool, sets new emission rates, and updates state.

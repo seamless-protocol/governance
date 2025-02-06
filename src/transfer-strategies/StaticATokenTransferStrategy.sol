@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20TransferStrategy} from "../interfaces/IERC20TransferStrategy.sol";
+import {IStaticATokenTransferStrategy} from "../interfaces/IStaticATokenTransferStrategy.sol";
 import {ITransferStrategyBase} from "../interfaces/ITransferStrategyBase.sol";
 import {TransferStrategyBase} from "./TransferStrategyBase.sol";
 import {IStaticATokenLM} from "static-a-token-v3/src/interfaces/IStaticATokenLM.sol";
@@ -12,8 +12,8 @@ import {IStaticATokenLM} from "static-a-token-v3/src/interfaces/IStaticATokenLM.
 /// @notice Transfer strategy for the ERC20 token
 /// @dev This contract should be used in order to claim ERC20 tokens for users.
 ///      This is made based on transfer strategies from Aave V3 periphery repository https://github.com/aave/aave-v3-periphery/tree/master
-contract StaticATokenTransferStrategy is IERC20TransferStrategy, TransferStrategyBase {
-    event RewardsClaimed(address[] rewards);
+contract StaticATokenTransferStrategy is TransferStrategyBase, IStaticATokenTransferStrategy {
+    using SafeERC20 for IERC20;
 
     IERC20 public immutable rewardToken;
 
@@ -43,10 +43,11 @@ contract StaticATokenTransferStrategy is IERC20TransferStrategy, TransferStrateg
         return true;
     }
 
-    function claimRewards(address to) external onlyRewardsAdmin {
+    /// @inheritdoc IStaticATokenTransferStrategy
+    function claimRewards(address to, address reward) external onlyRewardsAdmin {
         IStaticATokenLM token = IStaticATokenLM(address(rewardToken));
-        address[] memory rewards = token.rewardTokens();
-        token.claimRewards(to, rewards);
-        emit RewardsClaimed(rewards);
+        uint256 amount = token.collectAndUpdateRewards(reward);
+        IERC20(reward).safeTransfer(to, amount);
+        emit RewardsClaimed(reward, amount);
     }
 }

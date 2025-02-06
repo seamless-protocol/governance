@@ -78,7 +78,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @inheritdoc IRewardKeeper
-    function claimLMRewards(address to, address asset)
+    function claimLMRewards(address to, address asset, address reward)
         external
         override
         isNotZeroAddress(to)
@@ -93,7 +93,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         if (address(transferStrategy) == address(0)) {
             return false;
         }
-        transferStrategy.claimRewards(to);
+        transferStrategy.claimRewards(to, reward);
         return true;
     }
 
