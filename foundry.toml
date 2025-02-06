@@ -10,11 +10,6 @@ optimizer_runs = 100
 via_ir = false
 revert_strings = "strip"
 
-ffi = true
-ast = true
-build_info = true
-extra_output = ["storageLayout"]
-
 [rpc_endpoints]
 base = "${BASE_RPC_URL}"
 ethereum = "${ETH_RPC_URL}"
