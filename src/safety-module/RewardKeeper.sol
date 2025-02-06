@@ -115,7 +115,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         $.previousPeriod = period;
 
         // claim rewards
-
         pool.mintToTreasury(rewardTokens);
 
         // get new Emission rates
