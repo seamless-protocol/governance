@@ -49,8 +49,6 @@ contract SeamForkTest is Test {
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
-    
-
     function setUp() public {
         vm.createSelectFork(vm.envString("FORK_URL"), 25298789);
 
@@ -303,7 +301,7 @@ contract SeamForkTest is Test {
                 if (IERC20(aToken).balanceOf(player) > 0) {
                     try pool.withdraw(rewardTokens[j], type(uint256).max, player) {} // this is to activate treasury accrual
                     catch {
-                        console.log("Failed withdraw at: ", aToken); 
+                        console.log("Failed withdraw at: ", aToken);
                     }
                 }
             }
@@ -374,13 +372,9 @@ contract SeamForkTest is Test {
             }
             address[] memory rewards = IStaticATokenLM(staticAToken).rewardTokens();
             for (uint256 k; k < rewards.length; k++) {
-                
-                (bool success, ) = address(rewardKeeper).call(
+                (bool success,) = address(rewardKeeper).call(
                     abi.encodeWithSelector(
-                        rewardKeeper.claimLMRewards.selector,
-                        address(this),
-                        rewardTokens[i],
-                        rewards[k]
+                        rewardKeeper.claimLMRewards.selector, address(this), rewardTokens[i], rewards[k]
                     )
                 );
 
@@ -391,6 +385,5 @@ contract SeamForkTest is Test {
             }
             assertTrue(timesSuccessful > 0, "Not successful");
         }
-        
     }
 }
