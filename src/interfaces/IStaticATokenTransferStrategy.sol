@@ -11,8 +11,13 @@ import {ITransferStrategyBase} from "../interfaces/ITransferStrategyBase.sol";
 /// @dev This contract should be used in order to claim ERC20 tokens for users.
 ///      This is made based on transfer strategies from Aave V3 periphery repository https://github.com/aave/aave-v3-periphery/tree/master
 interface IStaticATokenTransferStrategy is ITransferStrategyBase {
-    event RewardsClaimed(address rewardAddress, uint256 amount);
+    event RewardsClaimed(address rewardAddress);
     event PerformTransfer(address indexed to, uint256 amount);
 
+    /**
+     * @notice Claims any accrued liquidity rewards from static tokens held in transfer strategy
+     * @param to the address of the recipient
+     * @param reward the address of the reward token
+     */
     function claimRewards(address to, address reward) external;
 }
