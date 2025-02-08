@@ -14,9 +14,9 @@ contract MockFactory {
      * @param underlyings the addresses of the underlyings to create.
      * @return address[] addresses of the new staticATokens.
      */
-    function createStaticATokens(address[] memory underlyings) external returns (address[] memory) {
+    function createStaticATokens(address[] memory underlyings, address[] memory aTokens) external returns (address[] memory) {
         for (uint8 i; i < underlyings.length; i++) {
-            StaticERC20Mock token = new StaticERC20Mock();
+            StaticERC20Mock token = new StaticERC20Mock(aTokens[i]);
             assetToStatic[underlyings[i]] = address(token);
         }
     }

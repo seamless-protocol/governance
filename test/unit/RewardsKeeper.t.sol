@@ -75,9 +75,11 @@ contract RewardKeeperTest is Test {
 
         address a1 = mockPool.setReserveData(address(mockToken1), address(mockToken1));
         address a2 = mockPool.setReserveData(address(mockToken2), address(mockToken2));
-
+        address[] memory aTokens = new address[](2);
+        aTokens[0] = a1;
+        aTokens[1] = a2;
         factory = new MockFactory();
-        factory.createStaticATokens(reserves);
+        factory.createStaticATokens(reserves, aTokens);
 
         RewardKeeper implementation = new RewardKeeper();
         ERC1967Proxy proxy = new ERC1967Proxy(
