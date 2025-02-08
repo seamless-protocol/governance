@@ -629,11 +629,8 @@ contract StakedTokenTest is Test {
         assertEq(token1.balanceOf(address(rewardKeeper)), leftOver, "Wrong leftover 0");
         assertEq(transferBal0, rate * expectedPeriod, "wrong bal 0");
 
-      
         vm.warp(block.timestamp + 26 hours);
         rewardKeeper.claimAndSetRate();
-        
-  
 
         (, rate,, endTime) = rewardsController.getRewardsData(address(stakedToken), address(token1));
         expectedPeriod = rewardKeeper.getPreviousPeriod();

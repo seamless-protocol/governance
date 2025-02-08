@@ -5,6 +5,7 @@ import {ERC20} from "openzeppelin-contracts/token/ERC20/ERC20.sol";
 
 contract StaticERC20Mock is ERC20 {
     address aToken;
+
     constructor(address _aToken) ERC20("ERC20Mock", "E20M") {
         aToken = _aToken;
     }
@@ -23,7 +24,10 @@ contract StaticERC20Mock is ERC20 {
         return amount;
     }
 
-    function redeem(uint256 amount, address to, address referral, bool isWithdraw) external returns (uint256, uint256) {
+    function redeem(uint256 amount, address to, address referral, bool isWithdraw)
+        external
+        returns (uint256, uint256)
+    {
         _burn(msg.sender, amount);
         ERC20(aToken).transfer(to, amount);
     }
