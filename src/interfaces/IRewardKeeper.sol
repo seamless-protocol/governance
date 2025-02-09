@@ -172,7 +172,5 @@ interface IRewardKeeper {
      * @param token address of token
      * @return flag (bool).
      */
-    function getIsAllowedForManualRate(address token) external view returns(bool);
-
-
+    function getIsAllowedForManualRate(address token) external view returns (bool);
 }

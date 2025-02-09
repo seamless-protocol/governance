@@ -235,16 +235,10 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         uint32 deadline = uint32(block.timestamp + timespan);
 
         // Get (or deploy if necessary) the transfer strategy for this static token.
-        ERC20TransferStrategy transferStrategy = ERC20TransferStrategy(
-            controller.getTransferStrategy(rewardToken)
-        );
+        ERC20TransferStrategy transferStrategy = ERC20TransferStrategy(controller.getTransferStrategy(rewardToken));
         if (address(transferStrategy) == address(0)) {
             RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
-            transferStrategy = new ERC20TransferStrategy(
-                token,
-                address(controller),
-                address(this)
-            );
+            transferStrategy = new ERC20TransferStrategy(token, address(controller), address(this));
             config[0].emissionPerSecond = 0;
             config[0].totalSupply = IERC20(rewardToken).totalSupply();
             config[0].distributionEnd = deadline;
@@ -359,7 +353,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @inheritdoc IRewardKeeper
-    function getIsAllowedForManualRate(address token) public view override returns(bool) {
+    function getIsAllowedForManualRate(address token) public view override returns (bool) {
         return Storage.layout().allowedManualTokens[token];
     }
 }
