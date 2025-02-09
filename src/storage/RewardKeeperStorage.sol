@@ -46,6 +46,10 @@ library RewardKeeperStorage {
          * @notice holds the timestamp of the last time claim was called
          */
         uint256 lastClaim;
+        /**
+         * @notice tracks which ERC20 tokens are allowed to have manual rate set
+         */
+        mapping(address => bool) allowedManualTokens;
     }
 
     bytes32 private constant STORAGE_SLOT = keccak256(

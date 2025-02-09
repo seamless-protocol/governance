@@ -13,11 +13,16 @@ interface IRewardKeeper {
     event SetPool(address pool);
     event SetPeriod(uint256 period);
     event ManualWithdraw(address token, address receiver, uint256 amount);
+    event AllowedManualTokenUpdated(address token, bool allowed);
+    event ManualClaimedAndSetRate(address token, uint88 emissionRate, uint32 deadline);
 
     error ZeroAddress(address target);
     error InsufficientTimeElapsed();
     error InvalidPeriod();
     error TransferStrategyNotSet();
+    error StaticTokenCannotBeSetManually();
+    error setManualRateNotAuthorized();
+    error InvalidManualRateParams();
 
     /**
      * @notice Pauses the contract, disabling state-changing operations.
@@ -61,6 +66,22 @@ interface IRewardKeeper {
      * @param amt The amount of tokens to withdraw.
      */
     function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt) external;
+
+    /**
+     * @notice Sets whether a given token is allowed to be used with the manual reward setter.
+     * @param token The underlying token address to update.
+     * @param allowed True if the token should be allowed; false otherwise.
+     */
+    function setTokenForManualRate(address token, bool allowed) external;
+
+    /**
+     * @notice Sets reward rates manually for specific tokens
+     * @dev intended for use with non-static tokens
+     * @param rewardToken address of the reward token to add.
+     * @param rate the emission rate
+     * @param timespan the amount of time for the rewards to emit
+     */
+    function setManualRate(address rewardToken, uint88 rate, uint256 timespan) external;
 
     /**
      * @notice Performs a manual token withdrawal
@@ -145,4 +166,13 @@ interface IRewardKeeper {
      * @return factory interface.
      */
     function getStaticATokenFactory() external view returns (IStaticATokenFactory);
+
+    /**
+     * @notice Returns a flag indicating if a token address can have manual rate set
+     * @param token address of token
+     * @return flag (bool).
+     */
+    function getIsAllowedForManualRate(address token) external view returns(bool);
+
+
 }
