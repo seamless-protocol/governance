@@ -21,7 +21,7 @@ interface IRewardKeeper {
     error InvalidPeriod();
     error TransferStrategyNotSet();
     error StaticTokenCannotBeSetManually();
-    error setManualRateNotAuthorized();
+    error SetManualRateNotAuthorized();
     error InvalidManualRateParams();
 
     /**
