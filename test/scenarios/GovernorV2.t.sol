@@ -22,19 +22,11 @@ contract GovernorV2Test is GovernanceTest {
 
         vm.startPrank(address(longTimelock));
         shortGovernor.upgradeToAndCall(
-            address(seamGovernorV2),
-            abi.encodeWithSelector(
-                SeamGovernorV2.initializeV2.selector,
-                stkSEAM
-            )
+            address(seamGovernorV2), abi.encodeWithSelector(SeamGovernorV2.initializeV2.selector, stkSEAM)
         );
 
         longGovernor.upgradeToAndCall(
-            address(seamGovernorV2),
-            abi.encodeWithSelector(
-                SeamGovernorV2.initializeV2.selector,
-                stkSEAM
-            )
+            address(seamGovernorV2), abi.encodeWithSelector(SeamGovernorV2.initializeV2.selector, stkSEAM)
         );
 
         vm.stopPrank();
@@ -102,13 +94,13 @@ contract GovernorV2Test is GovernanceTest {
         // Setup voter with stkSEAM voting power
         address proposer = makeAddr("proposer");
         uint256 stakeAmount = 200_000 ether;
-        
+
         seam.transfer(proposer, stakeAmount);
         vm.startPrank(proposer);
         seam.approve(address(stkSEAM), stakeAmount);
         stkSEAM.deposit(stakeAmount, proposer);
         stkSEAM.delegate(proposer);
-       
+
         // Create proposal
         address receiver = makeAddr("receiver");
         address[] memory targets = new address[](1);
@@ -127,9 +119,9 @@ contract GovernorV2Test is GovernanceTest {
         vm.warp(block.timestamp + Constants.GOVERNOR_SHORT_VOTING_DELAY + 1);
         vm.prank(address(shortGovernorVoter1));
         SeamGovernorV2(payable(address(shortGovernor))).castVote(proposalId, 1);
-        
+
         vm.warp(block.timestamp + Constants.GOVERNOR_SHORT_VOTING_PERIOD + 1);
-        
+
         shortGovernor.queue(proposalId);
         vm.warp(block.timestamp + Constants.TIMELOCK_CONTROLLER_SHORT_MIN_DELAY + 1);
         shortGovernor.execute(proposalId);

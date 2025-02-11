@@ -13,10 +13,8 @@ import {IERC5805} from "openzeppelin-contracts/interfaces/IERC5805.sol";
 
 contract SeamGovernorV2Upgrade is Test {
     SeamHarness seam = SeamHarness(Constants.SEAM_ADDRESS);
-    SeamGovernor governorShortProxy =
-        SeamGovernor(payable(Constants.GOVERNOR_SHORT_ADDRESS));
-    SeamGovernor governorLongProxy =
-        SeamGovernor(payable(Constants.GOVERNOR_LONG_ADDRESS));
+    SeamGovernor governorShortProxy = SeamGovernor(payable(Constants.GOVERNOR_SHORT_ADDRESS));
+    SeamGovernor governorLongProxy = SeamGovernor(payable(Constants.GOVERNOR_LONG_ADDRESS));
 
     function setUp() public {
         vm.createSelectFork(vm.envString("FORK_URL"), 25444678);
@@ -28,11 +26,7 @@ contract SeamGovernorV2Upgrade is Test {
     }
 
     function test_Upgrade(uint256 seamAmount, uint256 stakeAmount) public {
-        seamAmount = bound(
-            seamAmount,
-            0,
-            type(uint208).max - seam.totalSupply()
-        );
+        seamAmount = bound(seamAmount, 0, type(uint208).max - seam.totalSupply());
         stakeAmount = bound(stakeAmount, 0, seamAmount);
 
         StakedToken stkSEAM = _deployStakedSEAM();
@@ -54,32 +48,18 @@ contract SeamGovernorV2Upgrade is Test {
         vm.warp(block.timestamp + 1);
 
         // Check that stkSEAM delegation is not counted before upgrade
-        assertEq(
-            governorShortProxy.getVotes(user1, block.timestamp - 1),
-            seamAmount - stakeAmount
-        );
-        assertEq(
-            governorLongProxy.getVotes(user1, block.timestamp - 1),
-            seamAmount - stakeAmount
-        );
+        assertEq(governorShortProxy.getVotes(user1, block.timestamp - 1), seamAmount - stakeAmount);
+        assertEq(governorLongProxy.getVotes(user1, block.timestamp - 1), seamAmount - stakeAmount);
 
         SeamGovernorV2 newImplementation = new SeamGovernorV2();
 
         vm.startPrank(Constants.LONG_TIMELOCK_ADDRESS);
 
         governorShortProxy.upgradeToAndCall(
-            address(newImplementation),
-            abi.encodeWithSelector(
-                SeamGovernorV2.initializeV2.selector,
-                stkSEAM
-            )
+            address(newImplementation), abi.encodeWithSelector(SeamGovernorV2.initializeV2.selector, stkSEAM)
         );
         governorLongProxy.upgradeToAndCall(
-            address(newImplementation),
-            abi.encodeWithSelector(
-                SeamGovernorV2.initializeV2.selector,
-                stkSEAM
-            )
+            address(newImplementation), abi.encodeWithSelector(SeamGovernorV2.initializeV2.selector, stkSEAM)
         );
 
         vm.stopPrank();
@@ -87,14 +67,8 @@ contract SeamGovernorV2Upgrade is Test {
         vm.warp(block.timestamp + 1);
 
         // Check that stkSEAM delegation is counted after upgrade
-        assertEq(
-            governorShortProxy.getVotes(user1, block.timestamp - 1),
-            seamAmount
-        );
-        assertEq(
-            governorLongProxy.getVotes(user1, block.timestamp - 1),
-            seamAmount
-        );
+        assertEq(governorShortProxy.getVotes(user1, block.timestamp - 1), seamAmount);
+        assertEq(governorLongProxy.getVotes(user1, block.timestamp - 1), seamAmount);
 
         IERC5805[] memory shortTokens = SeamGovernorV2(payable(address(governorShortProxy))).tokens();
         IERC5805[] memory longTokens = SeamGovernorV2(payable(address(governorLongProxy))).tokens();
@@ -103,7 +77,7 @@ contract SeamGovernorV2Upgrade is Test {
         assertEq(longTokens.length, 3);
 
         assertEq(address(shortTokens[0]), address(Constants.SEAM_ADDRESS));
-        assertEq(address(shortTokens[1]), address(Constants.ESCROW_SEAM_ADDRESS)); 
+        assertEq(address(shortTokens[1]), address(Constants.ESCROW_SEAM_ADDRESS));
         assertEq(address(shortTokens[2]), address(stkSEAM));
 
         assertEq(address(longTokens[0]), address(Constants.SEAM_ADDRESS));
