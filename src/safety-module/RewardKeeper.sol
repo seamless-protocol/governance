@@ -205,7 +205,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         override
         onlyRole(MANAGER_ROLE)
         isNotZeroAddress(token)
-    {   
+    {
         // TODO: Is there a better way to check?
         // if (address(StaticATokenLM(token).aToken()) != address(0)) {
         //     revert StaticTokenCannotBeSetManually();
@@ -226,7 +226,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         if (!getIsAllowedForManualRate(rewardToken)) {
             revert SetManualRateNotAuthorized();
         }
-        
+
         if (rate == 0 || timespan == 0) {
             revert InvalidManualRateParams();
         }

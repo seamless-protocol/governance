@@ -401,7 +401,6 @@ contract SeamForkTest is Test {
         rewardKeeper.setTokenForManualRate(SEAMAddr, false);
         status = rewardKeeper.getIsAllowedForManualRate(SEAMAddr);
         assertTrue(!status, "Wrong removal");
-
     }
 
     // function testSetTokenRevertsWithStaticToken() public {
@@ -442,7 +441,6 @@ contract SeamForkTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InvalidManualRateParams.selector));
         rewardKeeper.setManualRate(SEAMAddr, 5, 0);
-
     }
 
     function testSetManualRate() public {
@@ -466,7 +464,7 @@ contract SeamForkTest is Test {
         uint256 time = 7 days;
         uint256 rate = uint256(500 ether / time);
         IERC20(SEAMAddr).approve(address(rewardKeeper), rate * time);
-        
+
         rewardKeeper.setManualRate(SEAMAddr, uint88(rate), time);
 
         address transferStrat = rewardsController.getTransferStrategy(SEAMAddr);
@@ -502,7 +500,7 @@ contract SeamForkTest is Test {
         uint256 time = 7 days;
         uint256 rate = uint256(500 ether / time);
         IERC20(SEAMAddr).approve(address(rewardKeeper), rate * time);
-        
+
         rewardKeeper.setManualRate(SEAMAddr, uint88(rate), time);
 
         vm.warp(block.timestamp + 8 days);
