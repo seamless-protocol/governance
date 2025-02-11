@@ -46,7 +46,7 @@ contract GovernanceTest is Test, GovernorDeployer {
     Voter public longGovernorVoter1;
     Voter public longGovernorVoter2;
 
-    function setUp() public {
+    function setUp() public virtual {
         Seam seamTokenImplementation = new Seam();
         ERC1967Proxy seamProxy = new ERC1967Proxy(
             address(seamTokenImplementation),

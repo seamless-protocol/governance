@@ -29,8 +29,19 @@ import {SeamGovernor} from "./SeamGovernor.sol";
 /// @notice Governor contract of the Seamless Protocol used for both short and long governors
 /// @custom:oz-upgrades-from SeamGovernor
 contract SeamGovernorV2 is SeamGovernor {
+    /// @notice Initializes the governor with the stkSEAM token
+    /// @param stkSEAM The stkSEAM token
     function initializeV2(IERC5805 stkSEAM) external reinitializer(2) {
         Storage.layout().stkSEAM = stkSEAM;
+    }
+
+    /// @notice Returns the tokens used for voting
+    /// @return tokens_ The tokens used for voting
+    function tokens() public view virtual returns (IERC5805[] memory tokens_) {
+        tokens_ = new IERC5805[](3);
+        tokens_[0] = token();
+        tokens_[1] = Storage.layout().esSEAM;
+        tokens_[2] = Storage.layout().stkSEAM;
     }
 
     /// @inheritdoc GovernorVotesUpgradeable
