@@ -46,7 +46,7 @@ contract StaticATokenTransferStrategy is TransferStrategyBase, IStaticATokenTran
     /// @inheritdoc IStaticATokenTransferStrategy
     function claimRewards(address to, address[] calldata reward) external onlyRewardsAdmin {
         IStaticATokenLM token = IStaticATokenLM(address(rewardToken));
-        
+
         token.claimRewards(to, reward);
         // uint256 amount = token.collectAndUpdateRewards(reward);
         // IERC20(reward).safeTransfer(to, amount);

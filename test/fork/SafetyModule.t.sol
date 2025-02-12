@@ -372,7 +372,7 @@ contract SeamForkTest is Test {
             }
             address[] memory rewards = IStaticATokenLM(staticAToken).rewardTokens();
             address[] memory rewardArray = new address[](1);
-            
+
             for (uint256 k; k < rewards.length; k++) {
                 rewardArray[0] = rewards[k];
                 (bool success,) = address(rewardKeeper).call(
