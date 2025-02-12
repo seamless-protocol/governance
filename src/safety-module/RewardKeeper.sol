@@ -206,12 +206,43 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         onlyRole(MANAGER_ROLE)
         isNotZeroAddress(token)
     {
-        // TODO: Is there a better way to check?
-        // if (address(StaticATokenLM(token).aToken()) != address(0)) {
-        //     revert StaticTokenCannotBeSetManually();
-        // }
         Storage.layout().allowedManualTokens[token] = allowed;
         emit AllowedManualTokenUpdated(token, allowed);
+    }
+
+    function configureAsset(address rewardToken, uint88 rate, uint256 timespan, uint8 strategyType) external override onlyRole(REWARD_SETTER_ROLE) isNotZeroAddress(rewardToken) {
+        _checkIsManualRateAuthorized(rewardToken);
+
+        IERC20 token = IERC20(rewardToken);
+        IRewardsController controller = getController();
+        address transferStrategy = controller.getTransferStrategy(rewardToken);
+        uint32 deadline = uint32(block.timestamp + timespan);
+
+        if (transferStrategy != address(0)) {
+            revert AssetConfigured();
+        }
+
+        if (strategyType == 0) {
+            transferStrategy = address(new ERC20TransferStrategy(token, address(controller), address(this)));
+        } else if (strategyType == 1) {
+            transferStrategy = address(new StaticATokenTransferStrategy(token, address(controller), address(this)));
+        } else {
+            revert InvalidStrategyType();
+        }
+
+        RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
+        config[0].emissionPerSecond = rate;
+        config[0].totalSupply = IERC20(rewardToken).totalSupply();
+        config[0].distributionEnd = deadline;
+        config[0].asset = getAsset();
+        config[0].reward = rewardToken;
+        config[0].transferStrategy = ITransferStrategyBase(transferStrategy);
+        config[0].rewardOracle = getOracle();
+        controller.configureAssets(config);
+
+        if (rate > 0 && rate * timespan > 0) {
+            token.safeTransferFrom(msg.sender, address(transferStrategy), rate * timespan);
+        }
     }
 
     /// @inheritdoc IRewardKeeper
@@ -219,37 +250,28 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         external
         override
         onlyRole(REWARD_SETTER_ROLE)
-        whenNotPaused
         isNotZeroAddress(rewardToken)
     {
         // Ensure that the given token is allowed for manual reward setting.
-        if (!getIsAllowedForManualRate(rewardToken)) {
-            revert SetManualRateNotAuthorized();
-        }
+        _checkIsManualRateAuthorized(rewardToken);
 
         if (rate == 0 || timespan == 0) {
             revert InvalidManualRateParams();
         }
 
+        IRewardsController controller = getController();
+        ERC20TransferStrategy transferStrategy = ERC20TransferStrategy(controller.getTransferStrategy(rewardToken));
+        if (address(transferStrategy) == address(0)) {
+            revert AssetNotConfigured();
+        }
+
         IERC20 token = IERC20(rewardToken);
         address asset = getAsset();
-        IRewardsController controller = getController();
+        
         uint32 deadline = uint32(block.timestamp + timespan);
 
         // Get (or deploy if necessary) the transfer strategy for this static token.
-        ERC20TransferStrategy transferStrategy = ERC20TransferStrategy(controller.getTransferStrategy(rewardToken));
-        if (address(transferStrategy) == address(0)) {
-            RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
-            transferStrategy = new ERC20TransferStrategy(token, address(controller), address(this));
-            config[0].emissionPerSecond = 0;
-            config[0].totalSupply = IERC20(rewardToken).totalSupply();
-            config[0].distributionEnd = deadline;
-            config[0].asset = asset;
-            config[0].reward = rewardToken;
-            config[0].transferStrategy = ITransferStrategyBase(address(transferStrategy));
-            config[0].rewardOracle = getOracle();
-            controller.configureAssets(config);
-        }
+        
 
         // Update the rewards controller with the new emission rate and distribution end.
         address[] memory rewardTokensArray = new address[](1);
@@ -264,6 +286,16 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         token.safeTransferFrom(msg.sender, address(transferStrategy), rate * timespan);
 
         emit ManualClaimedAndSetRate(rewardToken, rate, deadline);
+    }
+
+    /**
+     * @notice Checks if the incoming address has been approved for manual rate
+     * @param rewardToken address of the reward token
+     */
+    function _checkIsManualRateAuthorized(address rewardToken) internal view {
+        if (!getIsAllowedForManualRate(rewardToken)) {
+            revert SetManualRateNotAuthorized();
+        }
     }
 
     /// @inheritdoc IRewardKeeper

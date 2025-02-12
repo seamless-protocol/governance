@@ -23,6 +23,9 @@ interface IRewardKeeper {
     error StaticTokenCannotBeSetManually();
     error SetManualRateNotAuthorized();
     error InvalidManualRateParams();
+    error AssetConfigured();
+    error AssetNotConfigured();
+    error InvalidStrategyType();
 
     /**
      * @notice Pauses the contract, disabling state-changing operations.
@@ -69,14 +72,29 @@ interface IRewardKeeper {
 
     /**
      * @notice Sets whether a given token is allowed to be used with the manual reward setter.
+     * @dev CAUTION: Should not be used with static tokens
      * @param token The underlying token address to update.
      * @param allowed True if the token should be allowed; false otherwise.
      */
     function setTokenForManualRate(address token, bool allowed) external;
 
     /**
+     * @notice must be called for reward tokens being set for the first time
+     * @dev Calls "ConfigureAsset" on the reward controller and deploys transfer strategy
+     * @param rewardToken address of the reward token to add.
+     * @param rate the emission rate
+     * @param timespan the amount of time for the rewards to emit
+     * @param strategyType selects the type of transfer strategy to deploy.
+     * - contract can be upgraded to allow for additional transfer strategies
+     * - current transfer strategy codes: 0 = ERC20TransferStrategy, 1 = StaticATokenTransferStrategy
+     * - strategyType >= 2 will revert unless upgraded to support other types.
+     */
+    function configureAsset(address rewardToken, uint88 rate, uint256 timespan, uint8 strategyType) external;
+    
+    /**
      * @notice Sets reward rates manually for specific tokens
      * @dev intended for use with non-static tokens
+     * @dev rewardToken must be configured first
      * @param rewardToken address of the reward token to add.
      * @param rate the emission rate
      * @param timespan the amount of time for the rewards to emit
