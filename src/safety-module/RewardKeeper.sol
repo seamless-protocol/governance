@@ -78,7 +78,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @inheritdoc IRewardKeeper
-    function claimLMRewards(address to, address asset, address reward)
+    function claimLMRewards(address to, address asset, address[] calldata reward)
         external
         override
         isNotZeroAddress(to)
@@ -91,7 +91,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         StaticATokenTransferStrategy transferStrategy =
             StaticATokenTransferStrategy(controller.getTransferStrategy(staticAToken));
         if (address(transferStrategy) == address(0)) {
-            return false;
+            return false; // TODO: should this be revert instead?
         }
         transferStrategy.claimRewards(to, reward);
         return true;
