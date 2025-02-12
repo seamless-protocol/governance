@@ -210,7 +210,12 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         emit AllowedManualTokenUpdated(token, allowed);
     }
 
-    function configureAsset(address rewardToken, uint88 rate, uint256 timespan, uint8 strategyType) external override onlyRole(REWARD_SETTER_ROLE) isNotZeroAddress(rewardToken) {
+    function configureAsset(address rewardToken, uint88 rate, uint256 timespan, uint8 strategyType)
+        external
+        override
+        onlyRole(REWARD_SETTER_ROLE)
+        isNotZeroAddress(rewardToken)
+    {
         _checkIsManualRateAuthorized(rewardToken);
 
         IERC20 token = IERC20(rewardToken);
@@ -267,11 +272,10 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
         IERC20 token = IERC20(rewardToken);
         address asset = getAsset();
-        
+
         uint32 deadline = uint32(block.timestamp + timespan);
 
         // Get (or deploy if necessary) the transfer strategy for this static token.
-        
 
         // Update the rewards controller with the new emission rate and distribution end.
         address[] memory rewardTokensArray = new address[](1);

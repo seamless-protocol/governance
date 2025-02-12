@@ -495,7 +495,7 @@ contract SeamForkTest is Test {
         rewardKeeper.grantRole(keccak256("REWARD_SETTER_ROLE"), address(this));
         vm.stopPrank();
         address SEAMAddr = Constants.SEAM_ADDRESS;
-        
+
         rewardKeeper.setTokenForManualRate(SEAMAddr, true);
         rewardKeeper.configureAsset(SEAMAddr, 0, 0, 0);
 
@@ -585,7 +585,6 @@ contract SeamForkTest is Test {
         address SEAMAddr = Constants.SEAM_ADDRESS;
 
         rewardKeeper.setTokenForManualRate(SEAMAddr, true);
-        
 
         deal(asset, user, 1000 ether);
         vm.startPrank(user);
@@ -608,6 +607,4 @@ contract SeamForkTest is Test {
         uint256 balAfter = IERC20(SEAMAddr).balanceOf(user);
         assertEq(balAfter, balBefore + (rate * time), "Wrong reward distribution");
     }
-
-
 }

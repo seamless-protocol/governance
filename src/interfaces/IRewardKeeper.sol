@@ -90,7 +90,7 @@ interface IRewardKeeper {
      * - strategyType >= 2 will revert unless upgraded to support other types.
      */
     function configureAsset(address rewardToken, uint88 rate, uint256 timespan, uint8 strategyType) external;
-    
+
     /**
      * @notice Sets reward rates manually for specific tokens
      * @dev intended for use with non-static tokens
