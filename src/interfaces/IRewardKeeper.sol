@@ -14,7 +14,9 @@ interface IRewardKeeper {
     event SetPeriod(uint256 period);
     event ManualWithdraw(address token, address receiver, uint256 amount);
     event AllowedManualTokenUpdated(address token, bool allowed);
-    event ManualClaimedAndSetRate(address token, uint88 emissionRate, uint32 deadline);
+    event ManualSetRate(address token, uint88 emissionRate, uint32 deadline);
+    event ConfiguredAsset(address reward, uint88 rate, uint256 time);
+    event TransferStrategySet(address reward, address strategy);
 
     error ZeroAddress(address target);
     error InsufficientTimeElapsed();
@@ -71,8 +73,15 @@ interface IRewardKeeper {
     function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt) external;
 
     /**
+     * @notice Sets a transfer strategy for a given reward token.
+     * @param rewardToken address of the reward token
+     * @param transferStrategy address of the new transfer strategy
+     */
+    function setTransferStrategy(address rewardToken, address transferStrategy) external;
+
+    /**
      * @notice Sets whether a given token is allowed to be used with the manual reward setter.
-     * @dev CAUTION: Should not be used with static tokens
+     * @dev CAUTION: Should not be used with any fee tokens accrued by via the pool
      * @param token The underlying token address to update.
      * @param allowed True if the token should be allowed; false otherwise.
      */

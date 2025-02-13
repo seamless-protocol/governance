@@ -455,9 +455,14 @@ contract SeamForkTest is Test {
         address SEAMAddr = Constants.SEAM_ADDRESS;
 
         rewardKeeper.setTokenForManualRate(SEAMAddr, true);
+        
         rewardKeeper.configureAsset(SEAMAddr, 0, 0, 0);
-        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.AssetConfigured.selector));
-        rewardKeeper.configureAsset(SEAMAddr, 0, 0, 0);
+        address strategy = rewardsController.getTransferStrategy(SEAMAddr);
+        deal(SEAMAddr, address(this), 3025);
+        IERC20(SEAMAddr).approve(address(rewardKeeper), 55*55);
+        rewardKeeper.configureAsset(SEAMAddr, 55, 55, 0);
+        address strategyAfter = rewardsController.getTransferStrategy(SEAMAddr);
+        assertTrue(strategy == strategyAfter, "Incorrectly deployed new transfer strategy");
     }
 
     function testSetConfigureAssetsInvalidToken() public {
@@ -607,4 +612,56 @@ contract SeamForkTest is Test {
         uint256 balAfter = IERC20(SEAMAddr).balanceOf(user);
         assertEq(balAfter, balBefore + (rate * time), "Wrong reward distribution");
     }
+
+    function testSetTransferStrategyNotConfigured() public {
+        vm.startPrank(admin);
+        rewardKeeper.grantRole(keccak256("MANAGER_ROLE"), address(this));
+        rewardKeeper.grantRole(keccak256("REWARD_SETTER_ROLE"), address(this));
+        vm.stopPrank();
+        address SEAMAddr = Constants.SEAM_ADDRESS;
+
+        rewardKeeper.setTokenForManualRate(SEAMAddr, true);
+        
+        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.AssetNotConfigured.selector));
+        rewardKeeper.setTransferStrategy(SEAMAddr, address(rewardKeeper));
+
+    }
+
+    function testSetTransferStrategy() public {
+        vm.startPrank(admin);
+        rewardKeeper.grantRole(keccak256("MANAGER_ROLE"), address(this));
+        rewardKeeper.grantRole(keccak256("REWARD_SETTER_ROLE"), address(this));
+        vm.stopPrank();
+        address SEAMAddr = Constants.SEAM_ADDRESS;
+
+        rewardKeeper.setTokenForManualRate(SEAMAddr, true);
+        
+        rewardKeeper.configureAsset(SEAMAddr, 0, 0, 0);
+        rewardKeeper.setTransferStrategy(SEAMAddr, address(rewardKeeper));
+
+        address transferStrat = rewardsController.getTransferStrategy(SEAMAddr);
+        assertEq(transferStrat, address(rewardKeeper));
+    }
+
+    // function testSetTransferStrategyWithTransfer() public {
+    //     vm.startPrank(admin);
+    //     rewardKeeper.grantRole(keccak256("MANAGER_ROLE"), address(this));
+    //     rewardKeeper.grantRole(keccak256("REWARD_SETTER_ROLE"), address(this));
+    //     vm.stopPrank();
+    //     address SEAMAddr = Constants.SEAM_ADDRESS;
+
+    //     rewardKeeper.setTokenForManualRate(SEAMAddr, true);
+    //     deal(SEAMAddr, address(this), 100);
+    //     IERC20(SEAMAddr).approve(address(rewardKeeper), 10000000000000000000000000000);
+    //     rewardKeeper.configureAsset(SEAMAddr, 10, 10, 0);
+    //     uint256 balBefore = IERC20(SEAMAddr).balanceOf(address(rewardKeeper));
+    //     assertEq(balBefore, 0);
+    //     rewardKeeper.setTransferStrategy(SEAMAddr, address(rewardKeeper));
+
+    //     address transferStrat = rewardsController.getTransferStrategy(SEAMAddr);
+    //     assertEq(transferStrat, address(rewardKeeper));
+
+    //     uint256 balStrat = IERC20(SEAMAddr).balanceOf(address(rewardKeeper));
+    //     assertEq(balStrat, 10 * 10);
+    // }
 }
