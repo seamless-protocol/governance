@@ -211,14 +211,14 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @inheritdoc IRewardKeeper
-    function setTransferStrategy(address rewardToken, address transferStrategy) 
-        external 
-        override 
-        onlyRole(REWARD_SETTER_ROLE) 
-        isNotZeroAddress(rewardToken) 
+    function setTransferStrategy(address rewardToken, address transferStrategy)
+        external
+        override
+        onlyRole(REWARD_SETTER_ROLE)
+        isNotZeroAddress(rewardToken)
     {
         IRewardsController controller = getController();
-        (,,uint256 lastUpdate,) = controller.getRewardsData(getAsset(), rewardToken);
+        (,, uint256 lastUpdate,) = controller.getRewardsData(getAsset(), rewardToken);
         if (lastUpdate == 0) {
             revert AssetNotConfigured();
         }

@@ -455,11 +455,11 @@ contract SeamForkTest is Test {
         address SEAMAddr = Constants.SEAM_ADDRESS;
 
         rewardKeeper.setTokenForManualRate(SEAMAddr, true);
-        
+
         rewardKeeper.configureAsset(SEAMAddr, 0, 0, 0);
         address strategy = rewardsController.getTransferStrategy(SEAMAddr);
         deal(SEAMAddr, address(this), 3025);
-        IERC20(SEAMAddr).approve(address(rewardKeeper), 55*55);
+        IERC20(SEAMAddr).approve(address(rewardKeeper), 55 * 55);
         rewardKeeper.configureAsset(SEAMAddr, 55, 55, 0);
         address strategyAfter = rewardsController.getTransferStrategy(SEAMAddr);
         assertTrue(strategy == strategyAfter, "Incorrectly deployed new transfer strategy");
@@ -621,10 +621,9 @@ contract SeamForkTest is Test {
         address SEAMAddr = Constants.SEAM_ADDRESS;
 
         rewardKeeper.setTokenForManualRate(SEAMAddr, true);
-        
+
         vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.AssetNotConfigured.selector));
         rewardKeeper.setTransferStrategy(SEAMAddr, address(rewardKeeper));
-
     }
 
     function testSetTransferStrategy() public {
@@ -635,7 +634,7 @@ contract SeamForkTest is Test {
         address SEAMAddr = Constants.SEAM_ADDRESS;
 
         rewardKeeper.setTokenForManualRate(SEAMAddr, true);
-        
+
         rewardKeeper.configureAsset(SEAMAddr, 0, 0, 0);
         rewardKeeper.setTransferStrategy(SEAMAddr, address(rewardKeeper));
 
