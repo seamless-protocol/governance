@@ -27,7 +27,6 @@ interface IRewardKeeper {
     error InvalidManualRateParams();
     error AssetConfigured();
     error AssetNotConfigured();
-    
 
     /**
      * @notice Pauses the contract, disabling state-changing operations.
