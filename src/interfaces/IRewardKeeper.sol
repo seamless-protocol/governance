@@ -27,7 +27,7 @@ interface IRewardKeeper {
     error InvalidManualRateParams();
     error AssetConfigured();
     error AssetNotConfigured();
-    error InvalidStrategyType();
+    
 
     /**
      * @notice Pauses the contract, disabling state-changing operations.
@@ -74,6 +74,7 @@ interface IRewardKeeper {
 
     /**
      * @notice Sets a transfer strategy for a given reward token.
+     * @notice Should withdraw tokens from previous strategy before updating.
      * @param rewardToken address of the reward token
      * @param transferStrategy address of the new transfer strategy
      */
@@ -93,12 +94,9 @@ interface IRewardKeeper {
      * @param rewardToken address of the reward token to add.
      * @param rate the emission rate
      * @param timespan the amount of time for the rewards to emit
-     * @param strategyType selects the type of transfer strategy to deploy.
-     * - contract can be upgraded to allow for additional transfer strategies
-     * - current transfer strategy codes: 0 = ERC20TransferStrategy, 1 = StaticATokenTransferStrategy
-     * - strategyType >= 2 will revert unless upgraded to support other types.
+     * @param transferStrategy address of the transfer strategy to set.
      */
-    function configureAsset(address rewardToken, uint88 rate, uint256 timespan, uint8 strategyType) external;
+    function configureAsset(address rewardToken, uint88 rate, uint256 timespan, address transferStrategy) external;
 
     /**
      * @notice Sets reward rates manually for specific tokens

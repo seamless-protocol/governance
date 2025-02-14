@@ -8,8 +8,10 @@ import {Constants} from "../../src/library/Constants.sol";
 import {StakedToken} from "../../src/safety-module/StakedToken.sol";
 import {RewardKeeper} from "../../src/safety-module/RewardKeeper.sol"; // Adjust import paths to your project structure
 import {IRewardKeeper} from "../../src/interfaces/IRewardKeeper.sol";
+import {ERC20TransferStrategy} from "../../src/transfer-strategies/ERC20TransferStrategy.sol";
 import {RewardKeeperStorage as StorageLib} from "../../src/storage/RewardKeeperStorage.sol";
 import {IERC20} from "@aave/core-v3/contracts/dependencies/openzeppelin/contracts/IERC20.sol";
+import {IERC20 as ierc20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 import {IRewardsController} from "aave-v3-periphery/contracts/rewards/interfaces/IRewardsController.sol";
 import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
@@ -422,29 +424,18 @@ contract SeamForkTest is Test {
         rewardKeeper.grantRole(keccak256("REWARD_SETTER_ROLE"), address(this));
         vm.stopPrank();
         address SEAMAddr = Constants.SEAM_ADDRESS;
+        ERC20TransferStrategy transferStrategy =
+                    new ERC20TransferStrategy(ierc20(address(SEAMAddr)), address(rewardsController), address(rewardKeeper));
 
         rewardKeeper.setTokenForManualRate(SEAMAddr, true);
 
-        rewardKeeper.configureAsset(SEAMAddr, 0, 0, 0);
+        rewardKeeper.configureAsset(SEAMAddr, 0, 0, address(transferStrategy));
 
         vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InvalidManualRateParams.selector));
         rewardKeeper.setManualRate(SEAMAddr, 0, 200);
 
         vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InvalidManualRateParams.selector));
         rewardKeeper.setManualRate(SEAMAddr, 5, 0);
-    }
-
-    function testSetConfigureAssetsWrongStrategyType() public {
-        vm.startPrank(admin);
-        rewardKeeper.grantRole(keccak256("MANAGER_ROLE"), address(this));
-        rewardKeeper.grantRole(keccak256("REWARD_SETTER_ROLE"), address(this));
-        vm.stopPrank();
-        address SEAMAddr = Constants.SEAM_ADDRESS;
-
-        rewardKeeper.setTokenForManualRate(SEAMAddr, true);
-
-        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InvalidStrategyType.selector));
-        rewardKeeper.configureAsset(SEAMAddr, 0, 0, 3);
     }
 
     function testSetConfigureAssetsAlreadyConfigured() public {
@@ -455,14 +446,16 @@ contract SeamForkTest is Test {
         address SEAMAddr = Constants.SEAM_ADDRESS;
 
         rewardKeeper.setTokenForManualRate(SEAMAddr, true);
+        ERC20TransferStrategy transferStrategy =
+                    new ERC20TransferStrategy(ierc20(address(SEAMAddr)), address(rewardsController), address(rewardKeeper));
 
-        rewardKeeper.configureAsset(SEAMAddr, 0, 0, 0);
-        address strategy = rewardsController.getTransferStrategy(SEAMAddr);
+        rewardKeeper.configureAsset(SEAMAddr, 0, 0, address(transferStrategy));
+        
         deal(SEAMAddr, address(this), 3025);
         IERC20(SEAMAddr).approve(address(rewardKeeper), 55 * 55);
-        rewardKeeper.configureAsset(SEAMAddr, 55, 55, 0);
-        address strategyAfter = rewardsController.getTransferStrategy(SEAMAddr);
-        assertTrue(strategy == strategyAfter, "Incorrectly deployed new transfer strategy");
+        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.AssetConfigured.selector));
+        rewardKeeper.configureAsset(SEAMAddr, 55, 55, address(transferStrategy));
+        
     }
 
     function testSetConfigureAssetsInvalidToken() public {
@@ -472,8 +465,11 @@ contract SeamForkTest is Test {
         vm.stopPrank();
         address SEAMAddr = Constants.SEAM_ADDRESS;
 
+        ERC20TransferStrategy transferStrategy =
+                    new ERC20TransferStrategy(ierc20(address(SEAMAddr)), address(rewardsController), address(rewardKeeper));
+
         vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.SetManualRateNotAuthorized.selector));
-        rewardKeeper.configureAsset(SEAMAddr, 0, 0, 0);
+        rewardKeeper.configureAsset(SEAMAddr, 0, 0, address(transferStrategy));
     }
 
     function testSetConfigureAssetsCorrectlySends() public {
@@ -487,7 +483,9 @@ contract SeamForkTest is Test {
         uint256 rate = uint256(500 ether / time);
         IERC20(SEAMAddr).approve(address(rewardKeeper), rate * time);
         rewardKeeper.setTokenForManualRate(SEAMAddr, true);
-        rewardKeeper.configureAsset(SEAMAddr, uint88(rate), time, 0);
+        ERC20TransferStrategy transferStrategy =
+                    new ERC20TransferStrategy(ierc20(address(SEAMAddr)), address(rewardsController), address(rewardKeeper));
+        rewardKeeper.configureAsset(SEAMAddr, uint88(rate), time, address(transferStrategy));
 
         address transferStrat = rewardsController.getTransferStrategy(SEAMAddr);
         uint256 balTStrat = IERC20(SEAMAddr).balanceOf(transferStrat);
@@ -502,7 +500,9 @@ contract SeamForkTest is Test {
         address SEAMAddr = Constants.SEAM_ADDRESS;
 
         rewardKeeper.setTokenForManualRate(SEAMAddr, true);
-        rewardKeeper.configureAsset(SEAMAddr, 0, 0, 0);
+        ERC20TransferStrategy transferStrategy =
+                    new ERC20TransferStrategy(ierc20(address(SEAMAddr)), address(rewardsController), address(rewardKeeper));
+        rewardKeeper.configureAsset(SEAMAddr, 0, 0, address(transferStrategy));
 
         address transferStrat = rewardsController.getTransferStrategy(SEAMAddr);
         uint256 balTStrat = IERC20(SEAMAddr).balanceOf(transferStrat);
@@ -518,7 +518,9 @@ contract SeamForkTest is Test {
         address SEAMAddr = Constants.SEAM_ADDRESS;
 
         rewardKeeper.setTokenForManualRate(SEAMAddr, true);
-        rewardKeeper.configureAsset(SEAMAddr, 0, 0, 0);
+        ERC20TransferStrategy transferStrategy =
+                    new ERC20TransferStrategy(ierc20(address(SEAMAddr)), address(rewardsController), address(rewardKeeper));
+        rewardKeeper.configureAsset(SEAMAddr, 0, 0, address(transferStrategy));
 
         deal(asset, user, 1000 ether);
         vm.startPrank(user);
@@ -554,8 +556,11 @@ contract SeamForkTest is Test {
         vm.stopPrank();
         address SEAMAddr = Constants.SEAM_ADDRESS;
 
+        ERC20TransferStrategy transferStrategy =
+                    new ERC20TransferStrategy(ierc20(address(SEAMAddr)), address(rewardsController), address(rewardKeeper));
+
         rewardKeeper.setTokenForManualRate(SEAMAddr, true);
-        rewardKeeper.configureAsset(SEAMAddr, 0, 0, 0);
+        rewardKeeper.configureAsset(SEAMAddr, 0, 0, address(transferStrategy));
 
         deal(asset, user, 1000 ether);
         vm.startPrank(user);
@@ -603,7 +608,10 @@ contract SeamForkTest is Test {
         uint256 rate = uint256(500 ether / time);
         IERC20(SEAMAddr).approve(address(rewardKeeper), rate * time);
 
-        rewardKeeper.configureAsset(SEAMAddr, uint88(rate), time, 0);
+        ERC20TransferStrategy transferStrategy =
+                    new ERC20TransferStrategy(ierc20(address(SEAMAddr)), address(rewardsController), address(rewardKeeper));
+
+        rewardKeeper.configureAsset(SEAMAddr, uint88(rate), time, address(transferStrategy));
 
         vm.warp(block.timestamp + 8 days);
         uint256 balBefore = IERC20(SEAMAddr).balanceOf(user);
@@ -635,32 +643,14 @@ contract SeamForkTest is Test {
 
         rewardKeeper.setTokenForManualRate(SEAMAddr, true);
 
-        rewardKeeper.configureAsset(SEAMAddr, 0, 0, 0);
+        ERC20TransferStrategy transferStrategy =
+                    new ERC20TransferStrategy(ierc20(address(SEAMAddr)), address(rewardsController), address(rewardKeeper));
+
+        rewardKeeper.configureAsset(SEAMAddr, 0, 0, address(transferStrategy));
         rewardKeeper.setTransferStrategy(SEAMAddr, address(rewardKeeper));
 
         address transferStrat = rewardsController.getTransferStrategy(SEAMAddr);
         assertEq(transferStrat, address(rewardKeeper));
     }
 
-    // function testSetTransferStrategyWithTransfer() public {
-    //     vm.startPrank(admin);
-    //     rewardKeeper.grantRole(keccak256("MANAGER_ROLE"), address(this));
-    //     rewardKeeper.grantRole(keccak256("REWARD_SETTER_ROLE"), address(this));
-    //     vm.stopPrank();
-    //     address SEAMAddr = Constants.SEAM_ADDRESS;
-
-    //     rewardKeeper.setTokenForManualRate(SEAMAddr, true);
-    //     deal(SEAMAddr, address(this), 100);
-    //     IERC20(SEAMAddr).approve(address(rewardKeeper), 10000000000000000000000000000);
-    //     rewardKeeper.configureAsset(SEAMAddr, 10, 10, 0);
-    //     uint256 balBefore = IERC20(SEAMAddr).balanceOf(address(rewardKeeper));
-    //     assertEq(balBefore, 0);
-    //     rewardKeeper.setTransferStrategy(SEAMAddr, address(rewardKeeper));
-
-    //     address transferStrat = rewardsController.getTransferStrategy(SEAMAddr);
-    //     assertEq(transferStrat, address(rewardKeeper));
-
-    //     uint256 balStrat = IERC20(SEAMAddr).balanceOf(address(rewardKeeper));
-    //     assertEq(balStrat, 10 * 10);
-    // }
 }

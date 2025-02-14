@@ -223,22 +223,13 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
             revert AssetNotConfigured();
         }
 
-        // ITransferStrategyBase oldStrategy = ITransferStrategyBase(controller.getTransferStrategy(rewardToken));
-        // uint256 oldStrategyBalance = IERC20(rewardToken).balanceOf(address(oldStrategy));
-
         controller.setTransferStrategy(rewardToken, ITransferStrategyBase(transferStrategy));
-
-        // This does not work because rewardKeeper is not the incentive controller of the transfer strategy...
-        // and the rewardController does not appear to have an emergency withdraw function.
-        // if (oldStrategyBalance > 0) {
-        //     oldStrategy.performTransfer(transferStrategy, rewardToken, oldStrategyBalance);
-        // }
 
         emit TransferStrategySet(rewardToken, transferStrategy);
     }
 
     /// @inheritdoc IRewardKeeper
-    function configureAsset(address rewardToken, uint88 rate, uint256 timespan, uint8 strategyType)
+    function configureAsset(address rewardToken, uint88 rate, uint256 timespan, address transferStrategy)
         external
         override
         onlyRole(REWARD_SETTER_ROLE)
@@ -248,17 +239,11 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
         IERC20 token = IERC20(rewardToken);
         IRewardsController controller = getController();
-        address transferStrategy = controller.getTransferStrategy(rewardToken);
+        address currentStrategy = controller.getTransferStrategy(rewardToken);
         uint32 deadline = uint32(block.timestamp + timespan);
 
-        if (transferStrategy == address(0)) {
-            if (strategyType == 0) {
-                transferStrategy = address(new ERC20TransferStrategy(token, address(controller), address(this)));
-            } else if (strategyType == 1) {
-                transferStrategy = address(new StaticATokenTransferStrategy(token, address(controller), address(this)));
-            } else {
-                revert InvalidStrategyType();
-            }
+        if (currentStrategy != address(0)) {
+            revert AssetConfigured();
         }
 
         RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
@@ -272,11 +257,11 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         controller.configureAssets(config);
 
         if (rate > 0 && rate * timespan > 0) {
-            token.safeTransferFrom(msg.sender, address(transferStrategy), rate * timespan);
+            token.safeTransferFrom(msg.sender, transferStrategy, rate * timespan);
         }
 
         emit ConfiguredAsset(rewardToken, rate, timespan);
-        emit TransferStrategySet(rewardToken, address(transferStrategy));
+        emit TransferStrategySet(rewardToken, transferStrategy);
     }
 
     /// @inheritdoc IRewardKeeper
