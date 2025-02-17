@@ -13,11 +13,20 @@ interface IRewardKeeper {
     event SetPool(address pool);
     event SetPeriod(uint256 period);
     event ManualWithdraw(address token, address receiver, uint256 amount);
+    event AllowedManualTokenUpdated(address token, bool allowed);
+    event ManualSetRate(address token, uint88 emissionRate, uint32 deadline);
+    event ConfiguredAsset(address reward, uint88 rate, uint256 time);
+    event TransferStrategySet(address reward, address strategy);
 
     error ZeroAddress(address target);
     error InsufficientTimeElapsed();
     error InvalidPeriod();
     error TransferStrategyNotSet();
+    error StaticTokenCannotBeSetManually();
+    error SetManualRateNotAuthorized();
+    error InvalidManualRateParams();
+    error AssetConfigured();
+    error AssetNotConfigured();
 
     /**
      * @notice Pauses the contract, disabling state-changing operations.
@@ -61,6 +70,42 @@ interface IRewardKeeper {
      * @param amt The amount of tokens to withdraw.
      */
     function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt) external;
+
+    /**
+     * @notice Sets a transfer strategy for a given reward token.
+     * @notice Should withdraw tokens from previous strategy before updating.
+     * @param rewardToken address of the reward token
+     * @param transferStrategy address of the new transfer strategy
+     */
+    function setTransferStrategy(address rewardToken, address transferStrategy) external;
+
+    /**
+     * @notice Sets whether a given token is allowed to be used with the manual reward setter.
+     * @dev CAUTION: Should not be used with any fee tokens accrued by via the pool
+     * @param token The underlying token address to update.
+     * @param allowed True if the token should be allowed; false otherwise.
+     */
+    function setTokenForManualRate(address token, bool allowed) external;
+
+    /**
+     * @notice must be called for reward tokens being set for the first time
+     * @dev Calls "ConfigureAsset" on the reward controller and deploys transfer strategy
+     * @param rewardToken address of the reward token to add.
+     * @param rate the emission rate
+     * @param timespan the amount of time for the rewards to emit
+     * @param transferStrategy address of the transfer strategy to set.
+     */
+    function configureAsset(address rewardToken, uint88 rate, uint256 timespan, address transferStrategy) external;
+
+    /**
+     * @notice Sets reward rates manually for specific tokens
+     * @dev intended for use with non-static tokens
+     * @dev rewardToken must be configured first
+     * @param rewardToken address of the reward token to add.
+     * @param rate the emission rate
+     * @param timespan the amount of time for the rewards to emit
+     */
+    function setManualRate(address rewardToken, uint88 rate, uint256 timespan) external;
 
     /**
      * @notice Performs a manual token withdrawal
@@ -145,4 +190,11 @@ interface IRewardKeeper {
      * @return factory interface.
      */
     function getStaticATokenFactory() external view returns (IStaticATokenFactory);
+
+    /**
+     * @notice Returns a flag indicating if a token address can have manual rate set
+     * @param token address of token
+     * @return flag (bool).
+     */
+    function getIsAllowedForManualRate(address token) external view returns (bool);
 }

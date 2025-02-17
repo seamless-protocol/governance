@@ -16,6 +16,7 @@ import {DataTypes} from "@aave/core-v3/contracts/protocol/libraries/types/DataTy
 import {RewardKeeperStorage as Storage} from "../storage/RewardKeeperStorage.sol";
 import {IRewardKeeper} from "../interfaces/IRewardKeeper.sol";
 import {StaticATokenTransferStrategy} from "../transfer-strategies/StaticATokenTransferStrategy.sol";
+import {ERC20TransferStrategy} from "../transfer-strategies/ERC20TransferStrategy.sol";
 import {IStaticATokenFactory} from "static-a-token-v3/src/interfaces/IStaticATokenFactory.sol";
 import {StaticATokenLM} from "static-a-token-v3/src/StaticATokenLM.sol";
 
@@ -25,6 +26,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     bytes32 constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     bytes32 constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
     bytes32 constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 constant REWARD_SETTER_ROLE = keccak256("REWARD_SETTER_ROLE");
 
     modifier isNotZeroAddress(address target) {
         if (target == address(0)) {
@@ -198,6 +200,119 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @inheritdoc IRewardKeeper
+    function setTokenForManualRate(address token, bool allowed)
+        external
+        override
+        onlyRole(MANAGER_ROLE)
+        isNotZeroAddress(token)
+    {
+        Storage.layout().allowedManualTokens[token] = allowed;
+        emit AllowedManualTokenUpdated(token, allowed);
+    }
+
+    /// @inheritdoc IRewardKeeper
+    function setTransferStrategy(address rewardToken, address transferStrategy)
+        external
+        override
+        onlyRole(REWARD_SETTER_ROLE)
+        isNotZeroAddress(rewardToken)
+    {
+        IRewardsController controller = getController();
+        (,, uint256 lastUpdate,) = controller.getRewardsData(getAsset(), rewardToken);
+        if (lastUpdate == 0) {
+            revert AssetNotConfigured();
+        }
+
+        controller.setTransferStrategy(rewardToken, ITransferStrategyBase(transferStrategy));
+
+        emit TransferStrategySet(rewardToken, transferStrategy);
+    }
+
+    /// @inheritdoc IRewardKeeper
+    function configureAsset(address rewardToken, uint88 rate, uint256 timespan, address transferStrategy)
+        external
+        override
+        onlyRole(REWARD_SETTER_ROLE)
+        isNotZeroAddress(rewardToken)
+    {
+        _checkIsManualRateAuthorized(rewardToken);
+
+        IERC20 token = IERC20(rewardToken);
+        IRewardsController controller = getController();
+        address currentStrategy = controller.getTransferStrategy(rewardToken);
+        uint32 deadline = uint32(block.timestamp + timespan);
+
+        if (currentStrategy != address(0)) {
+            revert AssetConfigured();
+        }
+
+        RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
+        config[0].emissionPerSecond = rate;
+        config[0].totalSupply = IERC20(rewardToken).totalSupply();
+        config[0].distributionEnd = deadline;
+        config[0].asset = getAsset();
+        config[0].reward = rewardToken;
+        config[0].transferStrategy = ITransferStrategyBase(transferStrategy);
+        config[0].rewardOracle = getOracle();
+        controller.configureAssets(config);
+
+        if (rate > 0 && rate * timespan > 0) {
+            token.safeTransferFrom(msg.sender, transferStrategy, rate * timespan);
+        }
+
+        emit ConfiguredAsset(rewardToken, rate, timespan);
+        emit TransferStrategySet(rewardToken, transferStrategy);
+    }
+
+    /// @inheritdoc IRewardKeeper
+    function setManualRate(address rewardToken, uint88 rate, uint256 timespan)
+        external
+        override
+        onlyRole(REWARD_SETTER_ROLE)
+        isNotZeroAddress(rewardToken)
+    {
+        // Ensure that the given token is allowed for manual reward setting.
+        _checkIsManualRateAuthorized(rewardToken);
+
+        IRewardsController controller = getController();
+        ERC20TransferStrategy transferStrategy = ERC20TransferStrategy(controller.getTransferStrategy(rewardToken));
+        if (address(transferStrategy) == address(0)) {
+            revert AssetNotConfigured();
+        }
+
+        IERC20 token = IERC20(rewardToken);
+        address asset = getAsset();
+
+        uint32 deadline = uint32(block.timestamp + timespan);
+
+        // Get (or deploy if necessary) the transfer strategy for this static token.
+
+        // Update the rewards controller with the new emission rate and distribution end.
+        address[] memory rewardTokensArray = new address[](1);
+        rewardTokensArray[0] = rewardToken;
+        uint88[] memory emissionRatesArray = new uint88[](1);
+        emissionRatesArray[0] = rate;
+        controller.setEmissionPerSecond(asset, rewardTokensArray, emissionRatesArray);
+        controller.setDistributionEnd(asset, rewardToken, deadline);
+
+        // Transfer the appropriate amount of static tokens to the transfer strategy.
+        // assumes sender has the tokens and has approved this contract to send into transfer strategy
+        token.safeTransferFrom(msg.sender, address(transferStrategy), rate * timespan);
+
+        emit ManualSetRate(rewardToken, rate, deadline);
+    }
+
+    /**
+     * @notice Checks if the incoming address has been approved for manual rate
+     * @param rewardToken address of the reward token
+     */
+    function _checkIsManualRateAuthorized(address rewardToken) internal view {
+        if (!getIsAllowedForManualRate(rewardToken)) {
+            revert SetManualRateNotAuthorized();
+        }
+    }
+
+    /// @inheritdoc IRewardKeeper
     function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amount)
         external
         override
@@ -283,5 +398,10 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     /// @inheritdoc IRewardKeeper
     function getTreasury() public view override returns (address) {
         return Storage.layout().treasury;
+    }
+
+    /// @inheritdoc IRewardKeeper
+    function getIsAllowedForManualRate(address token) public view override returns (bool) {
+        return Storage.layout().allowedManualTokens[token];
     }
 }
