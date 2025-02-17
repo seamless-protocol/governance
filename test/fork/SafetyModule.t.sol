@@ -430,7 +430,7 @@ contract SeamForkTest is Test {
         rewardKeeper.configureAsset(SEAMAddr, 0, 0, address(transferStrategy));
         deal(SEAMAddr, address(this), 1000000 ether);
         IERC20(SEAMAddr).approve(address(rewardKeeper), 10000000000 ether);
-        
+
         rewardKeeper.setManualRate(SEAMAddr, 0, 200);
         rewardKeeper.setManualRate(SEAMAddr, 5, 0);
         rewardKeeper.setManualRate(SEAMAddr, 0, 0);
