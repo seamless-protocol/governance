@@ -178,7 +178,6 @@ contract SeamForkTest is Test {
 
     function testClaim() public {
         rewardKeeper.claimAndSetRate();
-        address[] memory rewardTokens = pool.getReservesList();
         address[] memory assets = new address[](1);
         assets[0] = address(stkSEAM);
 
@@ -200,7 +199,6 @@ contract SeamForkTest is Test {
         userCount = bound(userCount, 1, 100);
 
         rewardKeeper.claimAndSetRate();
-        address[] memory rewardTokens = pool.getReservesList();
         address[] memory assets = new address[](1);
         assets[0] = address(stkSEAM);
 
@@ -418,7 +416,7 @@ contract SeamForkTest is Test {
         rewardKeeper.setManualRate(address(0), 5, 200);
     }
 
-    function testSetManualRateInvalidParams() public {
+    function testSetManualRateWorksWithZero() public {
         vm.startPrank(admin);
         rewardKeeper.grantRole(keccak256("MANAGER_ROLE"), address(this));
         rewardKeeper.grantRole(keccak256("REWARD_SETTER_ROLE"), address(this));
@@ -430,12 +428,12 @@ contract SeamForkTest is Test {
         rewardKeeper.setTokenForManualRate(SEAMAddr, true);
 
         rewardKeeper.configureAsset(SEAMAddr, 0, 0, address(transferStrategy));
-
-        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InvalidManualRateParams.selector));
+        deal(SEAMAddr, address(this), 1000000 ether);
+        IERC20(SEAMAddr).approve(address(rewardKeeper), 10000000000 ether);
+        
         rewardKeeper.setManualRate(SEAMAddr, 0, 200);
-
-        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.InvalidManualRateParams.selector));
         rewardKeeper.setManualRate(SEAMAddr, 5, 0);
+        rewardKeeper.setManualRate(SEAMAddr, 0, 0);
     }
 
     function testSetConfigureAssetsAlreadyConfigured() public {

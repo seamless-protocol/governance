@@ -274,10 +274,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         // Ensure that the given token is allowed for manual reward setting.
         _checkIsManualRateAuthorized(rewardToken);
 
-        if (rate == 0 || timespan == 0) {
-            revert InvalidManualRateParams();
-        }
-
         IRewardsController controller = getController();
         ERC20TransferStrategy transferStrategy = ERC20TransferStrategy(controller.getTransferStrategy(rewardToken));
         if (address(transferStrategy) == address(0)) {
