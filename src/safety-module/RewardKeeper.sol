@@ -220,56 +220,41 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @inheritdoc IRewardKeeper
-    function configureAsset(address rewardToken, uint88 rate, uint256 timespan, address transferStrategy)
+    function configureAsset(address rewardToken, uint88 rate, uint32 distributionEnd, address transferStrategy, address oracle)
         external
         override
         onlyRole(REWARD_SETTER_ROLE)
         isNotZeroAddress(rewardToken)
     {
         _checkIsManualRateAuthorized(rewardToken);
-
-        IERC20 token = IERC20(rewardToken);
-        IRewardsController controller = getController();
-        uint32 deadline = uint32(block.timestamp + timespan);
 
         RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
         config[0].emissionPerSecond = rate;
         config[0].totalSupply = 0;
-        config[0].distributionEnd = deadline;
+        config[0].distributionEnd = distributionEnd;
         config[0].asset = getAsset();
         config[0].reward = rewardToken;
         config[0].transferStrategy = ITransferStrategyBase(transferStrategy);
-        config[0].rewardOracle = getOracle();
-        controller.configureAssets(config);
+        config[0].rewardOracle = IEACAggregatorProxy(oracle);
+        getController().configureAssets(config);
 
-        if (rate > 0 && rate * timespan > 0) {
-            token.safeTransferFrom(msg.sender, transferStrategy, rate * timespan);
-        }
-
-        emit ConfiguredAsset(rewardToken, rate, timespan);
+        emit ConfiguredAsset(rewardToken, rate, distributionEnd);
         emit TransferStrategySet(rewardToken, transferStrategy);
     }
 
     /// @inheritdoc IRewardKeeper
-    function setManualRate(address rewardToken, uint88 rate)
+    function setManualRate(address[] memory rewardTokens, uint88[] memory rates )
         external
         override
         onlyRole(REWARD_SETTER_ROLE)
-        isNotZeroAddress(rewardToken)
     {
         // Ensure that the given token is allowed for manual reward setting.
-        _checkIsManualRateAuthorized(rewardToken);
+        for (uint256 i; i < rewardTokens.length; i++) {
+            _checkIsManualRateAuthorized(rewardTokens[i]);
+        }
+        getController().setEmissionPerSecond(getAsset(), rewardTokens, rates);
 
-        IRewardsController controller = getController();
-
-        // Update the rewards controller with the new emission rate.
-        address[] memory rewardTokensArray = new address[](1);
-        rewardTokensArray[0] = rewardToken;
-        uint88[] memory emissionRatesArray = new uint88[](1);
-        emissionRatesArray[0] = rate;
-        controller.setEmissionPerSecond(getAsset(), rewardTokensArray, emissionRatesArray);
-
-        emit ManualSetRate(rewardToken, rate);
+        emit ManualSetRate(rewardTokens, rates);
     }
 
     /// @inheritdoc IRewardKeeper

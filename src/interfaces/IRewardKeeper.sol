@@ -18,7 +18,7 @@ interface IRewardKeeper {
     event SetPeriod(uint256 period);
     event ManualWithdraw(address token, address receiver, uint256 amount);
     event AllowedManualTokenUpdated(address token, bool allowed);
-    event ManualSetRate(address token, uint88 emissionRate);
+    event ManualSetRate(address[] token, uint88[] emissionRate);
     event ManualSetDistributionEnd(address token, uint32 deadline);
     event ConfiguredAsset(address reward, uint88 rate, uint256 time);
     event TransferStrategySet(address reward, address strategy);
@@ -98,19 +98,19 @@ interface IRewardKeeper {
      * @dev Calls "ConfigureAsset" on the reward controller and deploys transfer strategy
      * @param rewardToken address of the reward token to add.
      * @param rate the emission rate
-     * @param timespan the amount of time for the rewards to emit
+     * @param distributionEnd the timestamp distribution is to end at.
      * @param transferStrategy address of the transfer strategy to set.
      */
-    function configureAsset(address rewardToken, uint88 rate, uint256 timespan, address transferStrategy) external;
+    function configureAsset(address rewardToken, uint88 rate, uint32 distributionEnd, address transferStrategy, address oracle) external;
 
     /**
      * @notice Sets reward rates manually for specific tokens
      * @dev intended for use with non-static tokens
      * @dev rewardToken must be configured first
-     * @param rewardToken address of the reward token to add.
-     * @param rate the emission rate
+     * @param rewardTokens addresses of the reward token to add.
+     * @param rates the emission rates
      */
-    function setManualRate(address rewardToken, uint88 rate) external;
+    function setManualRate(address[] memory rewardTokens, uint88[] memory rates) external;
 
     /**
      * @notice Sets reward rates manually for specific tokens
