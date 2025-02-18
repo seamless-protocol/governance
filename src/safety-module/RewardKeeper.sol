@@ -161,7 +161,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
                 transferStrategy =
                     new StaticATokenTransferStrategy(IERC20(address(staticToken)), address(controller), address(this));
                 config[0].emissionPerSecond = 0;
-                config[0].totalSupply = StaticATokenLM(address(staticToken)).totalSupply();
+                config[0].totalSupply = 0;
                 config[0].distributionEnd = uint32(block.timestamp + period);
                 config[0].asset = asset;
                 config[0].reward = address(staticToken);
@@ -234,7 +234,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
         RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
         config[0].emissionPerSecond = rate;
-        config[0].totalSupply = IERC20(rewardToken).totalSupply();
+        config[0].totalSupply = 0;
         config[0].distributionEnd = deadline;
         config[0].asset = getAsset();
         config[0].reward = rewardToken;
@@ -262,7 +262,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
         IRewardsController controller = getController();
 
-        // Update the rewards controller with the new emission rate and distribution end.
+        // Update the rewards controller with the new emission rate.
         address[] memory rewardTokensArray = new address[](1);
         rewardTokensArray[0] = rewardToken;
         uint88[] memory emissionRatesArray = new uint88[](1);
