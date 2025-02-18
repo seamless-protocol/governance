@@ -5,6 +5,7 @@ import {IEmissionManager} from "@aave/periphery-v3/contracts/rewards/interfaces/
 import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
 import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
+import {IStaticATokenFactory} from "static-a-token-v3/src/interfaces/IStaticATokenFactory.sol";
 
 library RewardKeeperStorage {
     struct Layout {
@@ -21,6 +22,10 @@ library RewardKeeperStorage {
          * @dev only used for compatibility with rewards controller
          */
         IEACAggregatorProxy oracle;
+        /**
+         * @notice interface for the static AToken factory
+         */
+        IStaticATokenFactory staticATokenFactory;
         /**
          * @notice address of the asset token (i.e. SEAM)
          */
@@ -41,6 +46,10 @@ library RewardKeeperStorage {
          * @notice holds the timestamp of the last time claim was called
          */
         uint256 lastClaim;
+        /**
+         * @notice tracks which ERC20 tokens are allowed to have manual rate set
+         */
+        mapping(address => bool) allowedManualTokens;
     }
 
     bytes32 private constant STORAGE_SLOT = keccak256(

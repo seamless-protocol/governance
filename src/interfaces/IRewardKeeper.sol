@@ -5,17 +5,34 @@ import {RewardKeeperStorage as Storage} from "../storage/RewardKeeperStorage.sol
 import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
+import {IStaticATokenFactory} from "static-a-token-v3/src/interfaces/IStaticATokenFactory.sol";
 
+/**
+ * @title Reward Keeper
+ * @dev A contract used to manage and accumulate reward tokens for the Seamless safety module staking system
+ */
 interface IRewardKeeper {
     event ClaimedAndSetRate(address[] rewards, uint88[] rates);
     event SetRewardsController(address controller);
     event SetPool(address pool);
     event SetPeriod(uint256 period);
+    event ManualWithdraw(address token, address receiver, uint256 amount);
+    event AllowedManualTokenUpdated(address token, bool allowed);
+    event ManualSetRate(address[] token, uint88[] emissionRate);
+    event ManualSetDistributionEnd(address token, uint32 deadline);
+    event ConfiguredAsset(address reward, uint88 rate, uint256 time);
+    event TransferStrategySet(address reward, address strategy);
 
     error ZeroAddress(address target);
     error InsufficientTimeElapsed();
     error InvalidPeriod();
     error TransferStrategyNotSet();
+    error StaticTokenCannotBeSetManually();
+    error SetManualRateNotAuthorized();
+    error InvalidManualRateParams();
+    error AssetConfigured();
+    error AssetNotConfigured();
+
 
     /**
      * @notice Pauses the contract, disabling state-changing operations.
@@ -28,6 +45,15 @@ interface IRewardKeeper {
      * @dev Caller must have the `PAUSER_ROLE`.
      */
     function unpause() external;
+
+    /**
+     * @notice Claims any accrued liquidity rewards from static tokens held in transfer strategy
+     * @dev Caller must have the `MANAGER_ROLE`.
+     * @param to the address of the recipient
+     * @param asset the address of the asset corresponding to transfer strategy
+     * @param rewards address array of reward tokens on the transfer strategy
+     */
+    function claimLMRewards(address to, address asset, address[] calldata rewards) external;
 
     /**
      * @notice Claims rewards from the underlying Aave pool, sets new emission rates, and updates state.
@@ -50,6 +76,59 @@ interface IRewardKeeper {
      * @param amt The amount of tokens to withdraw.
      */
     function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt) external;
+
+    /**
+     * @notice Sets a transfer strategy for a given reward token.
+     * @notice Should withdraw tokens from previous strategy before updating.
+     * @param rewardToken address of the reward token
+     * @param transferStrategy address of the new transfer strategy
+     */
+    function setTransferStrategy(address rewardToken, address transferStrategy) external;
+
+    /**
+     * @notice Sets whether a given token is allowed to be used with the manual reward setter.
+     * @dev CAUTION: Should not be used with any fee tokens accrued by via the pool
+     * @param token The underlying token address to update.
+     * @param allowed True if the token should be allowed; false otherwise.
+     */
+    function setTokenForManualRate(address token, bool allowed) external;
+
+    /**
+     * @notice must be called for reward tokens being set for the first time
+     * @dev Calls "ConfigureAsset" on the reward controller and deploys transfer strategy
+     * @param rewardToken address of the reward token to add.
+     * @param rate the emission rate
+     * @param distributionEnd the timestamp distribution is to end at.
+     * @param transferStrategy address of the transfer strategy to set.
+     */
+    function configureAsset(address rewardToken, uint88 rate, uint32 distributionEnd, address transferStrategy, address oracle) external;
+
+    /**
+     * @notice Sets reward rates manually for specific tokens
+     * @dev intended for use with non-static tokens
+     * @dev rewardToken must be configured first
+     * @param rewardTokens addresses of the reward token to add.
+     * @param rates the emission rates
+     */
+    function setManualRate(address[] memory rewardTokens, uint88[] memory rates) external;
+
+    /**
+     * @notice Sets reward rates manually for specific tokens
+     * @dev intended for use with non-static tokens
+     * @dev rewardToken must be configured first
+     * @param rewardToken address of the reward token to add.
+     * @param deadline the amount of time for the rewards to emit
+     */
+    function setManualDistributionEnd(address rewardToken, uint32 deadline) external;
+
+    /**
+     * @notice Performs a manual token withdrawal
+     * @dev Caller must have the `MANAGER_ROLE`.
+     * @param token The address of the token to withdraw.
+     * @param to The recipient address for the withdrawn tokens.
+     * @param amt The amount of tokens to withdraw.
+     */
+    function withdrawTokens(address token, address to, uint256 amt) external;
 
     /**
      * @notice Sets a new rewards controller contract.
@@ -119,4 +198,17 @@ interface IRewardKeeper {
      * @return treasury address.
      */
     function getTreasury() external view returns (address);
+
+    /**
+     * @notice Returns the static AToken factory interface.
+     * @return factory interface.
+     */
+    function getStaticATokenFactory() external view returns (IStaticATokenFactory);
+
+    /**
+     * @notice Returns a flag indicating if a token address can have manual rate set
+     * @param token address of token
+     * @return flag (bool).
+     */
+    function getIsAllowedForManualRate(address token) external view returns (bool);
 }

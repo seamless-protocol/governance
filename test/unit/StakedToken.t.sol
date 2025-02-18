@@ -14,6 +14,7 @@ import {RewardsController} from "@aave/periphery-v3/contracts/rewards/RewardsCon
 import {RewardKeeper} from "../../src/safety-module/RewardKeeper.sol";
 import {MockPool} from "../mocks/MockPool.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
+import {MockFactory} from "../mocks/MockFactory.sol";
 import {StakedTokenTester} from "../mocks/StakedTokenTester.sol";
 
 contract StakedTokenTest is Test {
@@ -26,6 +27,7 @@ contract StakedTokenTest is Test {
 
     MockPool internal mockPool;
     MockOracle internal oracle;
+    MockFactory internal factory;
     RewardsController internal rewardsController;
     RewardKeeper internal rewardKeeper;
 
@@ -44,6 +46,7 @@ contract StakedTokenTest is Test {
     // Cooldown/Unstake config
     uint256 internal defaultCooldown = 3 days;
     uint256 internal defaultUnstakeWindow = 2 days;
+    address a1;
 
     function setUp() public {
         mockToken1 = new ERC20Mock();
@@ -76,8 +79,13 @@ contract StakedTokenTest is Test {
         reserves[1] = address(mockToken2);
         mockPool = new MockPool(reserves, treasury);
 
-        address a1 = mockPool.setReserveData(address(mockToken1), address(mockToken1));
+        a1 = mockPool.setReserveData(address(mockToken1), address(mockToken1));
         address a2 = mockPool.setReserveData(address(mockToken2), address(mockToken2));
+        address[] memory aTokens = new address[](2);
+        aTokens[0] = a1;
+        aTokens[1] = a2;
+        factory = new MockFactory();
+        factory.createStaticATokens(reserves, aTokens);
 
         RewardKeeper implementation2 = new RewardKeeper();
         proxy = new ERC1967Proxy(
@@ -88,7 +96,8 @@ contract StakedTokenTest is Test {
                 admin,
                 address(stakedToken),
                 address(oracle),
-                treasury
+                treasury,
+                address(factory)
             )
         );
         rewardKeeper = RewardKeeper(address(proxy));
@@ -115,6 +124,9 @@ contract StakedTokenTest is Test {
         // Approve the StakedToken to spend user's tokens
         vm.prank(user);
         underlyingAsset.approve(address(stakedToken), type(uint256).max);
+
+        vm.prank(address(rewardKeeper));
+        IERC20(a1).approve(factory.getStaticAToken(address(mockToken1)), 1000000000 ether);
     }
 
     function _upgradeAndSetTestValues() internal {
@@ -513,17 +525,19 @@ contract StakedTokenTest is Test {
         vm.warp(block.timestamp + 5 days);
 
         rewardKeeper.claimAndSetRate();
+        address sa1 = factory.getStaticAToken(address(mockToken1));
+        address sa2 = factory.getStaticAToken(address(mockToken2));
 
         address[] memory assets = new address[](1);
         assets[0] = address(stakedToken);
-        uint256 indexBefore = rewardsController.getUserRewards(assets, user, address(mockToken1));
+        uint256 indexBefore = rewardsController.getUserRewards(assets, user, sa1);
         assertEq(indexBefore, 0);
 
         vm.prank(user);
         stakedToken.deposit(1000 ether, user);
 
         vm.warp(block.timestamp + 10);
-        uint256 indexAfter = rewardsController.getUserRewards(assets, user, address(mockToken1));
+        uint256 indexAfter = rewardsController.getUserRewards(assets, user, sa1);
         assertTrue(indexAfter > 0);
     }
 
@@ -532,11 +546,13 @@ contract StakedTokenTest is Test {
         address user2 = address(2);
 
         rewardKeeper.claimAndSetRate();
+        address sa1 = factory.getStaticAToken(address(mockToken1));
+        address sa2 = factory.getStaticAToken(address(mockToken2));
 
         address[] memory assets = new address[](1);
         assets[0] = address(stakedToken);
-        uint256 indexBefore = rewardsController.getUserRewards(assets, user, address(mockToken1));
-        uint256 indexBefore2 = rewardsController.getUserRewards(assets, user2, address(mockToken1));
+        uint256 indexBefore = rewardsController.getUserRewards(assets, user, sa1);
+        uint256 indexBefore2 = rewardsController.getUserRewards(assets, user2, sa2);
         assertEq(indexBefore, 0);
         assertEq(indexBefore2, 0);
 
@@ -547,10 +563,10 @@ contract StakedTokenTest is Test {
         stakedToken.transfer(user2, 500 ether);
 
         vm.warp(block.timestamp + 10);
-        uint256 indexAfter = rewardsController.getUserRewards(assets, user, address(mockToken1));
+        uint256 indexAfter = rewardsController.getUserRewards(assets, user, sa1);
         assertTrue(indexAfter > 0);
 
-        uint256 indexAfter2 = rewardsController.getUserRewards(assets, user2, address(mockToken1));
+        uint256 indexAfter2 = rewardsController.getUserRewards(assets, user2, sa2);
         assertTrue(indexAfter2 > 0);
     }
 
@@ -587,7 +603,8 @@ contract StakedTokenTest is Test {
         uint256 userCount = 2;
         vm.warp(block.timestamp + 5 days);
         rewardKeeper.claimAndSetRate();
-        address[] memory rewardTokens = mockPool.getReservesList();
+        IERC20 token1 = IERC20(factory.getStaticAToken(address(mockToken1)));
+
         address[] memory assets = new address[](1);
         assets[0] = address(stakedToken);
 
@@ -604,25 +621,25 @@ contract StakedTokenTest is Test {
         }
 
         vm.warp(block.timestamp + 2 hours);
-        (, uint256 rate,, uint256 endTime) = rewardsController.getRewardsData(address(stakedToken), address(mockToken1));
+        (, uint256 rate,, uint256 endTime) = rewardsController.getRewardsData(address(stakedToken), address(token1));
         uint256 expectedPeriod = rewardKeeper.getPreviousPeriod();
         assertEq(1000 ether / expectedPeriod, rate, "wrong rate 0");
         uint256 leftOver = 1000 ether - (rate * expectedPeriod);
-        uint256 transferBal0 = mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1)));
-        assertEq(mockToken1.balanceOf(address(rewardKeeper)), leftOver, "Wrong leftover 0");
+        uint256 transferBal0 = token1.balanceOf(rewardsController.getTransferStrategy(address(token1)));
+        assertEq(token1.balanceOf(address(rewardKeeper)), leftOver, "Wrong leftover 0");
         assertEq(transferBal0, rate * expectedPeriod, "wrong bal 0");
 
         vm.warp(block.timestamp + 26 hours);
         rewardKeeper.claimAndSetRate();
 
-        (, rate,, endTime) = rewardsController.getRewardsData(address(stakedToken), address(mockToken1));
+        (, rate,, endTime) = rewardsController.getRewardsData(address(stakedToken), address(token1));
         expectedPeriod = rewardKeeper.getPreviousPeriod();
         assertEq((1000 ether + leftOver) / expectedPeriod, rate, "wrong rate 1");
         leftOver = (1000 ether + leftOver) - (rate * expectedPeriod);
 
-        assertEq(mockToken1.balanceOf(address(rewardKeeper)), leftOver, "Wrong leftover 1");
+        assertEq(token1.balanceOf(address(rewardKeeper)), leftOver, "Wrong leftover 1");
         assertEq(
-            mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1))),
+            token1.balanceOf(rewardsController.getTransferStrategy(address(token1))),
             rate * expectedPeriod + transferBal0,
             "wrong bal 1"
         );
@@ -637,28 +654,28 @@ contract StakedTokenTest is Test {
             }
             vm.stopPrank();
         }
-        transferBal0 = mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1)));
+        transferBal0 = token1.balanceOf(rewardsController.getTransferStrategy(address(token1)));
         vm.warp(block.timestamp + 26 hours);
         rewardKeeper.claimAndSetRate();
         vm.warp(block.timestamp + 26 hours);
 
-        (, rate,, endTime) = rewardsController.getRewardsData(address(stakedToken), address(mockToken1));
+        (, rate,, endTime) = rewardsController.getRewardsData(address(stakedToken), address(token1));
         expectedPeriod = rewardKeeper.getPreviousPeriod();
         uint256 oldLeftover = leftOver;
         assertEq((1000 ether + leftOver) / expectedPeriod, rate, "wrong rate 2");
         leftOver = (1000 ether + leftOver) - (rate * expectedPeriod);
 
-        assertEq(mockToken1.balanceOf(address(rewardKeeper)), leftOver, "Wrong leftover 2");
+        assertEq(token1.balanceOf(address(rewardKeeper)), leftOver, "Wrong leftover 2");
         assertEq(
-            mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1))),
+            token1.balanceOf(rewardsController.getTransferStrategy(address(token1))),
             rate * expectedPeriod + transferBal0,
             "wrong bal 2"
         );
 
-        uint256 rewards1 = rewardsController.getUserRewards(assets, address(uint160(1)), address(mockToken1));
-        uint256 rewards2 = rewardsController.getUserRewards(assets, address(uint160(2)), address(mockToken1));
+        uint256 rewards1 = rewardsController.getUserRewards(assets, address(uint160(1)), address(token1));
+        uint256 rewards2 = rewardsController.getUserRewards(assets, address(uint160(2)), address(token1));
         assertTrue(
-            mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1))) >= rewards1 + rewards2,
+            token1.balanceOf(rewardsController.getTransferStrategy(address(token1))) >= rewards1 + rewards2,
             "wrong total rewards"
         );
 
@@ -680,13 +697,13 @@ contract StakedTokenTest is Test {
             vm.stopPrank();
         }
 
-        (, rate,, endTime) = rewardsController.getRewardsData(address(stakedToken), address(mockToken1));
+        (, rate,, endTime) = rewardsController.getRewardsData(address(stakedToken), address(token1));
         expectedPeriod = rewardKeeper.getPreviousPeriod();
         assertEq((1000 ether + oldLeftover) / expectedPeriod, rate, "wrong rate 3");
         leftOver = (1000 ether + oldLeftover) - (rate * expectedPeriod);
 
-        assertEq(mockToken1.balanceOf(address(rewardKeeper)), leftOver, "Wrong leftover 3");
-        assertTrue(mockToken1.balanceOf(rewardsController.getTransferStrategy(address(mockToken1))) < 10, "wrong bal 3");
+        assertEq(token1.balanceOf(address(rewardKeeper)), leftOver, "Wrong leftover 3");
+        assertTrue(token1.balanceOf(rewardsController.getTransferStrategy(address(token1))) < 10, "wrong bal 3");
 
         for (uint256 i = 1; i <= userCount; i++) {
             address player = address(uint160(i));

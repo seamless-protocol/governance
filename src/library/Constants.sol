@@ -35,6 +35,7 @@ library Constants {
     address public constant AIRDROP_OWNER = 0x814767222A9DcEA379dFBacD1B98E86539F3C6Bb;
     address public constant SHORT_TIMELOCK_ADDRESS = 0x639d2dD24304aC2e6A691d8c1cFf4a2665925fee;
     address public constant GOVERNOR_SHORT_ADDRESS = 0x8768c789C6df8AF1a92d96dE823b4F80010Db294;
+    address constant REWARDS_CONTROLLER = 0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780;
 
     address public constant LONG_TIMELOCK_ADDRESS = 0xA96448469520666EDC351eff7676af2247b16718;
     //TODO: Change this when emissions are known
@@ -49,4 +50,7 @@ library Constants {
     address public constant POOL_ADDRESS = 0x8F44Fd754285aa6A2b8B9B97739B79746e0475a7;
     address public constant TREASURY_ADDRESS = 0x982F3A0e3183896f9970b8A9Ea6B69Cd53AF1089;
     address public constant ORACLE_PLACEHOLDER = 0x602823807C919A92B63cF5C126387c4759976072;
+    address public constant STATIC_ATOKEN_FACTORY = 0x6Bb79764b405955a22C2e850c40d9DAF82A3f407;
+
+    address constant TRANSPARENT_PROXY_FACTORY = 0x71d90C266b9Eb9A41FE8F875ddBddc3FadcF1b5d;
 }
