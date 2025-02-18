@@ -48,7 +48,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         address stkSeam,
         address oracle,
         address treasury,
-        address factory
+        address staticATokenfactory
     ) external initializer {
         __UUPSUpgradeable_init();
         __Pausable_init();
@@ -61,7 +61,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         $.lastClaim = block.timestamp;
         $.asset = stkSeam;
         $.treasury = treasury;
-        $.staticATokenFactory = IStaticATokenFactory(factory);
+        $.staticATokenFactory = IStaticATokenFactory(staticATokenfactory);
 
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
         _grantRole(MANAGER_ROLE, initialAdmin);
