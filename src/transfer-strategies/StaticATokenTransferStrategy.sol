@@ -48,8 +48,7 @@ contract StaticATokenTransferStrategy is TransferStrategyBase, IStaticATokenTran
         IStaticATokenLM token = IStaticATokenLM(address(rewardToken));
 
         token.claimRewards(to, reward);
-        // uint256 amount = token.collectAndUpdateRewards(reward);
-        // IERC20(reward).safeTransfer(to, amount);
+        
         emit RewardsClaimed(reward);
     }
 }

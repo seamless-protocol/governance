@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import {Initializable} from "openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
 import {AccessControlUpgradeable} from "openzeppelin-contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "openzeppelin-contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
@@ -20,7 +21,7 @@ import {ERC20TransferStrategy} from "../transfer-strategies/ERC20TransferStrateg
 import {IStaticATokenFactory} from "static-a-token-v3/src/interfaces/IStaticATokenFactory.sol";
 import {StaticATokenLM} from "static-a-token-v3/src/StaticATokenLM.sol";
 
-contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable, IRewardKeeper {
+contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable, IRewardKeeper, ReentrancyGuardUpgradeable{
     using SafeERC20 for IERC20;
 
     bytes32 constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
@@ -51,7 +52,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     ) external initializer {
         __UUPSUpgradeable_init();
         __Pausable_init();
-
+        __ReentrancyGuard_init();
         Storage.Layout storage $ = Storage.layout();
 
         $.pool = IPool(pool);
@@ -85,7 +86,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         override
         isNotZeroAddress(to)
         onlyRole(MANAGER_ROLE)
-        returns (bool)
     {
         IRewardsController controller = getController();
 
@@ -93,14 +93,13 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         StaticATokenTransferStrategy transferStrategy =
             StaticATokenTransferStrategy(controller.getTransferStrategy(staticAToken));
         if (address(transferStrategy) == address(0)) {
-            return false; // TODO: should this be revert instead?
+            revert TransferStrategyNotSet();
         }
         transferStrategy.claimRewards(to, rewards);
-        return true;
     }
 
     /// @inheritdoc IRewardKeeper
-    function claimAndSetRate() external override whenNotPaused {
+    function claimAndSetRate() external override whenNotPaused nonReentrant {
         Storage.Layout storage $ = Storage.layout();
         address asset = getAsset();
         IPool pool = getPool();
@@ -146,11 +145,9 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
             staticToken.deposit(token.balanceOf(address(this)), address(this), 0, false);
 
             // there will be dust from rounding here... it can stay in the contract and get accounted for next time.
-            newRates[i] = uint88(staticToken.balanceOf(address(this)) / period); // uint88((balance) / period);
+            newRates[i] = uint88(staticToken.balanceOf(address(this)) / period);
 
             // if rate is 0, claim amount too small. Leave in contract for next time.
-            // note: We could move all transfers to end of loop, which is preferred, but rate calculation and this check would have to occur
-            // at the end as well, meaning we would be deploying/activating a transfer strategy even if this loop should skip.
             if (newRates[i] == 0) {
                 continue;
             }
@@ -217,13 +214,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         onlyRole(REWARD_SETTER_ROLE)
         isNotZeroAddress(rewardToken)
     {
-        IRewardsController controller = getController();
-        (,, uint256 lastUpdate,) = controller.getRewardsData(getAsset(), rewardToken);
-        if (lastUpdate == 0) {
-            revert AssetNotConfigured();
-        }
-
-        controller.setTransferStrategy(rewardToken, ITransferStrategyBase(transferStrategy));
+        getController().setTransferStrategy(rewardToken, ITransferStrategyBase(transferStrategy));
 
         emit TransferStrategySet(rewardToken, transferStrategy);
     }
@@ -239,12 +230,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
         IERC20 token = IERC20(rewardToken);
         IRewardsController controller = getController();
-        address currentStrategy = controller.getTransferStrategy(rewardToken);
         uint32 deadline = uint32(block.timestamp + timespan);
-
-        if (currentStrategy != address(0)) {
-            revert AssetConfigured();
-        }
 
         RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
         config[0].emissionPerSecond = rate;
@@ -265,7 +251,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @inheritdoc IRewardKeeper
-    function setManualRate(address rewardToken, uint88 rate, uint256 timespan)
+    function setManualRate(address rewardToken, uint88 rate)
         external
         override
         onlyRole(REWARD_SETTER_ROLE)
@@ -275,31 +261,21 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         _checkIsManualRateAuthorized(rewardToken);
 
         IRewardsController controller = getController();
-        ERC20TransferStrategy transferStrategy = ERC20TransferStrategy(controller.getTransferStrategy(rewardToken));
-        if (address(transferStrategy) == address(0)) {
-            revert AssetNotConfigured();
-        }
-
-        IERC20 token = IERC20(rewardToken);
-        address asset = getAsset();
-
-        uint32 deadline = uint32(block.timestamp + timespan);
-
-        // Get (or deploy if necessary) the transfer strategy for this static token.
 
         // Update the rewards controller with the new emission rate and distribution end.
         address[] memory rewardTokensArray = new address[](1);
         rewardTokensArray[0] = rewardToken;
         uint88[] memory emissionRatesArray = new uint88[](1);
         emissionRatesArray[0] = rate;
-        controller.setEmissionPerSecond(asset, rewardTokensArray, emissionRatesArray);
-        controller.setDistributionEnd(asset, rewardToken, deadline);
+        controller.setEmissionPerSecond(getAsset(), rewardTokensArray, emissionRatesArray);
 
-        // Transfer the appropriate amount of static tokens to the transfer strategy.
-        // assumes sender has the tokens and has approved this contract to send into transfer strategy
-        token.safeTransferFrom(msg.sender, address(transferStrategy), rate * timespan);
+        emit ManualSetRate(rewardToken, rate);
+    }
 
-        emit ManualSetRate(rewardToken, rate, deadline);
+    /// @inheritdoc IRewardKeeper
+    function setManualDistributionEnd(address rewardToken, uint32 deadline) external override onlyRole(REWARD_SETTER_ROLE) isNotZeroAddress(rewardToken) {
+        getController().setDistributionEnd(getAsset(), rewardToken, deadline);
+        emit ManualSetDistributionEnd(rewardToken, deadline);
     }
 
     /**
