@@ -6,6 +6,7 @@ import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.so
 import {RewardsController} from "@aave/periphery-v3/contracts/rewards/RewardsController.sol";
 import {StakedToken} from "../src/safety-module/StakedToken.sol";
 import {RewardKeeper} from "../src/safety-module/RewardKeeper.sol";
+import {Constants} from "../src/library/Constants.sol";
 
 contract SafetyModule is Script {
     function getChainId() public view returns (uint256) {
@@ -19,9 +20,11 @@ contract SafetyModule is Script {
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployerAddress = vm.addr(deployerPrivateKey);
-        address asset = vm.envAddress("ASSET");
-        address pool = vm.envAddress("POOL");
-        address oracle = vm.envAddress("ORACLE");
+        address asset = address(Constants.SEAM_ADDRESS);
+        address pool = address(Constants.POOL_ADDRESS);
+        address oracle = address(Constants.ORACLE_PLACEHOLDER);
+        address treasury = address(Constants.TREASURY_ADDRESS);
+        address staticATokenFactory = address(Constants.STATIC_ATOKEN_FACTORY);
 
         console.log("Deployer address: ", deployerAddress);
         console.log("Deployer balance: ", deployerAddress.balance);
@@ -51,15 +54,13 @@ contract SafetyModule is Script {
         RewardKeeper implementation2 = new RewardKeeper();
         proxy = new ERC1967Proxy(
             address(implementation2),
-            abi.encodeWithSelector(RewardKeeper.initialize.selector, pool, deployerAddress, address(stkToken), oracle)
+            abi.encodeWithSelector(RewardKeeper.initialize.selector, pool, deployerAddress, address(stkToken), oracle, treasury, staticATokenFactory)
         );
         RewardKeeper rewardKeeper = RewardKeeper(address(proxy));
         console.log("Deployed RewardKeeper to: ", address(proxy), " implementation: ", address(implementation2));
 
         RewardsController controller = new RewardsController(address(rewardKeeper));
         console.log("Deployed controller to ", address(controller));
-
-        // set pool treasury to the rewardKeeper contract (externally, unless deployer is owner of pool)
 
         // set reward controller on stkToken and reward keeper
         rewardKeeper.setRewardsController(address(controller));
