@@ -37,7 +37,10 @@ interface IStakedToken {
      * @return scaledBalance The current balance of the user.
      * @return scaledSupply The current total supply.
      */
-    function getScaledUserBalanceAndSupply(address user) external view returns (uint256 scaledBalance, uint256 scaledSupply);
+    function getScaledUserBalanceAndSupply(address user)
+        external
+        view
+        returns (uint256 scaledBalance, uint256 scaledSupply);
 
     /**
      * @notice Pauses all staking-related operations.

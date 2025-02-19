@@ -82,7 +82,11 @@ contract StakedToken is
     }
 
     /// @inheritdoc IStakedToken
-    function getScaledUserBalanceAndSupply(address user) external view returns (uint256 scaledBalance, uint256 scaledSupply) {
+    function getScaledUserBalanceAndSupply(address user)
+        external
+        view
+        returns (uint256 scaledBalance, uint256 scaledSupply)
+    {
         scaledBalance = balanceOf(user);
         scaledSupply = totalSupply();
     }

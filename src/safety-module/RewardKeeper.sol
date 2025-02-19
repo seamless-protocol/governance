@@ -21,7 +21,13 @@ import {ERC20TransferStrategy} from "../transfer-strategies/ERC20TransferStrateg
 import {IStaticATokenFactory} from "static-a-token-v3/src/interfaces/IStaticATokenFactory.sol";
 import {StaticATokenLM} from "static-a-token-v3/src/StaticATokenLM.sol";
 
-contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable, IRewardKeeper, ReentrancyGuardUpgradeable{
+contract RewardKeeper is
+    UUPSUpgradeable,
+    AccessControlUpgradeable,
+    PausableUpgradeable,
+    IRewardKeeper,
+    ReentrancyGuardUpgradeable
+{
     using SafeERC20 for IERC20;
 
     bytes32 constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
@@ -116,7 +122,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         for (uint8 i; i < rewardTokens.length; i++) {
             IERC20 token = IERC20(pool.getReserveData(rewardTokens[i]).aTokenAddress);
             uint256 balance = token.balanceOf(getTreasury());
-            
+
             staticTokens[0] = getStaticATokenFactory().getStaticAToken(address(rewardTokens[i]));
             address transferStrategy = controller.getTransferStrategy(staticTokens[0]);
 
@@ -131,10 +137,13 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
             }
 
             if (transferStrategy == address(0)) {
-                transferStrategy =
-                    address(new StaticATokenTransferStrategy(IERC20(staticTokens[0]), address(controller), address(this)));
-                _configureAssets(staticTokens[0], transferStrategy, oracle, asset, controller, 0, uint32(block.timestamp));
-            } 
+                transferStrategy = address(
+                    new StaticATokenTransferStrategy(IERC20(staticTokens[0]), address(controller), address(this))
+                );
+                _configureAssets(
+                    staticTokens[0], transferStrategy, oracle, asset, controller, 0, uint32(block.timestamp)
+                );
+            }
 
             controller.setEmissionPerSecond(asset, staticTokens, emissionRates);
             controller.setDistributionEnd(asset, staticTokens[0], uint32(block.timestamp + period));
@@ -169,20 +178,29 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @inheritdoc IRewardKeeper
-    function configureAsset(address rewardToken, uint88 rate, uint32 distributionEnd, address transferStrategy, address oracle)
-        external
-        override
-        onlyRole(REWARD_SETTER_ROLE)
-        isNotZeroAddress(rewardToken)
-    {
+    function configureAsset(
+        address rewardToken,
+        uint88 rate,
+        uint32 distributionEnd,
+        address transferStrategy,
+        address oracle
+    ) external override onlyRole(REWARD_SETTER_ROLE) isNotZeroAddress(rewardToken) {
         _checkIsManualRateAuthorized(rewardToken);
-        _configureAssets(rewardToken, transferStrategy, IEACAggregatorProxy(oracle), getAsset(), getController(), rate, distributionEnd);
-        
+        _configureAssets(
+            rewardToken,
+            transferStrategy,
+            IEACAggregatorProxy(oracle),
+            getAsset(),
+            getController(),
+            rate,
+            distributionEnd
+        );
+
         emit ConfiguredAsset(rewardToken, rate, distributionEnd);
     }
 
     /// @inheritdoc IRewardKeeper
-    function setManualRate(address[] memory rewardTokens, uint88[] memory rates )
+    function setManualRate(address[] memory rewardTokens, uint88[] memory rates)
         external
         override
         onlyRole(REWARD_SETTER_ROLE)
@@ -197,7 +215,12 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @inheritdoc IRewardKeeper
-    function setManualDistributionEnd(address rewardToken, uint32 deadline) external override onlyRole(REWARD_SETTER_ROLE) isNotZeroAddress(rewardToken) {
+    function setManualDistributionEnd(address rewardToken, uint32 deadline)
+        external
+        override
+        onlyRole(REWARD_SETTER_ROLE)
+        isNotZeroAddress(rewardToken)
+    {
         getController().setDistributionEnd(getAsset(), rewardToken, deadline);
         emit SetDistributionEnd(rewardToken, deadline);
     }
@@ -265,7 +288,10 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
      * @param balance the balance of aToken
      * @param period the period for the current cycle
      */
-    function _processAToken(IERC20 aToken, address staticToken, uint256 balance, uint256 period) internal returns(uint88 rate) {
+    function _processAToken(IERC20 aToken, address staticToken, uint256 balance, uint256 period)
+        internal
+        returns (uint88 rate)
+    {
         aToken.transferFrom(getTreasury(), address(this), balance);
         aToken.approve(staticToken, aToken.balanceOf(address(this)));
         StaticATokenLM(staticToken).deposit(aToken.balanceOf(address(this)), address(this), 0, false);
@@ -283,12 +309,12 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
      * @param distributionEnd the timestamp to end distribution
      */
     function _configureAssets(
-        address rewardToken, 
-        address transferStrategy, 
-        IEACAggregatorProxy oracle, 
-        address asset, 
-        IRewardsController controller, 
-        uint88 rate, 
+        address rewardToken,
+        address transferStrategy,
+        IEACAggregatorProxy oracle,
+        address asset,
+        IRewardsController controller,
+        uint88 rate,
         uint32 distributionEnd
     ) internal {
         RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);

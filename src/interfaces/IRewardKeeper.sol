@@ -21,7 +21,6 @@ interface IRewardKeeper {
     event WithdrawTokens(address token, address receiver, uint256 amount);
     event AllowedManualTokenUpdated(address token, bool allowed);
     event ConfiguredAsset(address reward, uint88 rate, uint256 time);
-    
 
     error ZeroAddress(address target);
     error InsufficientTimeElapsed();
