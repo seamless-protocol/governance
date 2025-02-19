@@ -599,11 +599,13 @@ contract SeamForkTest is Test {
         deal(SEAMAddr, address(this), 500 ether);
         uint256 time = 7 days;
         uint256 rate = uint256(500 ether / time);
-        
+
         ERC20TransferStrategy transferStrategy =
             new ERC20TransferStrategy(ierc20(address(SEAMAddr)), address(rewardsController), address(rewardKeeper));
         IERC20(SEAMAddr).transfer(address(transferStrategy), rate * time);
-        rewardKeeper.configureAsset(SEAMAddr, uint88(rate), uint32(time + block.timestamp), address(transferStrategy), address(oracle));
+        rewardKeeper.configureAsset(
+            SEAMAddr, uint88(rate), uint32(time + block.timestamp), address(transferStrategy), address(oracle)
+        );
 
         vm.warp(block.timestamp + 8 days);
         uint256 balBefore = IERC20(SEAMAddr).balanceOf(user);
@@ -631,7 +633,7 @@ contract SeamForkTest is Test {
         address transferStrat = rewardsController.getTransferStrategy(SEAMAddr);
         assertEq(transferStrat, address(rewardKeeper));
     }
-    
+
     function testReturnStaticATokenFactory() public view {
         IStaticATokenFactory tokenFactory = rewardKeeper.getStaticATokenFactory();
         assertEq(address(tokenFactory), factory);
