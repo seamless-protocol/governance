@@ -77,13 +77,14 @@ contract StakedToken is
     function _authorizeUpgrade(address) internal override onlyRole(UPGRADER_ROLE) {}
 
     /// @inheritdoc IStakedToken
-    function scaledTotalSupply() external view returns (uint256) {
-        return totalSupply();
+    function scaledTotalSupply() external view returns (uint256 scaledSupply) {
+        scaledSupply = totalSupply();
     }
 
     /// @inheritdoc IStakedToken
-    function getScaledUserBalanceAndSupply(address user) external view returns (uint256, uint256) {
-        return (balanceOf(user), totalSupply());
+    function getScaledUserBalanceAndSupply(address user) external view returns (uint256 scaledBalance, uint256 scaledSupply) {
+        scaledBalance = balanceOf(user);
+        scaledSupply = totalSupply();
     }
 
     /// @inheritdoc IStakedToken
@@ -117,7 +118,7 @@ contract StakedToken is
         uint256 amountToReceive,
         address toAddress,
         uint256 toBalance
-    ) public view override returns (uint256) {
+    ) public view override returns (uint256 cooldownTimestamp) {
         Storage.Layout storage $ = Storage.layout();
         uint256 toCooldownTimestamp = $.stakersCooldowns[toAddress];
         if (toCooldownTimestamp == 0) {
@@ -140,7 +141,7 @@ contract StakedToken is
             }
         }
 
-        return toCooldownTimestamp;
+        cooldownTimestamp = toCooldownTimestamp;
     }
 
     /**
@@ -206,9 +207,9 @@ contract StakedToken is
         view
         virtual
         override(ERC20Upgradeable, ERC4626Upgradeable, IStakedToken)
-        returns (uint8)
+        returns (uint8 decimal)
     {
-        return super.decimals();
+        decimal = super.decimals();
     }
 
     /// @inheritdoc IStakedToken
@@ -217,9 +218,9 @@ contract StakedToken is
         view
         virtual
         override(ERC20PermitUpgradeable, NoncesUpgradeable, IStakedToken)
-        returns (uint256)
+        returns (uint256 nonce)
     {
-        return super.nonces(owner);
+        nonce = super.nonces(owner);
     }
 
     /**
@@ -296,22 +297,22 @@ contract StakedToken is
 
     // Storage getters
     /// @inheritdoc IStakedToken
-    function getCooldown() public view override returns (uint256) {
-        return Storage.layout().cooldownSeconds;
+    function getCooldown() public view override returns (uint256 cooldownTime) {
+        cooldownTime = Storage.layout().cooldownSeconds;
     }
 
     /// @inheritdoc IStakedToken
-    function getUnstakeWindow() public view override returns (uint256) {
-        return Storage.layout().unstakeWindow;
+    function getUnstakeWindow() public view override returns (uint256 unstakeWindow) {
+        unstakeWindow = Storage.layout().unstakeWindow;
     }
 
     /// @inheritdoc IStakedToken
-    function getStakerCooldown(address user) public view override returns (uint256) {
-        return Storage.layout().stakersCooldowns[user];
+    function getStakerCooldown(address user) public view override returns (uint256 cooldownStartedAt) {
+        cooldownStartedAt = Storage.layout().stakersCooldowns[user];
     }
 
     /// @inheritdoc IStakedToken
-    function getRewardsController() public view override returns (IRewardsController) {
-        return Storage.layout().rewardsController;
+    function getRewardsController() public view override returns (IRewardsController rewardController) {
+        rewardController = Storage.layout().rewardsController;
     }
 }

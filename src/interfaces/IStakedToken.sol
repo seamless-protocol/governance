@@ -27,17 +27,17 @@ interface IStakedToken {
     /**
      * @notice Returns the total supply of the staked token.
      * @notice see IScaledToken
-     * @return The total number of tokens in circulation.
+     * @return scaledSupply The total number of tokens in circulation.
      */
-    function scaledTotalSupply() external view returns (uint256);
+    function scaledTotalSupply() external view returns (uint256 scaledSupply);
 
     /**
      * @notice Retrieves the scaled balance of a user and the total supply.
      * @param user The address of the user.
      * @return scaledBalance The current balance of the user.
-     * @return scaledTotalSupply The current total supply.
+     * @return scaledSupply The current total supply.
      */
-    function getScaledUserBalanceAndSupply(address user) external view returns (uint256, uint256);
+    function getScaledUserBalanceAndSupply(address user) external view returns (uint256 scaledBalance, uint256 scaledSupply);
 
     /**
      * @notice Pauses all staking-related operations.
@@ -73,27 +73,27 @@ interface IStakedToken {
      * @param amountToReceive The amount of tokens to be transferred to the recipient.
      * @param toAddress The recipient of the tokens.
      * @param toBalance The current balance of the recipient.
-     * @return The updated cooldown timestamp for the recipient.
+     * @return cooldownTimestamp The updated cooldown timestamp for the recipient.
      */
     function getNextCooldownTimestamp(
         uint256 fromCooldownTimestamp,
         uint256 amountToReceive,
         address toAddress,
         uint256 toBalance
-    ) external view returns (uint256);
+    ) external view returns (uint256 cooldownTimestamp);
 
     /**
      * @notice Provides the number of decimal places used by the staked token.
-     * @return The number of decimal places.
+     * @return decimal The number of decimal places.
      */
-    function decimals() external view returns (uint8);
+    function decimals() external view returns (uint8 decimal);
 
     /**
      * @notice Retrieves the current nonce for a given address.
      * @param owner The address whose nonce is being queried.
-     * @return The current nonce for the specified address.
+     * @return nonce The current nonce for the specified address.
      */
-    function nonces(address owner) external view returns (uint256);
+    function nonces(address owner) external view returns (uint256 nonce);
 
     /**
      * @notice Sets a new rewards controller contract.
@@ -112,26 +112,26 @@ interface IStakedToken {
 
     /**
      * @notice Returns the duration of the cooldown period in seconds.
-     * @return The cooldown duration in seconds.
+     * @return cooldownTime The cooldown duration in seconds.
      */
-    function getCooldown() external view returns (uint256);
+    function getCooldown() external view returns (uint256 cooldownTime);
 
     /**
      * @notice Returns the duration of the unstake window in seconds.
-     * @return The unstake window duration in seconds.
+     * @return unstakeWindow The unstake window duration in seconds.
      */
-    function getUnstakeWindow() external view returns (uint256);
+    function getUnstakeWindow() external view returns (uint256 unstakeWindow);
 
     /**
      * @notice Returns the stored cooldown timestamp for a given user.
      * @param user The address of the user to check.
-     * @return The cooldown timestamp for the specified user.
+     * @return cooldownStartedAt cooldown The cooldown timestamp for the specified user.
      */
-    function getStakerCooldown(address user) external view returns (uint256);
+    function getStakerCooldown(address user) external view returns (uint256 cooldownStartedAt);
 
     /**
      * @notice Retrieves the contract address of the current rewards controller.
-     * @return The rewards controller contract.
+     * @return rewardController The rewards controller contract.
      */
-    function getRewardsController() external view returns (IRewardsController);
+    function getRewardsController() external view returns (IRewardsController rewardController);
 }

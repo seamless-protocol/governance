@@ -316,52 +316,52 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     }
 
     /// @inheritdoc IRewardKeeper
-    function getController() public view override returns (IRewardsController) {
-        return Storage.layout().controller;
+    function getController() public view override returns (IRewardsController rewardController) {
+        rewardController = Storage.layout().controller;
     }
 
     /// @inheritdoc IRewardKeeper
-    function getPool() public view override returns (IPool) {
-        return Storage.layout().pool;
+    function getPool() public view override returns (IPool pool) {
+        pool = Storage.layout().pool;
     }
 
     /// @inheritdoc IRewardKeeper
-    function getOracle() public view override returns (IEACAggregatorProxy) {
-        return Storage.layout().oracle;
+    function getOracle() public view override returns (IEACAggregatorProxy oracle) {
+        oracle = Storage.layout().oracle;
     }
 
     /// @inheritdoc IRewardKeeper
-    function getStaticATokenFactory() public view returns (IStaticATokenFactory) {
-        return Storage.layout().staticATokenFactory;
+    function getStaticATokenFactory() public view returns (IStaticATokenFactory staticATokenFactory) {
+        staticATokenFactory = Storage.layout().staticATokenFactory;
     }
 
     /// @inheritdoc IRewardKeeper
-    function getAsset() public view override returns (address) {
-        return Storage.layout().asset;
+    function getAsset() public view override returns (address asset) {
+        asset = Storage.layout().asset;
     }
 
     /// @inheritdoc IRewardKeeper
-    function getPeriod() public view override returns (uint256) {
-        return Storage.layout().period;
+    function getPeriod() public view override returns (uint256 period) {
+        period = Storage.layout().period;
     }
 
     /// @inheritdoc IRewardKeeper
-    function getPreviousPeriod() public view override returns (uint256) {
-        return Storage.layout().previousPeriod;
+    function getPreviousPeriod() public view override returns (uint256 previousPeriod) {
+        previousPeriod = Storage.layout().previousPeriod;
     }
 
     /// @inheritdoc IRewardKeeper
-    function getLastClaim() public view override returns (uint256) {
-        return Storage.layout().lastClaim;
+    function getLastClaim() public view override returns (uint256 lastClaim) {
+        lastClaim = Storage.layout().lastClaim;
     }
 
     /// @inheritdoc IRewardKeeper
-    function getTreasury() public view override returns (address) {
-        return Storage.layout().treasury;
+    function getTreasury() public view override returns (address treasury) {
+        treasury = Storage.layout().treasury;
     }
 
     /// @inheritdoc IRewardKeeper
-    function getIsAllowedForManualRate(address token) public view override returns (bool) {
-        return Storage.layout().allowedManualTokens[token];
+    function getIsAllowedForManualRate(address token) public view override returns (bool isAllowed) {
+        isAllowed = Storage.layout().allowedManualTokens[token];
     }
 }

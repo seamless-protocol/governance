@@ -158,62 +158,62 @@ interface IRewardKeeper {
 
     /**
      * @notice Returns the current rewards controller contract address.
-     * @return The `IRewardsController` implementation currently in use.
+     * @return rewardController The `IRewardsController` implementation currently in use.
      */
-    function getController() external view returns (IRewardsController);
+    function getController() external view returns (IRewardsController rewardController);
 
     /**
      * @notice Returns the current Aave Pool address used for minting/withdrawing rewards.
-     * @return The `IPool` address currently in use.
+     * @return pool The `IPool` address currently in use.
      */
-    function getPool() external view returns (IPool);
+    function getPool() external view returns (IPool pool);
 
     /**
      * @notice Retrieves the current oracle contract used for reward configuration.
-     * @return The `IEACAggregatorProxy` oracle address.
+     * @return oracle The `IEACAggregatorProxy` oracle address.
      */
-    function getOracle() external view returns (IEACAggregatorProxy);
+    function getOracle() external view returns (IEACAggregatorProxy oracle);
 
     /**
      * @notice Returns the staking token asset address.
-     * @return The address of the asset used for reward distribution.
+     * @return asset The address of the asset used for reward distribution.
      */
-    function getAsset() external view returns (address);
+    function getAsset() external view returns (address asset);
 
     /**
      * @notice Returns the length of time (in seconds) used for calculating reward emissions.
-     * @return The current emission period in seconds.
+     * @return period The current emission period in seconds.
      */
-    function getPeriod() external view returns (uint256);
+    function getPeriod() external view returns (uint256 period);
 
     /**
      * @notice Returns the previously used emission period (in seconds) prior to the latest update.
-     * @return The previous emission period in seconds.
+     * @return previousPeriod The previous emission period in seconds.
      */
-    function getPreviousPeriod() external view returns (uint256);
+    function getPreviousPeriod() external view returns (uint256 previousPeriod);
 
     /**
      * @notice Returns the last recorded timestamp when rewards were claimed and rates were updated.
-     * @return The last claim timestamp.
+     * @return lastClaim The last claim timestamp.
      */
-    function getLastClaim() external view returns (uint256);
+    function getLastClaim() external view returns (uint256 lastClaim);
 
     /**
      * @notice Returns the treasury address.
-     * @return treasury address.
+     * @return treasury address of treasury.
      */
-    function getTreasury() external view returns (address);
+    function getTreasury() external view returns (address treasury);
 
     /**
      * @notice Returns the static AToken factory interface.
-     * @return factory interface.
+     * @return staticATokenFactory factory interface.
      */
-    function getStaticATokenFactory() external view returns (IStaticATokenFactory);
+    function getStaticATokenFactory() external view returns (IStaticATokenFactory staticATokenFactory);
 
     /**
      * @notice Returns a flag indicating if a token address can have manual rate set
      * @param token address of token
-     * @return flag (bool).
+     * @return isAllowed flag (bool).
      */
-    function getIsAllowedForManualRate(address token) external view returns (bool);
+    function getIsAllowedForManualRate(address token) external view returns (bool isAllowed);
 }
