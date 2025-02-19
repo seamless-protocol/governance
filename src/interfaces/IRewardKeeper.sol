@@ -12,16 +12,16 @@ import {IStaticATokenFactory} from "static-a-token-v3/src/interfaces/IStaticATok
  * @dev A contract used to manage and accumulate reward tokens for the Seamless safety module staking system
  */
 interface IRewardKeeper {
-    event ClaimedAndSetRate(address rewardAddress, uint88 rate);
     event SetRewardsController(address controller);
     event SetPool(address pool);
     event SetPeriod(uint256 period);
-    event ManualWithdraw(address token, address receiver, uint256 amount);
+    event SetRate(address[] token, uint88[] emissionRate);
+    event SetDistributionEnd(address token, uint32 deadline);
+    event SetTransferStrategy(address reward, address strategy);
+    event WithdrawTokens(address token, address receiver, uint256 amount);
     event AllowedManualTokenUpdated(address token, bool allowed);
-    event ManualSetRate(address[] token, uint88[] emissionRate);
-    event ManualSetDistributionEnd(address token, uint32 deadline);
     event ConfiguredAsset(address reward, uint88 rate, uint256 time);
-    event TransferStrategySet(address reward, address strategy);
+    
 
     error ZeroAddress(address target);
     error InsufficientTimeElapsed();

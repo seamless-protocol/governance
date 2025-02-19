@@ -105,61 +105,43 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         IRewardsController controller = getController();
         IEACAggregatorProxy oracle = getOracle();
         address[] memory rewardTokens = pool.getReservesList();
-        uint256 period = getPeriod();
+        uint256 period = _validateAndUpdatePeriod();
 
         // used for setting emissions
         uint88[] memory emissionRates = new uint88[](1);
         address[] memory staticTokens = new address[](1);
 
-        // check if period has elapsed, update lastClaim
-        if (getLastClaim() > block.timestamp - getPreviousPeriod()) revert InsufficientTimeElapsed();
-        period = (((block.timestamp / period) + 1) * period) - block.timestamp;
-        Storage.layout().lastClaim = block.timestamp;
-        Storage.layout().previousPeriod = period;
-
         // claim rewards
         pool.mintToTreasury(rewardTokens);
         for (uint8 i; i < rewardTokens.length; i++) {
             IERC20 token = IERC20(pool.getReserveData(rewardTokens[i]).aTokenAddress);
-
             uint256 balance = token.balanceOf(getTreasury());
-            if (balance == 0) {
-                continue;
-            }
             
-            // Transfer and deposit tokens
-            // Must occur before calculating rate in order to satisfy all reward types
-            staticTokens[0] =
-                getStaticATokenFactory().getStaticAToken(address(rewardTokens[i]));
+            staticTokens[0] = getStaticATokenFactory().getStaticAToken(address(rewardTokens[i]));
+            address transferStrategy = controller.getTransferStrategy(staticTokens[0]);
 
-            if (staticTokens[0] == address(0)) {
-                // if a reward token does not have a static token equivalent, we skip it.
+            if (staticTokens[0] == address(0) || balance == 0) {
                 continue;
             }
-            _processAToken(token, staticTokens[0], balance);
 
-            // there will be dust from rounding here... it can stay in the contract and get accounted for next time.
-            emissionRates[0] = uint88(IERC20(staticTokens[0]).balanceOf(address(this)) / period);
+            emissionRates[0] = _processAToken(token, staticTokens[0], balance, period);
 
-            // if rate is 0, claim amount too small. Leave in contract for next time.
             if (emissionRates[0] == 0) {
                 continue;
             }
 
-            StaticATokenTransferStrategy transferStrategy =
-                StaticATokenTransferStrategy(controller.getTransferStrategy(staticTokens[0]));
-
-            if (address(transferStrategy) == address(0)) {
+            if (transferStrategy == address(0)) {
                 transferStrategy =
-                    new StaticATokenTransferStrategy(IERC20(staticTokens[0]), address(controller), address(this));
-                _configureAssets(staticTokens[0], address(transferStrategy), oracle, asset, controller, 0, uint32(block.timestamp));
+                    address(new StaticATokenTransferStrategy(IERC20(staticTokens[0]), address(controller), address(this)));
+                _configureAssets(staticTokens[0], transferStrategy, oracle, asset, controller, 0, uint32(block.timestamp));
             } 
 
             controller.setEmissionPerSecond(asset, staticTokens, emissionRates);
             controller.setDistributionEnd(asset, staticTokens[0], uint32(block.timestamp + period));
-            // ensures dust is not sent.
             IERC20(staticTokens[0]).transfer(address(transferStrategy), emissionRates[0] * period);
-            emit ClaimedAndSetRate(staticTokens[0], emissionRates[0]);
+
+            emit SetRate(staticTokens, emissionRates);
+            emit SetDistributionEnd(staticTokens[0], uint32(block.timestamp + period));
         }
     }
 
@@ -183,7 +165,7 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     {
         getController().setTransferStrategy(rewardToken, ITransferStrategyBase(transferStrategy));
 
-        emit TransferStrategySet(rewardToken, transferStrategy);
+        emit SetTransferStrategy(rewardToken, transferStrategy);
     }
 
     /// @inheritdoc IRewardKeeper
@@ -211,25 +193,83 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         }
         getController().setEmissionPerSecond(getAsset(), rewardTokens, rates);
 
-        emit ManualSetRate(rewardTokens, rates);
+        emit SetRate(rewardTokens, rates);
     }
 
     /// @inheritdoc IRewardKeeper
     function setManualDistributionEnd(address rewardToken, uint32 deadline) external override onlyRole(REWARD_SETTER_ROLE) isNotZeroAddress(rewardToken) {
         getController().setDistributionEnd(getAsset(), rewardToken, deadline);
-        emit ManualSetDistributionEnd(rewardToken, deadline);
+        emit SetDistributionEnd(rewardToken, deadline);
+    }
+
+    /// @inheritdoc IRewardKeeper
+    function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amount)
+        external
+        override
+        isNotZeroAddress(to)
+        isNotZeroAddress(token)
+        onlyRole(MANAGER_ROLE)
+    {
+        address transferStrategy = getController().getTransferStrategy(token);
+        if (transferStrategy == address(0)) revert TransferStrategyNotSet();
+        ITransferStrategyBase(transferStrategy).emergencyWithdrawal(token, to, amount);
+    }
+
+    /// @inheritdoc IRewardKeeper
+    function withdrawTokens(address token, address to, uint256 amount) external override onlyRole(MANAGER_ROLE) {
+        IERC20(token).safeTransfer(to, amount);
+        emit WithdrawTokens(token, to, amount);
+    }
+
+    /// @inheritdoc IRewardKeeper
+    function setRewardsController(address controller)
+        external
+        override
+        isNotZeroAddress(controller)
+        onlyRole(MANAGER_ROLE)
+    {
+        Storage.layout().controller = IRewardsController(controller);
+        emit SetRewardsController(controller);
+    }
+
+    /// @inheritdoc IRewardKeeper
+    function setPool(address newPool) external override isNotZeroAddress(newPool) onlyRole(MANAGER_ROLE) {
+        Storage.layout().pool = IPool(newPool);
+        emit SetPool(newPool);
+    }
+
+    /// @inheritdoc IRewardKeeper
+    function setPeriod(uint256 newPeriod) external override onlyRole(MANAGER_ROLE) {
+        if (newPeriod == 0) revert InvalidPeriod();
+        Storage.layout().period = newPeriod;
+        emit SetPeriod(newPeriod);
+    }
+
+    /**
+     * @notice handles validation and updates of periods
+     */
+    function _validateAndUpdatePeriod() internal returns (uint256 newPeriod) {
+        // check if period has elapsed, update lastClaim
+        if (getLastClaim() > block.timestamp - getPreviousPeriod()) revert InsufficientTimeElapsed();
+        uint256 period = getPeriod();
+        newPeriod = (((block.timestamp / period) + 1) * period) - block.timestamp;
+        Storage.layout().lastClaim = block.timestamp;
+        Storage.layout().previousPeriod = newPeriod;
     }
 
     /**
      * @notice transfers aToken from treasury and then wraps into static token
+     * @dev also calculates and returns the rate
      * @param aToken interface of the aToken
      * @param staticToken the address of the static token
      * @param balance the balance of aToken
+     * @param period the period for the current cycle
      */
-    function _processAToken(IERC20 aToken, address staticToken, uint256 balance) internal {
+    function _processAToken(IERC20 aToken, address staticToken, uint256 balance, uint256 period) internal returns(uint88 rate) {
         aToken.transferFrom(getTreasury(), address(this), balance);
         aToken.approve(staticToken, aToken.balanceOf(address(this)));
         StaticATokenLM(staticToken).deposit(aToken.balanceOf(address(this)), address(this), 0, false);
+        rate = uint88(IERC20(staticToken).balanceOf(address(this)) / period);
     }
 
     /**
@@ -270,49 +310,6 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         if (!getIsAllowedForManualRate(rewardToken)) {
             revert SetManualRateNotAuthorized();
         }
-    }
-
-    /// @inheritdoc IRewardKeeper
-    function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amount)
-        external
-        override
-        isNotZeroAddress(to)
-        isNotZeroAddress(token)
-        onlyRole(MANAGER_ROLE)
-    {
-        address transferStrategy = getController().getTransferStrategy(token);
-        if (transferStrategy == address(0)) revert TransferStrategyNotSet();
-        ITransferStrategyBase(transferStrategy).emergencyWithdrawal(token, to, amount);
-    }
-
-    /// @inheritdoc IRewardKeeper
-    function withdrawTokens(address token, address to, uint256 amount) external override onlyRole(MANAGER_ROLE) {
-        IERC20(token).safeTransfer(to, amount);
-        emit ManualWithdraw(token, to, amount);
-    }
-
-    /// @inheritdoc IRewardKeeper
-    function setRewardsController(address controller)
-        external
-        override
-        isNotZeroAddress(controller)
-        onlyRole(MANAGER_ROLE)
-    {
-        Storage.layout().controller = IRewardsController(controller);
-        emit SetRewardsController(controller);
-    }
-
-    /// @inheritdoc IRewardKeeper
-    function setPool(address newPool) external override isNotZeroAddress(newPool) onlyRole(MANAGER_ROLE) {
-        Storage.layout().pool = IPool(newPool);
-        emit SetPool(newPool);
-    }
-
-    /// @inheritdoc IRewardKeeper
-    function setPeriod(uint256 newPeriod) external override onlyRole(MANAGER_ROLE) {
-        if (newPeriod == 0) revert InvalidPeriod();
-        Storage.layout().period = newPeriod;
-        emit SetPeriod(newPeriod);
     }
 
     /// @inheritdoc IRewardKeeper
