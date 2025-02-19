@@ -46,4 +46,4 @@ deploy-erc20-transfer-strategy-tenderly		:; forge script script/ERC20TransferStr
 deploy-escrow-seam-implementation-base-mainnet	:; forge script script/EscrowSeamImplementationDeploy.s.sol:EscrowSeamImplementationDeploy --force --rpc-url ${BASE_RPC_URL} --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
 deploy-escrow-seam-implementation-tenderly		:; forge script script/EscrowSeamImplementationDeploy.s.sol:EscrowSeamImplementationDeploy --force --rpc-url ${TENDERLY_FORK_RPC_URL} --slow --broadcast -vvvv
 
-deploy-tenderly					:; forge script script/${SCRIPT_CONTRACT}.s.sol --tc ${SCRIPT_CONTRACT} --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}
+deploy-safety-module-tenderly					:; forge script script/${SCRIPT_CONTRACT}.s.sol --tc ${SCRIPT_CONTRACT} --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}

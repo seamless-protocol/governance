@@ -316,8 +316,7 @@ contract SeamForkTest is Test {
             vm.warp(block.timestamp + 7 days + 2);
             console.log(player, 4);
             stkSEAM.redeem(stkSEAM.balanceOf(player), player, player);
-            (, uint256[] memory claimedAmounts) =
-                rewardsController.claimAllRewards(assets, player);
+            (, uint256[] memory claimedAmounts) = rewardsController.claimAllRewards(assets, player);
             for (uint256 j; j < claimedAmounts.length; j++) {
                 assertTrue(claimedAmounts[j] > 0, "Claim Amount Incorrect 2");
             }

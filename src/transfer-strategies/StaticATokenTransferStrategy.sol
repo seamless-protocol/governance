@@ -48,7 +48,7 @@ contract StaticATokenTransferStrategy is TransferStrategyBase, IStaticATokenTran
         IStaticATokenLM token = IStaticATokenLM(address(rewardToken));
 
         token.claimRewards(to, reward);
-        
+
         emit RewardsClaimed(reward);
     }
 }

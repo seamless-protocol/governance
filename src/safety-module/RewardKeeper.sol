@@ -100,29 +100,25 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
 
     /// @inheritdoc IRewardKeeper
     function claimAndSetRate() external override whenNotPaused nonReentrant {
-        Storage.Layout storage $ = Storage.layout();
         address asset = getAsset();
         IPool pool = getPool();
         IRewardsController controller = getController();
-
+        IEACAggregatorProxy oracle = getOracle();
         address[] memory rewardTokens = pool.getReservesList();
         uint256 period = getPeriod();
 
-        period = (((block.timestamp / period) + 1) * period) - block.timestamp;
+        // used for setting emissions
+        uint88[] memory emissionRates = new uint88[](1);
+        address[] memory staticTokens = new address[](1);
 
         // check if period has elapsed, update lastClaim
-        if ($.lastClaim > block.timestamp - $.previousPeriod) revert InsufficientTimeElapsed();
-        $.lastClaim = block.timestamp;
-        $.previousPeriod = period;
+        if (getLastClaim() > block.timestamp - getPreviousPeriod()) revert InsufficientTimeElapsed();
+        period = (((block.timestamp / period) + 1) * period) - block.timestamp;
+        Storage.layout().lastClaim = block.timestamp;
+        Storage.layout().previousPeriod = period;
 
         // claim rewards
         pool.mintToTreasury(rewardTokens);
-
-        // get new Emission rates
-        uint88[] memory newRates = new uint88[](rewardTokens.length);
-
-        // count for >0 balances
-        uint256 count;
         for (uint8 i; i < rewardTokens.length; i++) {
             IERC20 token = IERC20(pool.getReserveData(rewardTokens[i]).aTokenAddress);
 
@@ -130,70 +126,41 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
             if (balance == 0) {
                 continue;
             }
-
+            
             // Transfer and deposit tokens
             // Must occur before calculating rate in order to satisfy all reward types
-            StaticATokenLM staticToken =
-                StaticATokenLM(getStaticATokenFactory().getStaticAToken(address(rewardTokens[i])));
+            staticTokens[0] =
+                getStaticATokenFactory().getStaticAToken(address(rewardTokens[i]));
 
-            if (address(staticToken) == address(0)) {
+            if (staticTokens[0] == address(0)) {
                 // if a reward token does not have a static token equivalent, we skip it.
                 continue;
             }
-            token.transferFrom(getTreasury(), address(this), balance);
-            token.approve(address(staticToken), token.balanceOf(address(this)));
-            staticToken.deposit(token.balanceOf(address(this)), address(this), 0, false);
+            _processAToken(token, staticTokens[0], balance);
 
             // there will be dust from rounding here... it can stay in the contract and get accounted for next time.
-            newRates[i] = uint88(staticToken.balanceOf(address(this)) / period);
+            emissionRates[0] = uint88(IERC20(staticTokens[0]).balanceOf(address(this)) / period);
 
             // if rate is 0, claim amount too small. Leave in contract for next time.
-            if (newRates[i] == 0) {
+            if (emissionRates[0] == 0) {
                 continue;
             }
-            count++;
 
             StaticATokenTransferStrategy transferStrategy =
-                StaticATokenTransferStrategy(controller.getTransferStrategy(address(staticToken)));
+                StaticATokenTransferStrategy(controller.getTransferStrategy(staticTokens[0]));
 
             if (address(transferStrategy) == address(0)) {
-                RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
                 transferStrategy =
-                    new StaticATokenTransferStrategy(IERC20(address(staticToken)), address(controller), address(this));
-                config[0].emissionPerSecond = 0;
-                config[0].totalSupply = 0;
-                config[0].distributionEnd = uint32(block.timestamp + period);
-                config[0].asset = asset;
-                config[0].reward = address(staticToken);
-                config[0].transferStrategy = ITransferStrategyBase(address(transferStrategy));
-                config[0].rewardOracle = $.oracle;
-                controller.configureAssets(config);
-            }
+                    new StaticATokenTransferStrategy(IERC20(staticTokens[0]), address(controller), address(this));
+                _configureAssets(staticTokens[0], address(transferStrategy), oracle, asset, controller, 0, uint32(block.timestamp));
+            } 
 
+            controller.setEmissionPerSecond(asset, staticTokens, emissionRates);
+            controller.setDistributionEnd(asset, staticTokens[0], uint32(block.timestamp + period));
             // ensures dust is not sent.
-            staticToken.transfer(address(transferStrategy), newRates[i] * period);
+            IERC20(staticTokens[0]).transfer(address(transferStrategy), emissionRates[0] * period);
+            emit ClaimedAndSetRate(staticTokens[0], emissionRates[0]);
         }
-
-        // Iterate through newRates to create new arrays without 0 balances
-        uint88[] memory emissionRates = new uint88[](count);
-        address[] memory filteredRewardTokens = new address[](count);
-        IStaticATokenFactory factory = getStaticATokenFactory();
-        uint256 j;
-        for (uint256 k; k < newRates.length; k++) {
-            if (newRates[k] > 0) {
-                emissionRates[j] = newRates[k];
-                filteredRewardTokens[j] = factory.getStaticAToken(rewardTokens[k]);
-                j++;
-            }
-        }
-
-        // set emissions per second
-        controller.setEmissionPerSecond(asset, filteredRewardTokens, emissionRates);
-        for (uint256 k; k < emissionRates.length; k++) {
-            controller.setDistributionEnd(asset, filteredRewardTokens[k], uint32(block.timestamp + period));
-        }
-
-        emit ClaimedAndSetRate(filteredRewardTokens, emissionRates);
     }
 
     /// @inheritdoc IRewardKeeper
@@ -227,19 +194,9 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
         isNotZeroAddress(rewardToken)
     {
         _checkIsManualRateAuthorized(rewardToken);
-
-        RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
-        config[0].emissionPerSecond = rate;
-        config[0].totalSupply = 0;
-        config[0].distributionEnd = distributionEnd;
-        config[0].asset = getAsset();
-        config[0].reward = rewardToken;
-        config[0].transferStrategy = ITransferStrategyBase(transferStrategy);
-        config[0].rewardOracle = IEACAggregatorProxy(oracle);
-        getController().configureAssets(config);
-
+        _configureAssets(rewardToken, transferStrategy, IEACAggregatorProxy(oracle), getAsset(), getController(), rate, distributionEnd);
+        
         emit ConfiguredAsset(rewardToken, rate, distributionEnd);
-        emit TransferStrategySet(rewardToken, transferStrategy);
     }
 
     /// @inheritdoc IRewardKeeper
@@ -261,6 +218,48 @@ contract RewardKeeper is UUPSUpgradeable, AccessControlUpgradeable, PausableUpgr
     function setManualDistributionEnd(address rewardToken, uint32 deadline) external override onlyRole(REWARD_SETTER_ROLE) isNotZeroAddress(rewardToken) {
         getController().setDistributionEnd(getAsset(), rewardToken, deadline);
         emit ManualSetDistributionEnd(rewardToken, deadline);
+    }
+
+    /**
+     * @notice transfers aToken from treasury and then wraps into static token
+     * @param aToken interface of the aToken
+     * @param staticToken the address of the static token
+     * @param balance the balance of aToken
+     */
+    function _processAToken(IERC20 aToken, address staticToken, uint256 balance) internal {
+        aToken.transferFrom(getTreasury(), address(this), balance);
+        aToken.approve(staticToken, aToken.balanceOf(address(this)));
+        StaticATokenLM(staticToken).deposit(aToken.balanceOf(address(this)), address(this), 0, false);
+    }
+
+    /**
+     * @notice Calls configureAssets on the rewards controller
+     * @param rewardToken the address of the reward token
+     * @param transferStrategy the address of the corresponding transfer strategy
+     * @param oracle the interface for the oracle contract
+     * @param asset the address of the asset (stkSEAM)
+     * @param controller the interface for the rewards controller
+     * @param rate the emission rate
+     * @param distributionEnd the timestamp to end distribution
+     */
+    function _configureAssets(
+        address rewardToken, 
+        address transferStrategy, 
+        IEACAggregatorProxy oracle, 
+        address asset, 
+        IRewardsController controller, 
+        uint88 rate, 
+        uint32 distributionEnd
+    ) internal {
+        RewardsDataTypes.RewardsConfigInput[] memory config = new RewardsDataTypes.RewardsConfigInput[](1);
+        config[0].emissionPerSecond = rate;
+        config[0].totalSupply = 0;
+        config[0].distributionEnd = distributionEnd;
+        config[0].asset = asset;
+        config[0].reward = rewardToken;
+        config[0].transferStrategy = ITransferStrategyBase(address(transferStrategy));
+        config[0].rewardOracle = oracle;
+        controller.configureAssets(config);
     }
 
     /**
