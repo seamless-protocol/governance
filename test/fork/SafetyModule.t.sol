@@ -384,6 +384,42 @@ contract SeamForkTest is Test {
         }
     }
 
+    function testClaimLMRewardsRevertsWithWrongArray() public {
+        rewardKeeper.claimAndSetRate();
+        address[] memory rewardTokens = pool.getReservesList();
+        address[] memory assets = new address[](1);
+        assets[0] = address(stkSEAM);
+
+        deal(asset, user, 1000 ether);
+        vm.startPrank(user);
+        IERC20(asset).approve(address(stkSEAM), 1000 ether);
+        stkSEAM.deposit(1000 ether, user);
+
+        vm.warp(block.timestamp + 35 hours);
+        vm.startPrank(user);
+        (, uint256[] memory claimedAmounts) = rewardsController.claimAllRewards(assets, user);
+        for (uint256 j; j < claimedAmounts.length; j++) {
+            assertTrue(claimedAmounts[j] > 0);
+        }
+        vm.stopPrank();
+        vm.prank(admin);
+        rewardKeeper.grantRole(keccak256("MANAGER_ROLE"), address(this));
+        address[] memory rewardArray = new address[](1);
+        rewardArray[0] = address(1);
+        vm.expectRevert();
+        rewardKeeper.claimLMRewards(address(this), rewardTokens[0], rewardArray);
+    }
+
+    function testClaimLMRewardsRevertsWithNoTransferStrategy() public {
+        address[] memory rewardTokens = pool.getReservesList();
+        address[] memory rewardArray = new address[](1);
+        rewardArray[0] = address(1);
+        vm.prank(admin);
+        rewardKeeper.grantRole(keccak256("MANAGER_ROLE"), address(this));
+        vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.TransferStrategyNotSet.selector));
+        rewardKeeper.claimLMRewards(address(this), rewardTokens[0], rewardArray);
+    }
+
     // test manual rates
     function testSetTokenForManualRates() public {
         address SEAMAddr = Constants.SEAM_ADDRESS;
@@ -499,93 +535,83 @@ contract SeamForkTest is Test {
         assertEq(distributionEnd, time, "Wrong distribution end");
     }
 
-    // function testSetManualRateCorrectlyEmits() public {
-    //     address[] memory assets = new address[](1);
-    //     assets[0] = address(stkSEAM);
-    //     rewardKeeper.claimAndSetRate();
-    //     vm.startPrank(admin);
-    //     rewardKeeper.grantRole(keccak256("MANAGER_ROLE"), address(this));
-    //     rewardKeeper.grantRole(keccak256("REWARD_SETTER_ROLE"), address(this));
-    //     vm.stopPrank();
-    //     address SEAMAddr = Constants.SEAM_ADDRESS;
+    function testSetManualRateCorrectlyEmits() public {
+        address[] memory assets = new address[](1);
+        assets[0] = address(stkSEAM);
+        rewardKeeper.claimAndSetRate();
+        vm.startPrank(admin);
+        rewardKeeper.grantRole(keccak256("MANAGER_ROLE"), address(this));
+        rewardKeeper.grantRole(keccak256("REWARD_SETTER_ROLE"), address(this));
+        vm.stopPrank();
+        address SEAMAddr = Constants.SEAM_ADDRESS;
 
-    //     ERC20TransferStrategy transferStrategy =
-    //         new ERC20TransferStrategy(ierc20(address(SEAMAddr)), address(rewardsController), address(rewardKeeper));
+        ERC20TransferStrategy transferStrategy =
+            new ERC20TransferStrategy(ierc20(address(SEAMAddr)), address(rewardsController), address(rewardKeeper));
 
-    //     rewardKeeper.setTokenForManualRate(SEAMAddr, true);
-    //     rewardKeeper.configureAsset(SEAMAddr, 0, 0, address(transferStrategy));
+        rewardKeeper.setTokenForManualRate(SEAMAddr, true);
+        rewardKeeper.configureAsset(SEAMAddr, 0, 0, address(transferStrategy), address(oracle));
 
-    //     deal(asset, user, 1000 ether);
-    //     vm.startPrank(user);
-    //     IERC20(asset).approve(address(stkSEAM), 1000 ether);
-    //     stkSEAM.deposit(1000 ether, user);
-    //     vm.stopPrank();
-    //     vm.warp(block.timestamp + 10);
+        deal(asset, user, 1000 ether);
+        vm.startPrank(user);
+        IERC20(asset).approve(address(stkSEAM), 1000 ether);
+        stkSEAM.deposit(1000 ether, user);
+        vm.stopPrank();
+        vm.warp(block.timestamp + 10);
 
-    //     deal(SEAMAddr, address(this), 500 ether);
-    //     uint256 time = 7 days;
-    //     uint256 rate = uint256(500 ether / time);
-    //     IERC20(SEAMAddr).approve(address(rewardKeeper), rate * time);
+        deal(SEAMAddr, address(this), 500 ether);
+        uint256 time = 7 days;
+        uint256 rate = uint256(500 ether / time);
+        IERC20(SEAMAddr).transfer(address(transferStrategy), rate * time);
+        address[] memory rewardTokens = new address[](1);
+        uint88[] memory rates = new uint88[](1);
+        rewardTokens[0] = SEAMAddr;
+        rates[0] = uint88(rate);
+        rewardKeeper.setManualRate(rewardTokens, rates);
+        rewardKeeper.setManualDistributionEnd(SEAMAddr, uint32(block.timestamp + time));
 
-    //     rewardKeeper.setManualRate(SEAMAddr, uint88(rate), time);
+        vm.warp(block.timestamp + 8 days);
+        uint256 balBefore = IERC20(SEAMAddr).balanceOf(user);
+        vm.prank(user);
+        rewardsController.claimAllRewards(assets, user);
+        uint256 balAfter = IERC20(SEAMAddr).balanceOf(user);
+        assertEq(balAfter, balBefore + (rate * time), "Wrong reward distribution");
+    }
 
-    //     vm.warp(block.timestamp + 8 days);
-    //     uint256 balBefore = IERC20(SEAMAddr).balanceOf(user);
-    //     vm.prank(user);
-    //     rewardsController.claimAllRewards(assets, user);
-    //     uint256 balAfter = IERC20(SEAMAddr).balanceOf(user);
-    //     assertEq(balAfter, balBefore + (rate * time), "Wrong reward distribution");
-    // }
+    function testSetManualRateFromConfigureAssets() public {
+        address[] memory assets = new address[](1);
+        assets[0] = address(stkSEAM);
+        rewardKeeper.claimAndSetRate();
+        vm.startPrank(admin);
+        rewardKeeper.grantRole(keccak256("MANAGER_ROLE"), address(this));
+        rewardKeeper.grantRole(keccak256("REWARD_SETTER_ROLE"), address(this));
+        vm.stopPrank();
+        address SEAMAddr = Constants.SEAM_ADDRESS;
 
-    // function testSetManualRateFromConfigureAssets() public {
-    //     address[] memory assets = new address[](1);
-    //     assets[0] = address(stkSEAM);
-    //     rewardKeeper.claimAndSetRate();
-    //     vm.startPrank(admin);
-    //     rewardKeeper.grantRole(keccak256("MANAGER_ROLE"), address(this));
-    //     rewardKeeper.grantRole(keccak256("REWARD_SETTER_ROLE"), address(this));
-    //     vm.stopPrank();
-    //     address SEAMAddr = Constants.SEAM_ADDRESS;
+        rewardKeeper.setTokenForManualRate(SEAMAddr, true);
 
-    //     rewardKeeper.setTokenForManualRate(SEAMAddr, true);
+        deal(asset, user, 1000 ether);
+        vm.startPrank(user);
+        IERC20(asset).approve(address(stkSEAM), 1000 ether);
+        stkSEAM.deposit(1000 ether, user);
+        vm.stopPrank();
+        vm.warp(block.timestamp + 10);
 
-    //     deal(asset, user, 1000 ether);
-    //     vm.startPrank(user);
-    //     IERC20(asset).approve(address(stkSEAM), 1000 ether);
-    //     stkSEAM.deposit(1000 ether, user);
-    //     vm.stopPrank();
-    //     vm.warp(block.timestamp + 10);
+        deal(SEAMAddr, address(this), 500 ether);
+        uint256 time = 7 days;
+        uint256 rate = uint256(500 ether / time);
+        
+        ERC20TransferStrategy transferStrategy =
+            new ERC20TransferStrategy(ierc20(address(SEAMAddr)), address(rewardsController), address(rewardKeeper));
+        IERC20(SEAMAddr).transfer(address(transferStrategy), rate * time);
+        rewardKeeper.configureAsset(SEAMAddr, uint88(rate), uint32(time + block.timestamp), address(transferStrategy), address(oracle));
 
-    //     deal(SEAMAddr, address(this), 500 ether);
-    //     uint256 time = 7 days;
-    //     uint256 rate = uint256(500 ether / time);
-    //     IERC20(SEAMAddr).approve(address(rewardKeeper), rate * time);
-
-    //     ERC20TransferStrategy transferStrategy =
-    //         new ERC20TransferStrategy(ierc20(address(SEAMAddr)), address(rewardsController), address(rewardKeeper));
-
-    //     rewardKeeper.configureAsset(SEAMAddr, uint88(rate), uint32(time), address(transferStrategy));
-
-    //     vm.warp(block.timestamp + 8 days);
-    //     uint256 balBefore = IERC20(SEAMAddr).balanceOf(user);
-    //     vm.prank(user);
-    //     rewardsController.claimAllRewards(assets, user);
-    //     uint256 balAfter = IERC20(SEAMAddr).balanceOf(user);
-    //     assertEq(balAfter, balBefore + (rate * time), "Wrong reward distribution");
-    // }
-
-    // function testSetTransferStrategyNotConfigured() public {
-    //     vm.startPrank(admin);
-    //     rewardKeeper.grantRole(keccak256("MANAGER_ROLE"), address(this));
-    //     rewardKeeper.grantRole(keccak256("REWARD_SETTER_ROLE"), address(this));
-    //     vm.stopPrank();
-    //     address SEAMAddr = Constants.SEAM_ADDRESS;
-
-    //     rewardKeeper.setTokenForManualRate(SEAMAddr, true);
-
-    //     vm.expectRevert(abi.encodeWithSelector(IRewardKeeper.AssetNotConfigured.selector));
-    //     rewardKeeper.setTransferStrategy(SEAMAddr, address(rewardKeeper));
-    // }
+        vm.warp(block.timestamp + 8 days);
+        uint256 balBefore = IERC20(SEAMAddr).balanceOf(user);
+        vm.prank(user);
+        rewardsController.claimAllRewards(assets, user);
+        uint256 balAfter = IERC20(SEAMAddr).balanceOf(user);
+        assertEq(balAfter, balBefore + (rate * time), "Wrong reward distribution");
+    }
 
     function testSetTransferStrategy() public {
         vm.startPrank(admin);
@@ -604,6 +630,16 @@ contract SeamForkTest is Test {
 
         address transferStrat = rewardsController.getTransferStrategy(SEAMAddr);
         assertEq(transferStrat, address(rewardKeeper));
+    }
+    
+    function testReturnStaticATokenFactory() public view {
+        IStaticATokenFactory tokenFactory = rewardKeeper.getStaticATokenFactory();
+        assertEq(address(tokenFactory), factory);
+    }
+
+    function testGetTreasury() public view {
+        address treasure = rewardKeeper.getTreasury();
+        assertEq(treasure, address(treasury));
     }
 
     //TODO: make sure claimLMRewards reverts if wrong array passed
