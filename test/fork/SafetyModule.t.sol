@@ -2,6 +2,8 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
+import {stdJson} from "forge-std/StdJson.sol";
+import {ScriptTools} from "dss-test/ScriptTools.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {InitializableAdminUpgradeabilityProxy} from 'sparklend-v1-core/contracts/dependencies/openzeppelin/upgradeability/InitializableAdminUpgradeabilityProxy.sol';
 import {Seam} from "../../src/Seam.sol";
@@ -30,6 +32,9 @@ import {StaticATokenLM} from "static-a-token-v3/src/StaticATokenLM.sol";
 import {StaticATokenFactory} from "static-a-token-v3/src/StaticATokenFactory.sol";
 
 contract SeamForkTest is Test {
+    using ScriptTools for string;
+    using stdJson for string;
+
     Seam public SEAM = Seam(Constants.SEAM_ADDRESS);
     RewardKeeper internal rewardKeeper;
     StakedToken internal stkSEAM;
@@ -46,6 +51,9 @@ contract SeamForkTest is Test {
     AaveEcosystemReserveV2 internal treasury = AaveEcosystemReserveV2(payable(Constants.TREASURY_ADDRESS));
     address internal asset = address(Constants.SEAM_ADDRESS);
     address internal factory = address(Constants.STATIC_ATOKEN_FACTORY);
+    address proxyAdmin;
+    string config;
+    string instanceId;
 
     // Roles (same as in the contract, for convenience)
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
@@ -54,7 +62,11 @@ contract SeamForkTest is Test {
 
     function setUp() public {
         vm.createSelectFork(vm.envString("FORK_URL"), 25298789);
+        instanceId = vm.envOr("INSTANCE_ID", string("primary"));
+        vm.setEnv("FOUNDRY_ROOT_CHAINID", vm.toString(block.chainid));
 
+        config = ScriptTools.loadConfig(instanceId);
+        proxyAdmin = config.readAddress(".admin");
         // for static AToken upgrade
         StaticATokenLMHarness staticATokenImplementation;
         StaticATokenFactory staticATokenFactoryImplementation;
@@ -93,7 +105,7 @@ contract SeamForkTest is Test {
         rewardsController.initialize(address(0));
         incentivesProxy.initialize(
             address(rewardsController),
-            admin,
+            proxyAdmin,
             abi.encodeWithSignature("initialize(address)", address(rewardsController))
         );
 
