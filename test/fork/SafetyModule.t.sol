@@ -124,7 +124,7 @@ contract SeamForkTest is Test {
         }
         vm.stopPrank();
 
-        staticATokenImplementation = new StaticATokenLMHarness(pool, IRewardsController(Constants.REWARDS_CONTROLLER));
+        staticATokenImplementation = new StaticATokenLMHarness(pool, IRewardsController(Constants.INCENTIVES_CONTROLLER_ADDRESS));
         staticATokenFactoryImplementation = new StaticATokenFactory(
             pool,
             Constants.SHORT_TIMELOCK_ADDRESS,

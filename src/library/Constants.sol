@@ -35,7 +35,6 @@ library Constants {
     address public constant AIRDROP_OWNER = 0x814767222A9DcEA379dFBacD1B98E86539F3C6Bb;
     address public constant SHORT_TIMELOCK_ADDRESS = 0x639d2dD24304aC2e6A691d8c1cFf4a2665925fee;
     address public constant GOVERNOR_SHORT_ADDRESS = 0x8768c789C6df8AF1a92d96dE823b4F80010Db294;
-    address constant REWARDS_CONTROLLER = 0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780;
 
     address public constant LONG_TIMELOCK_ADDRESS = 0xA96448469520666EDC351eff7676af2247b16718;
     //TODO: Change this when emissions are known

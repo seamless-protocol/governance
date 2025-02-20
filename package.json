@@ -19,12 +19,5 @@
     "merkletreejs": "^0.3.11",
     "prettier": "^3.0.3",
     "winston": "^3.11.0"
-  },
-  "main": "index.js",
-  "directories": {
-    "lib": "lib",
-    "test": "test"
-  },
-  "author": "",
-  "license": "ISC"
+  }
 }
