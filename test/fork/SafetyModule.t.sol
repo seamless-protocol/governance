@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {InitializableAdminUpgradeabilityProxy} from 'sparklend-v1-core/contracts/dependencies/openzeppelin/upgradeability/InitializableAdminUpgradeabilityProxy.sol';
 import {Seam} from "../../src/Seam.sol";
 import {Constants} from "../../src/library/Constants.sol";
 import {StakedToken} from "../../src/safety-module/StakedToken.sol";
@@ -85,10 +86,19 @@ contract SeamForkTest is Test {
         rewardKeeper = RewardKeeper(address(proxy));
 
         // deploy reward controller
+        InitializableAdminUpgradeabilityProxy incentivesProxy   = new InitializableAdminUpgradeabilityProxy();
+        RewardsController incentives = RewardsController(address(incentivesProxy));
         rewardsController = new RewardsController(address(rewardKeeper));
 
+        rewardsController.initialize(address(0));
+        incentivesProxy.initialize(
+            address(rewardsController),
+            admin,
+            abi.encodeWithSignature("initialize(address)", address(rewardsController))
+        );
+
         vm.prank(admin);
-        rewardKeeper.setRewardsController(address(rewardsController));
+        rewardKeeper.setRewardsController(address(incentives));
 
         vm.prank(admin);
         stkSEAM.setController(address(rewardsController));
@@ -599,13 +609,11 @@ contract SeamForkTest is Test {
         deal(SEAMAddr, address(this), 500 ether);
         uint256 time = 7 days;
         uint256 rate = uint256(500 ether / time);
-
+        
         ERC20TransferStrategy transferStrategy =
             new ERC20TransferStrategy(ierc20(address(SEAMAddr)), address(rewardsController), address(rewardKeeper));
         IERC20(SEAMAddr).transfer(address(transferStrategy), rate * time);
-        rewardKeeper.configureAsset(
-            SEAMAddr, uint88(rate), uint32(time + block.timestamp), address(transferStrategy), address(oracle)
-        );
+        rewardKeeper.configureAsset(SEAMAddr, uint88(rate), uint32(time + block.timestamp), address(transferStrategy), address(oracle));
 
         vm.warp(block.timestamp + 8 days);
         uint256 balBefore = IERC20(SEAMAddr).balanceOf(user);
@@ -633,7 +641,7 @@ contract SeamForkTest is Test {
         address transferStrat = rewardsController.getTransferStrategy(SEAMAddr);
         assertEq(transferStrat, address(rewardKeeper));
     }
-
+    
     function testReturnStaticATokenFactory() public view {
         IStaticATokenFactory tokenFactory = rewardKeeper.getStaticATokenFactory();
         assertEq(address(tokenFactory), factory);
@@ -644,6 +652,4 @@ contract SeamForkTest is Test {
         assertEq(treasure, address(treasury));
     }
 
-    //TODO: make sure claimLMRewards reverts if wrong array passed
-    //TODO: revert claimLMRewards instead of returning bool
 }
