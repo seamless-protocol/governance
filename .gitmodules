@@ -13,10 +13,3 @@
 [submodule "lib/static-a-token-v3"]
 	path = lib/static-a-token-v3
 	url = https://github.com/seamless-protocol/static-a-token-v3
-	
-[submodule "lib/sparklend-v1-core"]
-	path = lib/sparklend-v1-core
-	url = https://github.com/marsfoundation/sparklend-v1-core
-[submodule "lib/dss-test"]
-	path = lib/dss-test
-	url = https://github.com/makerdao/dss-test
