@@ -29,7 +29,6 @@ import {StaticATokenLM} from "static-a-token-v3/src/StaticATokenLM.sol";
 import {StaticATokenFactory} from "static-a-token-v3/src/StaticATokenFactory.sol";
 
 contract SeamForkTest is Test {
-
     Seam public SEAM = Seam(Constants.SEAM_ADDRESS);
     RewardKeeper internal rewardKeeper;
     StakedToken internal stkSEAM;
@@ -47,7 +46,7 @@ contract SeamForkTest is Test {
     address internal asset = address(Constants.SEAM_ADDRESS);
     address internal factory = address(Constants.STATIC_ATOKEN_FACTORY);
     address proxyAdmin;
-    
+
     // Roles (same as in the contract, for convenience)
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
@@ -55,7 +54,7 @@ contract SeamForkTest is Test {
 
     function setUp() public {
         vm.createSelectFork(vm.envString("FORK_URL"), 25298789);
-    
+
         // for static AToken upgrade
         StaticATokenLMHarness staticATokenImplementation;
         StaticATokenFactory staticATokenFactoryImplementation;
@@ -87,7 +86,7 @@ contract SeamForkTest is Test {
         rewardKeeper = RewardKeeper(address(proxy));
 
         // deploy reward controller
-        
+
         rewardsController = new RewardsController(address(rewardKeeper));
 
         vm.prank(admin);
@@ -105,7 +104,8 @@ contract SeamForkTest is Test {
         }
         vm.stopPrank();
 
-        staticATokenImplementation = new StaticATokenLMHarness(pool, IRewardsController(Constants.INCENTIVES_CONTROLLER_ADDRESS));
+        staticATokenImplementation =
+            new StaticATokenLMHarness(pool, IRewardsController(Constants.INCENTIVES_CONTROLLER_ADDRESS));
         staticATokenFactoryImplementation = new StaticATokenFactory(
             pool,
             Constants.SHORT_TIMELOCK_ADDRESS,
@@ -602,11 +602,13 @@ contract SeamForkTest is Test {
         deal(SEAMAddr, address(this), 500 ether);
         uint256 time = 7 days;
         uint256 rate = uint256(500 ether / time);
-        
+
         ERC20TransferStrategy transferStrategy =
             new ERC20TransferStrategy(ierc20(address(SEAMAddr)), address(rewardsController), address(rewardKeeper));
         IERC20(SEAMAddr).transfer(address(transferStrategy), rate * time);
-        rewardKeeper.configureAsset(SEAMAddr, uint88(rate), uint32(time + block.timestamp), address(transferStrategy), address(oracle));
+        rewardKeeper.configureAsset(
+            SEAMAddr, uint88(rate), uint32(time + block.timestamp), address(transferStrategy), address(oracle)
+        );
 
         vm.warp(block.timestamp + 8 days);
         uint256 balBefore = IERC20(SEAMAddr).balanceOf(user);
@@ -634,7 +636,7 @@ contract SeamForkTest is Test {
         address transferStrat = rewardsController.getTransferStrategy(SEAMAddr);
         assertEq(transferStrat, address(rewardKeeper));
     }
-    
+
     function testReturnStaticATokenFactory() public view {
         IStaticATokenFactory tokenFactory = rewardKeeper.getStaticATokenFactory();
         assertEq(address(tokenFactory), factory);
@@ -644,5 +646,4 @@ contract SeamForkTest is Test {
         address treasure = rewardKeeper.getTreasury();
         assertEq(treasure, address(treasury));
     }
-
 }
