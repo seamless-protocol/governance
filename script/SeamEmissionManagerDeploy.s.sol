@@ -7,6 +7,9 @@ import {SeamEmissionManager} from "../src/SeamEmissionManager.sol";
 import {Constants} from "../src/library/Constants.sol";
 
 contract SeamEmissionManagerDeploy is Script {
+    uint64 constant EMISSION_START_TIMESTAMP = 0;
+    uint256 constant EMISSIONS_PER_SECOND = 0;
+
     function getChainId() public view returns (uint256) {
         uint256 chainId;
         assembly {
@@ -34,9 +37,10 @@ contract SeamEmissionManagerDeploy is Script {
             abi.encodeWithSelector(
                 SeamEmissionManager.initialize.selector,
                 Constants.SEAM_ADDRESS,
-                Constants.SEAM_EMISSION_PER_SECOND,
+                EMISSIONS_PER_SECOND,
                 Constants.LONG_TIMELOCK_ADDRESS,
-                Constants.SHORT_TIMELOCK_ADDRESS
+                Constants.SHORT_TIMELOCK_ADDRESS,
+                EMISSION_START_TIMESTAMP
             )
         );
         console.log(
