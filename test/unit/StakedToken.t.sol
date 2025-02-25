@@ -11,6 +11,7 @@ import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interface
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {RewardsController} from "@aave/periphery-v3/contracts/rewards/RewardsController.sol";
+import {InitializableAdminUpgradeabilityProxy} from "@aave/core-v3/contracts/dependencies/openzeppelin/upgradeability/InitializableAdminUpgradeabilityProxy.sol";
 import {RewardKeeper} from "../../src/safety-module/RewardKeeper.sol";
 import {MockPool} from "../mocks/MockPool.sol";
 import {MockOracle} from "../mocks/MockOracle.sol";
@@ -102,7 +103,21 @@ contract StakedTokenTest is Test {
         );
         rewardKeeper = RewardKeeper(address(proxy));
 
-        rewardsController = new RewardsController(address(rewardKeeper));
+        RewardsController rewardsControllerImplementation = new RewardsController(address(rewardKeeper));
+        rewardsControllerImplementation.initialize(address(0));
+
+        InitializableAdminUpgradeabilityProxy rewardControllerProxy = new InitializableAdminUpgradeabilityProxy();
+
+        rewardControllerProxy.initialize(
+            address(rewardsControllerImplementation),
+            admin,
+            abi.encodeWithSelector(
+                RewardsController.initialize.selector,
+                address(rewardKeeper)
+            )
+        );
+
+        rewardsController = RewardsController(address(rewardControllerProxy));
 
         vm.startPrank(treasury);
         IERC20(a1).approve(address(rewardKeeper), 10000000000 ether);

@@ -1,46 +1,35 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "forge-std/Script.sol";
+import {Script, console} from "forge-std/Script.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {InitializableAdminUpgradeabilityProxy} from "@aave/core-v3/contracts/dependencies/openzeppelin/upgradeability/InitializableAdminUpgradeabilityProxy.sol";
 import {RewardsController} from "@aave/periphery-v3/contracts/rewards/RewardsController.sol";
 import {StakedToken} from "../src/safety-module/StakedToken.sol";
 import {RewardKeeper} from "../src/safety-module/RewardKeeper.sol";
 import {Constants} from "../src/library/Constants.sol";
 
 contract SafetyModule is Script {
-    function getChainId() public view returns (uint256) {
-        uint256 chainId;
-        assembly {
-            chainId := chainid()
-        }
-        return chainId;
-    }
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployerAddress = vm.addr(deployerPrivateKey);
-        address asset = address(Constants.SEAM_ADDRESS);
-        address pool = address(Constants.POOL_ADDRESS);
-        address oracle = address(Constants.ORACLE_PLACEHOLDER);
-        address treasury = address(Constants.TREASURY_ADDRESS);
-        address staticATokenFactory = address(Constants.STATIC_ATOKEN_FACTORY);
 
         console.log("Deployer address: ", deployerAddress);
         console.log("Deployer balance: ", deployerAddress.balance);
         console.log("BlockNumber: ", block.number);
-        console.log("ChainId: ", getChainId());
+        console.log("ChainId: ", block.chainid);
 
         console.log("Deploying...");
 
         vm.startBroadcast(deployerPrivateKey);
 
-        StakedToken implementation = new StakedToken();
-        ERC1967Proxy proxy = new ERC1967Proxy(
-            address(implementation),
+        StakedToken stakedTokenImplementation = new StakedToken();
+        ERC1967Proxy stakedTokenProxy = new ERC1967Proxy(
+            address(stakedTokenImplementation),
             abi.encodeWithSelector(
                 StakedToken.initialize.selector,
-                asset,
+                Constants.SEAM_ADDRESS,
                 deployerAddress,
                 "Staked SEAM", // "stakedSEAM",
                 "stkSEAM", //"stkSEAM",
@@ -48,31 +37,44 @@ contract SafetyModule is Script {
                 1 days
             )
         );
-        StakedToken stkToken = StakedToken(address(proxy));
-        console.log("Deployed stkSEAM proxy to: ", address(proxy), " implementation: ", address(implementation));
+        StakedToken stkToken = StakedToken(address(stakedTokenProxy));
+        console.log("Deployed StakedToken proxy to: ", address(stakedTokenProxy), " implementation: ", address(stakedTokenImplementation));
 
-        RewardKeeper implementation2 = new RewardKeeper();
-        proxy = new ERC1967Proxy(
-            address(implementation2),
+        RewardKeeper rewardKeeperImplementation = new RewardKeeper();
+        ERC1967Proxy rewardKeeperProxy = new ERC1967Proxy(
+            address(rewardKeeperImplementation),
             abi.encodeWithSelector(
                 RewardKeeper.initialize.selector,
-                pool,
+                Constants.POOL_ADDRESS,
                 deployerAddress,
                 address(stkToken),
-                oracle,
-                treasury,
-                staticATokenFactory
+                Constants.ORACLE_PLACEHOLDER,
+                Constants.TREASURY_ADDRESS,
+                Constants.STATIC_ATOKEN_FACTORY
             )
         );
-        RewardKeeper rewardKeeper = RewardKeeper(address(proxy));
-        console.log("Deployed RewardKeeper to: ", address(proxy), " implementation: ", address(implementation2));
+        RewardKeeper rewardKeeper = RewardKeeper(address(rewardKeeperProxy));
+        console.log("Deployed RewardKeeper to: ", address(rewardKeeperProxy), " implementation: ", address(rewardKeeperImplementation));
 
-        RewardsController controller = new RewardsController(address(rewardKeeper));
-        console.log("Deployed controller to ", address(controller));
+        RewardsController rewardsControllerImplementation = new RewardsController(address(rewardKeeper));
+        rewardsControllerImplementation.initialize(address(0));
+
+        InitializableAdminUpgradeabilityProxy rewardControllerProxy = new InitializableAdminUpgradeabilityProxy();
+
+        rewardControllerProxy.initialize(
+            address(rewardsControllerImplementation),
+            Constants.SHORT_TIMELOCK_ADDRESS,
+            abi.encodeWithSelector(
+                RewardsController.initialize.selector,
+                address(rewardKeeper)
+            )
+        );
+        
+        console.log("Deployed RewardsController to: ", address(rewardControllerProxy), " implementation: ", address(rewardsControllerImplementation));
 
         // set reward controller on stkToken and reward keeper
-        rewardKeeper.setRewardsController(address(controller));
-        stkToken.setController(address(controller));
+        rewardKeeper.setRewardsController(address(rewardControllerProxy));
+        stkToken.setController(address(rewardControllerProxy));
 
         vm.stopBroadcast();
     }

@@ -7,8 +7,9 @@ import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 import {IStaticATokenFactory} from "static-a-token-v3/src/interfaces/IStaticATokenFactory.sol";
 
-library RewardKeeperStorage {
-    struct Layout {
+abstract contract RewardKeeperStorage {
+    /// @custom:storage-location erc7201:seamless.contracts.storage.RewardKeeper
+    struct StorageLayout {
         /**
          * @notice interface for rewards controller
          */
@@ -52,14 +53,12 @@ library RewardKeeperStorage {
         mapping(address => bool) allowedManualTokens;
     }
 
-    bytes32 private constant STORAGE_SLOT = keccak256(
-        abi.encode(uint256(keccak256("seamless.contracts.storage.RewardKeeper")) - 1)
-    ) & ~bytes32(uint256(0xff));
+    // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.RewardKeeper")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant STORAGE_SLOT = 0x742aeba4ead5ca72041dc01c68b8b3a90b6c39143ae39b79915246ef39217200;
 
-    function layout() internal pure returns (Layout storage l) {
-        bytes32 slot = STORAGE_SLOT;
+    function storageLayout() internal pure returns (StorageLayout storage l) {
         assembly {
-            l.slot := slot
+            l.slot := STORAGE_SLOT
         }
     }
 }

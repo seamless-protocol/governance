@@ -13,9 +13,10 @@ import {RewardKeeperStorage as StorageLib} from "../../src/storage/RewardKeeperS
 import {IERC20} from "@aave/core-v3/contracts/dependencies/openzeppelin/contracts/IERC20.sol";
 import {IERC20 as ierc20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
-import {IRewardsController} from "aave-v3-periphery/contracts/rewards/interfaces/IRewardsController.sol";
+import {IRewardsController} from "static-a-token-v3/lib/aave-v3-periphery/contracts/rewards/interfaces/IRewardsController.sol";
 import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
 import {DataTypes} from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
+import {InitializableAdminUpgradeabilityProxy} from "@aave/core-v3/contracts/dependencies/openzeppelin/upgradeability/InitializableAdminUpgradeabilityProxy.sol";
 import {RewardsDataTypes} from "@aave/periphery-v3/contracts/rewards/libraries/RewardsDataTypes.sol";
 import {RewardsController} from "@aave/periphery-v3/contracts/rewards/RewardsController.sol";
 import {AaveEcosystemReserveV2} from "@aave/periphery-v3/contracts/treasury/AaveEcosystemReserveV2.sol";
@@ -87,8 +88,22 @@ contract SeamForkTest is Test {
 
         // deploy reward controller
 
-        rewardsController = new RewardsController(address(rewardKeeper));
+        RewardsController rewardsControllerImplementation = new RewardsController(address(rewardKeeper));
+        rewardsControllerImplementation.initialize(address(0));
 
+        InitializableAdminUpgradeabilityProxy rewardControllerProxy = new InitializableAdminUpgradeabilityProxy();
+
+        rewardControllerProxy.initialize(
+            address(rewardsControllerImplementation),
+            Constants.SHORT_TIMELOCK_ADDRESS,
+            abi.encodeWithSelector(
+                RewardsController.initialize.selector,
+                address(rewardKeeper)
+            )
+        );
+
+        rewardsController = RewardsController(address(rewardControllerProxy));
+        
         vm.prank(admin);
         rewardKeeper.setRewardsController(address(rewardsController));
 

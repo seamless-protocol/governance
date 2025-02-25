@@ -14,6 +14,7 @@ import {NoncesUpgradeable} from "openzeppelin-contracts-upgradeable/utils/Nonces
 import {ERC4626Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import {ERC20VotesUpgradeable} from
     "openzeppelin-contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
+import {VotesUpgradeable} from "openzeppelin-contracts-upgradeable/governance/utils/VotesUpgradeable.sol";
 import {ERC20PermitUpgradeable} from
     "openzeppelin-contracts-upgradeable/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
@@ -105,6 +106,17 @@ contract StakedToken is
     function emergencyWithdrawal(address to, uint256 amt) external override onlyRole(MANAGER_ROLE) {
         IERC20(asset()).safeTransfer(to, amt);
         emit EmergencyWithdraw(to, amt);
+    }
+
+    /// @inheritdoc VotesUpgradeable
+    function clock() public view override returns (uint48) {
+        return uint48(block.timestamp);
+    }
+
+    /// @inheritdoc VotesUpgradeable
+    // solhint-disable-next-line func-name-mixedcase
+    function CLOCK_MODE() public pure override returns (string memory) {
+        return "mode=timestamp";
     }
 
     // Cooldown

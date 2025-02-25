@@ -37,7 +37,8 @@ library Constants {
     address public constant GOVERNOR_SHORT_ADDRESS = 0x8768c789C6df8AF1a92d96dE823b4F80010Db294;
 
     address public constant LONG_TIMELOCK_ADDRESS = 0xA96448469520666EDC351eff7676af2247b16718;
-    //TODO: Change this when emissions are known
+    address public constant GOVERNOR_LONG_ADDRESS = 0x04faA2826DbB38a7A4E9a5E3dB26b9E389E761B6;
+
     uint256 public constant SEAM_EMISSION_PER_SECOND = 0.000000001 ether;
 
     address public constant INCENTIVES_CONTROLLER_ADDRESS = 0x91Ac2FfF8CBeF5859eAA6DdA661feBd533cD3780;
@@ -51,5 +52,5 @@ library Constants {
     address public constant ORACLE_PLACEHOLDER = 0x602823807C919A92B63cF5C126387c4759976072;
     address public constant STATIC_ATOKEN_FACTORY = 0x6Bb79764b405955a22C2e850c40d9DAF82A3f407;
 
-    address constant TRANSPARENT_PROXY_FACTORY = 0x71d90C266b9Eb9A41FE8F875ddBddc3FadcF1b5d;
+    address public constant TRANSPARENT_PROXY_FACTORY = 0x71d90C266b9Eb9A41FE8F875ddBddc3FadcF1b5d;
 }

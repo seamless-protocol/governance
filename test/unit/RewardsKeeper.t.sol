@@ -12,6 +12,7 @@ import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
 import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
 import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
 import {DataTypes} from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
+import {InitializableAdminUpgradeabilityProxy} from "@aave/core-v3/contracts/dependencies/openzeppelin/upgradeability/InitializableAdminUpgradeabilityProxy.sol";
 import {RewardsDataTypes} from "@aave/periphery-v3/contracts/rewards/libraries/RewardsDataTypes.sol";
 import {RewardsController} from "@aave/periphery-v3/contracts/rewards/RewardsController.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -101,7 +102,21 @@ contract RewardKeeperTest is Test {
         IERC20(a2).approve(address(rewardKeeper), 10000000000 ether);
         vm.stopPrank();
 
-        rewardsController = new RewardsController(address(rewardKeeper));
+        RewardsController rewardsControllerImplementation = new RewardsController(address(rewardKeeper));
+        rewardsControllerImplementation.initialize(address(0));
+
+        InitializableAdminUpgradeabilityProxy rewardControllerProxy = new InitializableAdminUpgradeabilityProxy();
+
+        rewardControllerProxy.initialize(
+            address(rewardsControllerImplementation),
+            admin,
+            abi.encodeWithSelector(
+                RewardsController.initialize.selector,
+                address(rewardKeeper)
+            )
+        );
+
+        rewardsController = RewardsController(address(rewardControllerProxy));
 
         vm.prank(admin);
         rewardKeeper.setRewardsController(address(rewardsController));

@@ -14,7 +14,7 @@ import {ITransferStrategyBase} from "@aave/periphery-v3/contracts/rewards/interf
 import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
 import {RewardsDataTypes} from "@aave/periphery-v3/contracts/rewards/libraries/RewardsDataTypes.sol";
 import {DataTypes} from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
-import {RewardKeeperStorage as Storage} from "../storage/RewardKeeperStorage.sol";
+import {RewardKeeperStorage} from "../storage/RewardKeeperStorage.sol";
 import {IRewardKeeper} from "../interfaces/IRewardKeeper.sol";
 import {StaticATokenTransferStrategy} from "../transfer-strategies/StaticATokenTransferStrategy.sol";
 import {ERC20TransferStrategy} from "../transfer-strategies/ERC20TransferStrategy.sol";
@@ -22,11 +22,12 @@ import {IStaticATokenFactory} from "static-a-token-v3/src/interfaces/IStaticATok
 import {StaticATokenLM} from "static-a-token-v3/src/StaticATokenLM.sol";
 
 contract RewardKeeper is
-    UUPSUpgradeable,
+    IRewardKeeper,
     AccessControlUpgradeable,
     PausableUpgradeable,
-    IRewardKeeper,
-    ReentrancyGuardUpgradeable
+    ReentrancyGuardUpgradeable,
+    UUPSUpgradeable,
+    RewardKeeperStorage
 {
     using SafeERC20 for IERC20;
 
@@ -59,7 +60,7 @@ contract RewardKeeper is
         __UUPSUpgradeable_init();
         __Pausable_init();
         __ReentrancyGuard_init();
-        Storage.Layout storage $ = Storage.layout();
+        StorageLayout storage $ = storageLayout();
 
         $.pool = IPool(pool);
         $.oracle = IEACAggregatorProxy(oracle);
@@ -161,7 +162,7 @@ contract RewardKeeper is
         onlyRole(MANAGER_ROLE)
         isNotZeroAddress(token)
     {
-        Storage.layout().allowedManualTokens[token] = allowed;
+        storageLayout().allowedManualTokens[token] = allowed;
         emit AllowedManualTokenUpdated(token, allowed);
     }
 
@@ -172,6 +173,7 @@ contract RewardKeeper is
         onlyRole(REWARD_SETTER_ROLE)
         isNotZeroAddress(rewardToken)
     {
+        _checkIsManualRateAuthorized(rewardToken);
         getController().setTransferStrategy(rewardToken, ITransferStrategyBase(transferStrategy));
 
         emit SetTransferStrategy(rewardToken, transferStrategy);
@@ -251,20 +253,20 @@ contract RewardKeeper is
         isNotZeroAddress(controller)
         onlyRole(MANAGER_ROLE)
     {
-        Storage.layout().controller = IRewardsController(controller);
+        storageLayout().controller = IRewardsController(controller);
         emit SetRewardsController(controller);
     }
 
     /// @inheritdoc IRewardKeeper
     function setPool(address newPool) external override isNotZeroAddress(newPool) onlyRole(MANAGER_ROLE) {
-        Storage.layout().pool = IPool(newPool);
+        storageLayout().pool = IPool(newPool);
         emit SetPool(newPool);
     }
 
     /// @inheritdoc IRewardKeeper
     function setPeriod(uint256 newPeriod) external override onlyRole(MANAGER_ROLE) {
         if (newPeriod == 0) revert InvalidPeriod();
-        Storage.layout().period = newPeriod;
+        storageLayout().period = newPeriod;
         emit SetPeriod(newPeriod);
     }
 
@@ -276,8 +278,8 @@ contract RewardKeeper is
         if (getLastClaim() > block.timestamp - getPreviousPeriod()) revert InsufficientTimeElapsed();
         uint256 period = getPeriod();
         newPeriod = (((block.timestamp / period) + 1) * period) - block.timestamp;
-        Storage.layout().lastClaim = block.timestamp;
-        Storage.layout().previousPeriod = newPeriod;
+        storageLayout().lastClaim = block.timestamp;
+        storageLayout().previousPeriod = newPeriod;
     }
 
     /**
@@ -340,51 +342,51 @@ contract RewardKeeper is
 
     /// @inheritdoc IRewardKeeper
     function getController() public view override returns (IRewardsController rewardController) {
-        rewardController = Storage.layout().controller;
+        rewardController = storageLayout().controller;
     }
 
     /// @inheritdoc IRewardKeeper
     function getPool() public view override returns (IPool pool) {
-        pool = Storage.layout().pool;
+        pool = storageLayout().pool;
     }
 
     /// @inheritdoc IRewardKeeper
     function getOracle() public view override returns (IEACAggregatorProxy oracle) {
-        oracle = Storage.layout().oracle;
+        oracle = storageLayout().oracle;
     }
 
     /// @inheritdoc IRewardKeeper
     function getStaticATokenFactory() public view returns (IStaticATokenFactory staticATokenFactory) {
-        staticATokenFactory = Storage.layout().staticATokenFactory;
+        staticATokenFactory = storageLayout().staticATokenFactory;
     }
 
     /// @inheritdoc IRewardKeeper
     function getAsset() public view override returns (address asset) {
-        asset = Storage.layout().asset;
+        asset = storageLayout().asset;
     }
 
     /// @inheritdoc IRewardKeeper
     function getPeriod() public view override returns (uint256 period) {
-        period = Storage.layout().period;
+        period = storageLayout().period;
     }
 
     /// @inheritdoc IRewardKeeper
     function getPreviousPeriod() public view override returns (uint256 previousPeriod) {
-        previousPeriod = Storage.layout().previousPeriod;
+        previousPeriod = storageLayout().previousPeriod;
     }
 
     /// @inheritdoc IRewardKeeper
     function getLastClaim() public view override returns (uint256 lastClaim) {
-        lastClaim = Storage.layout().lastClaim;
+        lastClaim = storageLayout().lastClaim;
     }
 
     /// @inheritdoc IRewardKeeper
     function getTreasury() public view override returns (address treasury) {
-        treasury = Storage.layout().treasury;
+        treasury = storageLayout().treasury;
     }
 
     /// @inheritdoc IRewardKeeper
     function getIsAllowedForManualRate(address token) public view override returns (bool isAllowed) {
-        isAllowed = Storage.layout().allowedManualTokens[token];
+        isAllowed = storageLayout().allowedManualTokens[token];
     }
 }

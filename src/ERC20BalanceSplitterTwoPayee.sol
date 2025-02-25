@@ -11,7 +11,7 @@ contract ERC20BalanceSplitterTwoPayee {
     /// @dev Basis points scale used for share calculations (10000 = 100%)
     uint256 public constant _BASIS_POINT_SCALE = 1e4;
 
-    /// @notice The first payee's address
+    /// @notice The first payee's address. Which is also the skim recipient
     address public immutable payeeA;
     /// @notice The second payee's address
     address public immutable payeeB;
