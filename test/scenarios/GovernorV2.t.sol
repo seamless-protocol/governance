@@ -8,7 +8,7 @@ import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {SeamGovernorV2} from "../../src/SeamGovernorV2.sol";
 import {Constants} from "../../src/library/Constants.sol";
 import {GovernanceTest} from "./Governance.t.sol";
-import {StakedToken} from "../../src/safety-module/StakedToken.sol";
+import {StakedToken} from "../../src/StakedToken.sol";
 
 contract GovernorV2Test is GovernanceTest {
     StakedToken stkSEAM;
@@ -32,7 +32,7 @@ contract GovernorV2Test is GovernanceTest {
         vm.stopPrank();
     }
 
-    function test_TokensArray() public {
+    function test_TokensArray() public view {
         IERC5805[] memory shortTokens = SeamGovernorV2(payable(address(shortGovernor))).tokens();
         IERC5805[] memory longTokens = SeamGovernorV2(payable(address(longGovernor))).tokens();
 

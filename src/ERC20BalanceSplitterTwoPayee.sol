@@ -3,11 +3,12 @@ pragma solidity ^0.8.20;
 
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
+import {IFeeSource} from "./interfaces/IFeeSource.sol";
 
 /// @title ERC20BalanceSplitterTwoPayee
 /// @notice A contract that splits ERC20 token balances between two payees according to predefined shares
 /// @dev Uses basis points (1/10000) for share calculations
-contract ERC20BalanceSplitterTwoPayee {
+contract ERC20BalanceSplitterTwoPayee is IFeeSource {
     /// @dev Basis points scale used for share calculations (10000 = 100%)
     uint256 public constant _BASIS_POINT_SCALE = 1e4;
 

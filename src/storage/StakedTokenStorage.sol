@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
+import {IRewardsController} from "aave-v3-periphery/contracts/rewards/interfaces/IRewardsController.sol";
 
-library StakedTokenStorage {
-    struct Layout {
+abstract contract StakedTokenStorage {
+    /// @custom:storage-location erc7201:seamless.contracts.storage.StakedToken
+    struct StorageLayout {
         /**
          * @notice interface for rewards controller
          */
@@ -23,14 +24,12 @@ library StakedTokenStorage {
         mapping(address => uint256) stakersCooldowns;
     }
 
-    bytes32 private constant STORAGE_SLOT = keccak256(
-        abi.encode(uint256(keccak256("seamless.contracts.storage.StakedToken")) - 1)
-    ) & ~bytes32(uint256(0xff));
+    // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.StakedToken")) - 1)) & ~bytes32(uint256(0xff));
+    bytes32 private constant STORAGE_SLOT = 0x70e6a77d3948d1d16db6a5474690147c8b32b65a8dc6d1ba6210b5bdedf84200;
 
-    function layout() internal pure returns (Layout storage l) {
-        bytes32 slot = STORAGE_SLOT;
+    function storageLayout() internal pure returns (StorageLayout storage l) {
         assembly {
-            l.slot := slot
+            l.slot := STORAGE_SLOT
         }
     }
 }

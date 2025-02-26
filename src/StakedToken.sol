@@ -6,9 +6,9 @@ import {AccessControlUpgradeable} from "openzeppelin-contracts-upgradeable/acces
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
-import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
-import {IStakedToken} from "../interfaces/IStakedToken.sol";
-import {StakedTokenStorage as Storage} from "../storage/StakedTokenStorage.sol";
+import {IRewardsController} from "aave-v3-periphery/contracts/rewards/interfaces/IRewardsController.sol";
+import {IStakedToken} from "./interfaces/IStakedToken.sol";
+import {StakedTokenStorage} from "./storage/StakedTokenStorage.sol";
 import {ERC20Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {NoncesUpgradeable} from "openzeppelin-contracts-upgradeable/utils/NoncesUpgradeable.sol";
 import {ERC4626Upgradeable} from "openzeppelin-contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
@@ -26,6 +26,7 @@ contract StakedToken is
     ERC20PermitUpgradeable,
     ERC20VotesUpgradeable,
     PausableUpgradeable,
+    StakedTokenStorage,
     IStakedToken
 {
     using SafeERC20 for IERC20;
@@ -66,7 +67,7 @@ contract StakedToken is
 
         __Pausable_init();
 
-        Storage.Layout storage $ = Storage.layout();
+        StorageLayout storage $ = storageLayout();
         $.cooldownSeconds = _cooldown;
         $.unstakeWindow = _unstakeWindow;
 
@@ -123,7 +124,7 @@ contract StakedToken is
     /// @inheritdoc IStakedToken
     function cooldown() external override {
         if (balanceOf(msg.sender) == 0) revert InsufficientStake();
-        Storage.layout().stakersCooldowns[msg.sender] = block.timestamp;
+        storageLayout().stakersCooldowns[msg.sender] = block.timestamp;
 
         emit Cooldown(msg.sender);
     }
@@ -135,7 +136,7 @@ contract StakedToken is
         address toAddress,
         uint256 toBalance
     ) public view override returns (uint256 cooldownTimestamp) {
-        Storage.Layout storage $ = Storage.layout();
+        StorageLayout storage $ = storageLayout();
         uint256 toCooldownTimestamp = $.stakersCooldowns[toAddress];
         if (toCooldownTimestamp == 0) {
             return 0;
@@ -250,7 +251,7 @@ contract StakedToken is
         internal
         override(ERC20Upgradeable, ERC20VotesUpgradeable)
     {
-        Storage.Layout storage $ = Storage.layout();
+        StorageLayout storage $ = storageLayout();
         // save to local for gas efficiency
         // Can remove if we block any transfer during CD
         uint256 balFrom = balanceOf(from);
@@ -298,13 +299,13 @@ contract StakedToken is
         isNotZeroAddress(newController)
         onlyRole(MANAGER_ROLE)
     {
-        Storage.layout().rewardsController = IRewardsController(newController);
+        storageLayout().rewardsController = IRewardsController(newController);
         emit RewardsControllerSet(newController);
     }
 
     /// @inheritdoc IStakedToken
     function setTimers(uint256 _cooldown, uint256 _unstake) external override onlyRole(MANAGER_ROLE) {
-        Storage.Layout storage $ = Storage.layout();
+        StorageLayout storage $ = storageLayout();
         $.cooldownSeconds = _cooldown;
         $.unstakeWindow = _unstake;
 
@@ -314,21 +315,21 @@ contract StakedToken is
     // Storage getters
     /// @inheritdoc IStakedToken
     function getCooldown() public view override returns (uint256 cooldownTime) {
-        cooldownTime = Storage.layout().cooldownSeconds;
+        cooldownTime = storageLayout().cooldownSeconds;
     }
 
     /// @inheritdoc IStakedToken
     function getUnstakeWindow() public view override returns (uint256 unstakeWindow) {
-        unstakeWindow = Storage.layout().unstakeWindow;
+        unstakeWindow = storageLayout().unstakeWindow;
     }
 
     /// @inheritdoc IStakedToken
     function getStakerCooldown(address user) public view override returns (uint256 cooldownStartedAt) {
-        cooldownStartedAt = Storage.layout().stakersCooldowns[user];
+        cooldownStartedAt = storageLayout().stakersCooldowns[user];
     }
 
     /// @inheritdoc IStakedToken
     function getRewardsController() public view override returns (IRewardsController rewardController) {
-        rewardController = Storage.layout().rewardsController;
+        rewardController = storageLayout().rewardsController;
     }
 }

@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
-
 contract MockOracle {
-    constructor() {}
+    int256 private price;
+    uint8 public decimals = 8;
 
-    function latestAnswer() external pure returns (uint256) {
-        return 1;
+    function setPrice(int256 _price) external {
+        price = _price;
+    }
+
+    function latestAnswer() external view returns (int256) {
+        return price;
     }
 }

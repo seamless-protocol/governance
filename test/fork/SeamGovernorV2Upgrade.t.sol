@@ -3,12 +3,12 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {StakedToken} from "../../src/safety-module/StakedToken.sol";
+import {StakedToken} from "../../src/StakedToken.sol";
 import {Seam} from "../../src/Seam.sol";
 import {SeamGovernor} from "../../src/SeamGovernor.sol";
 import {SeamGovernorV2} from "../../src/SeamGovernorV2.sol";
 import {Constants} from "../../src/library/Constants.sol";
-import {SeamHarness} from "./harness/SeamHarness.sol";
+import {SeamHarness} from "../harness/SeamHarness.sol";
 import {IERC5805} from "openzeppelin-contracts/interfaces/IERC5805.sol";
 
 contract SeamGovernorV2Upgrade is Test {

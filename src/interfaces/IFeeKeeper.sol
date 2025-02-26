@@ -1,26 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {RewardKeeperStorage as Storage} from "../storage/RewardKeeperStorage.sol";
-import {IRewardsController} from "@aave/periphery-v3/contracts/rewards/interfaces/IRewardsController.sol";
-import {IPool} from "@aave/core-v3/contracts/interfaces/IPool.sol";
-import {IEACAggregatorProxy} from "@aave/periphery-v3/contracts/misc/interfaces/IEACAggregatorProxy.sol";
-import {IStaticATokenFactory} from "static-a-token-v3/src/interfaces/IStaticATokenFactory.sol";
+import {IRewardsController} from "aave-v3-periphery/contracts/rewards/interfaces/IRewardsController.sol";
+import {IEACAggregatorProxy} from "aave-v3-periphery/contracts/misc/interfaces/IEACAggregatorProxy.sol";
+import {IFeeSource} from "./IFeeSource.sol";
 
 /**
  * @title Reward Keeper
  * @dev A contract used to manage and accumulate reward tokens for the Seamless safety module staking system
  */
-interface IRewardKeeper {
+interface IFeeKeeper {
     event SetRewardsController(address controller);
-    event SetPool(address pool);
     event SetPeriod(uint256 period);
-    event SetRate(address[] token, uint88[] emissionRate);
-    event SetDistributionEnd(address token, uint32 deadline);
     event SetTransferStrategy(address reward, address strategy);
     event WithdrawTokens(address token, address receiver, uint256 amount);
     event AllowedManualTokenUpdated(address token, bool allowed);
-    event ConfiguredAsset(address reward, uint88 rate, uint256 time);
+    event FeeSourceAdded(IFeeSource feeSource);
+    event FeeSourceRemoved(IFeeSource feeSource);
 
     error ZeroAddress(address target);
     error InsufficientTimeElapsed();
@@ -39,15 +35,6 @@ interface IRewardKeeper {
      * @dev Caller must have the `PAUSER_ROLE`.
      */
     function unpause() external;
-
-    /**
-     * @notice Claims any accrued liquidity rewards from static tokens held in transfer strategy
-     * @dev Caller must have the `MANAGER_ROLE`.
-     * @param to the address of the recipient
-     * @param asset the address of the asset corresponding to transfer strategy
-     * @param rewards address array of reward tokens on the transfer strategy
-     */
-    function claimLMRewards(address to, address asset, address[] calldata rewards) external;
 
     /**
      * @notice Claims rewards from the underlying Aave pool, sets new emission rates, and updates state.
@@ -78,6 +65,24 @@ interface IRewardKeeper {
      * @param transferStrategy address of the new transfer strategy
      */
     function setTransferStrategy(address rewardToken, address transferStrategy) external;
+
+    /**
+     * @notice Adds a fee source to the reward keeper.
+     * @param feeSource address of the fee source
+     */
+    function addFeeSource(IFeeSource feeSource) external;
+
+    /**
+     * @notice Removes a fee source from the reward keeper.
+     * @param feeSource address of the fee source
+     */
+    function removeFeeSource(IFeeSource feeSource) external;
+
+    /**
+     * @notice Returns all fee sources.
+     * @return feeSources array of fee source addresses
+     */
+    function getFeeSources() external view returns (address[] memory feeSources);
 
     /**
      * @notice Sets whether a given token is allowed to be used with the manual reward setter.
@@ -138,13 +143,6 @@ interface IRewardKeeper {
     function setRewardsController(address controller) external;
 
     /**
-     * @notice Updates the address of the Aave Pool contract.
-     * @dev Caller must have the `MANAGER_ROLE`.
-     * @param newPool The address of the new Aave Pool contract.
-     */
-    function setPool(address newPool) external;
-
-    /**
      * @notice Updates the period (in seconds) used for calculating emission rates.
      * @dev Caller must have the `MANAGER_ROLE`.
      * @param newPeriod The new period length in seconds.
@@ -156,12 +154,6 @@ interface IRewardKeeper {
      * @return rewardController The `IRewardsController` implementation currently in use.
      */
     function getController() external view returns (IRewardsController rewardController);
-
-    /**
-     * @notice Returns the current Aave Pool address used for minting/withdrawing rewards.
-     * @return pool The `IPool` address currently in use.
-     */
-    function getPool() external view returns (IPool pool);
 
     /**
      * @notice Retrieves the current oracle contract used for reward configuration.
@@ -192,18 +184,6 @@ interface IRewardKeeper {
      * @return lastClaim The last claim timestamp.
      */
     function getLastClaim() external view returns (uint256 lastClaim);
-
-    /**
-     * @notice Returns the treasury address.
-     * @return treasury address of treasury.
-     */
-    function getTreasury() external view returns (address treasury);
-
-    /**
-     * @notice Returns the static AToken factory interface.
-     * @return staticATokenFactory factory interface.
-     */
-    function getStaticATokenFactory() external view returns (IStaticATokenFactory staticATokenFactory);
 
     /**
      * @notice Returns a flag indicating if a token address can have manual rate set
