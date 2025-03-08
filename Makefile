@@ -14,6 +14,9 @@ clean                   :; forge clean
 fmt                     :; forge fmt
 test                    :; forge test -vvvv --gas-report
 
+coverage-export: coverage
+	genhtml lcov.info -o report --rc derive_function_end_line=0
+
 # Deploy
 deploy-seam-base-testnet		:; forge script script/SeamDeploy.s.sol:SeamDeployScript --force --rpc-url base-testnet --slow --broadcast --verify --delay 5 --verifier-url ${BASE_TESTNET_VERIFIER_URL} -vvvv
 deploy-seam-tenderly			:; forge script script/SeamDeploy.s.sol:SeamDeployScript --force --rpc-url tenderly --slow --broadcast -vvvv

@@ -20,13 +20,12 @@ import {EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableSet.
 
 contract FeeKeeper is
     IFeeKeeper,
+    UUPSUpgradeable,
     AccessControlUpgradeable,
     PausableUpgradeable,
     ReentrancyGuardUpgradeable,
-    UUPSUpgradeable,
     FeeKeeperStorage
 {
-    using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
@@ -47,7 +46,7 @@ contract FeeKeeper is
     }
 
     /// @notice Initializes the token storage and inherited contracts.
-    function initialize(address initialAdmin, address stkSeam, address oracle) external initializer {
+    function initialize(address initialAdmin, address asset, address oracle) external initializer {
         __UUPSUpgradeable_init();
         __Pausable_init();
         __ReentrancyGuard_init();
@@ -56,10 +55,13 @@ contract FeeKeeper is
         $.oracle = IEACAggregatorProxy(oracle);
         $.period = 1 days;
         $.lastClaim = block.timestamp;
-        $.asset = stkSeam;
+        $.asset = asset;
 
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
         _grantRole(MANAGER_ROLE, initialAdmin);
+        _grantRole(REWARD_SETTER_ROLE, initialAdmin);
+        _grantRole(UPGRADER_ROLE, initialAdmin);
+        _grantRole(PAUSER_ROLE, initialAdmin);
     }
 
     /// @inheritdoc UUPSUpgradeable
@@ -82,7 +84,6 @@ contract FeeKeeper is
         IEACAggregatorProxy oracle = getOracle();
         uint256 period = _validateAndUpdatePeriod();
 
-        // used for setting emissions
         uint88[] memory emissionRates = new uint88[](1);
         address[] memory rewardTokens = new address[](1);
 
@@ -91,14 +92,13 @@ contract FeeKeeper is
         for (uint256 i; i < feeSources.length; i++) {
             IFeeSource feeSource = IFeeSource(feeSources[i]);
             IERC20 token = feeSource.token();
-            rewardTokens[0] = address(token);
 
             // claim fees
             feeSource.claim();
 
             uint256 balance = token.balanceOf(address(this));
 
-            if (address(token) == address(0) || balance == 0) {
+            if (balance == 0) {
                 continue;
             }
 
@@ -108,19 +108,20 @@ contract FeeKeeper is
                 continue;
             }
 
-            address transferStrategy = controller.getTransferStrategy(rewardTokens[0]);
+            address transferStrategy = controller.getTransferStrategy(address(token));
 
             if (transferStrategy == address(0)) {
                 transferStrategy = address(new ERC20TransferStrategy(token, address(controller), address(this)));
                 _configureAssets(
-                    address(token), transferStrategy, oracle, asset, controller, 0, uint32(block.timestamp)
+                    address(token), transferStrategy, oracle, asset, controller, emissionRates[0], uint32(block.timestamp + period)
                 );
+            } else {
+                rewardTokens[0] = address(token);
+                controller.setEmissionPerSecond(asset, rewardTokens, emissionRates);
+                controller.setDistributionEnd(asset, address(token), uint32(block.timestamp + period));
             }
-
-            rewardTokens[0] = address(token);
-            controller.setEmissionPerSecond(asset, rewardTokens, emissionRates);
-            controller.setDistributionEnd(asset, address(token), uint32(block.timestamp + period));
-            token.transfer(address(transferStrategy), emissionRates[0] * period);
+            
+            SafeERC20.safeTransfer(IERC20(token), address(transferStrategy), emissionRates[0] * period);
         }
     }
 
@@ -132,7 +133,7 @@ contract FeeKeeper is
         isNotZeroAddress(address(feeSource))
     {
         storageLayout().feeSources.add(address(feeSource));
-        emit FeeSourceAdded(feeSource);
+        emit FeeSourceAdded(address(feeSource));
     }
 
     /// @inheritdoc IFeeKeeper
@@ -143,7 +144,7 @@ contract FeeKeeper is
         isNotZeroAddress(address(feeSource))
     {
         storageLayout().feeSources.remove(address(feeSource));
-        emit FeeSourceRemoved(feeSource);
+        emit FeeSourceRemoved(address(feeSource));
     }
 
     /// @inheritdoc IFeeKeeper
@@ -171,8 +172,6 @@ contract FeeKeeper is
     {
         _checkIsManualRateAuthorized(rewardToken);
         getController().setTransferStrategy(rewardToken, ITransferStrategyBase(transferStrategy));
-
-        emit SetTransferStrategy(rewardToken, transferStrategy);
     }
 
     /// @inheritdoc IFeeKeeper
@@ -219,6 +218,11 @@ contract FeeKeeper is
     }
 
     /// @inheritdoc IFeeKeeper
+    function setClaimer(address user, address caller) external override onlyRole(MANAGER_ROLE) {
+        getController().setClaimer(user, caller);
+    }
+
+    /// @inheritdoc IFeeKeeper
     function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amount)
         external
         override
@@ -233,7 +237,7 @@ contract FeeKeeper is
 
     /// @inheritdoc IFeeKeeper
     function withdrawTokens(address token, address to, uint256 amount) external override onlyRole(MANAGER_ROLE) {
-        IERC20(token).safeTransfer(to, amount);
+        SafeERC20.safeTransfer(IERC20(token), to, amount);
         emit WithdrawTokens(token, to, amount);
     }
 

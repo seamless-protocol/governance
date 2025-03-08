@@ -20,27 +20,18 @@ import {ERC20PermitUpgradeable} from
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 
 contract StakedToken is
+    IStakedToken,
     UUPSUpgradeable,
-    AccessControlUpgradeable,
     ERC4626Upgradeable,
     ERC20PermitUpgradeable,
     ERC20VotesUpgradeable,
+    AccessControlUpgradeable,
     PausableUpgradeable,
-    StakedTokenStorage,
-    IStakedToken
+    StakedTokenStorage
 {
-    using SafeERC20 for IERC20;
-
-    bytes32 constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
-    bytes32 constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
-    bytes32 constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-
-    modifier isNotZeroAddress(address target) {
-        if (target == address(0)) {
-            revert ZeroAddress();
-        }
-        _;
-    }
+    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -64,7 +55,8 @@ contract StakedToken is
         __UUPSUpgradeable_init();
         __ERC20_init(_erc20name, _erc20symbol);
         __ERC4626_init(IERC20(_asset));
-
+        __ERC20Permit_init(_erc20name);
+        __ERC20Votes_init();
         __Pausable_init();
 
         StorageLayout storage $ = storageLayout();
@@ -73,6 +65,8 @@ contract StakedToken is
 
         _grantRole(DEFAULT_ADMIN_ROLE, _initialAdmin);
         _grantRole(MANAGER_ROLE, _initialAdmin);
+        _grantRole(UPGRADER_ROLE, _initialAdmin);
+        _grantRole(PAUSER_ROLE, _initialAdmin);
     }
 
     /// @inheritdoc UUPSUpgradeable
@@ -105,7 +99,7 @@ contract StakedToken is
 
     /// @inheritdoc IStakedToken
     function emergencyWithdrawal(address to, uint256 amt) external override onlyRole(MANAGER_ROLE) {
-        IERC20(asset()).safeTransfer(to, amt);
+        SafeERC20.safeTransfer(IERC20(asset()), to, amt);
         emit EmergencyWithdraw(to, amt);
     }
 
@@ -229,6 +223,20 @@ contract StakedToken is
         decimal = super.decimals();
     }
 
+    /**
+     * @dev See {IERC4626-maxDeposit}.
+     */
+    function maxDeposit(address) public view override returns (uint256) {
+        return _maxSupply();
+    }
+
+    /**
+     * @dev See {IERC4626-maxMint}.
+     */
+    function maxMint(address) public view override returns (uint256) {
+        return _maxSupply();
+    }
+
     /// @inheritdoc IStakedToken
     function nonces(address owner)
         public
@@ -293,12 +301,7 @@ contract StakedToken is
 
     // Admin Functions
     /// @inheritdoc IStakedToken
-    function setController(address newController)
-        external
-        override
-        isNotZeroAddress(newController)
-        onlyRole(MANAGER_ROLE)
-    {
+    function setController(address newController) external override onlyRole(MANAGER_ROLE) {
         storageLayout().rewardsController = IRewardsController(newController);
         emit RewardsControllerSet(newController);
     }

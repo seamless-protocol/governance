@@ -5,25 +5,30 @@ import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IFeeSource} from "../../src/interfaces/IFeeSource.sol";
 
 contract MockFeeSource is IFeeSource {
-    IERC20 public immutable rewardToken;
-    uint256 public claimableAmount;
+    IERC20 public _token;
+    uint256 public _amount;
+    bool public _shouldRevert;
 
-    constructor(address _token) {
-        rewardToken = IERC20(_token);
-    }
-
-    function setClaimableAmount(uint256 amount) external {
-        claimableAmount = amount;
-    }
-
-    function claim() external override {
-        if (claimableAmount > 0) {
-            rewardToken.transfer(msg.sender, claimableAmount);
-            claimableAmount = 0;
-        }
+    constructor(IERC20 token_) {
+        _token = token_;
     }
 
     function token() external view override returns (IERC20) {
-        return rewardToken;
+        return _token;
+    }
+
+    function claim() external override {
+        require(!_shouldRevert, "MockFeeSource: claim reverted");
+        if (_amount > 0) {
+            _token.transfer(msg.sender, _amount);
+        }
+    }
+
+    function setClaimableAmount(uint256 amount_) external {
+        _amount = amount_;
+    }
+
+    function setShouldRevert(bool shouldRevert_) external {
+        _shouldRevert = shouldRevert_;
     }
 }

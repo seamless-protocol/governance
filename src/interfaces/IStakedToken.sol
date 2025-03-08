@@ -19,9 +19,9 @@ interface IStakedToken {
     error NotInEmergency();
 
     // events
-    event EmergencyWithdraw(address to, uint256 amt);
+    event EmergencyWithdraw(address indexed into, uint256 amt);
     event RewardsControllerSet(address RewardsController);
-    event Cooldown(address user);
+    event Cooldown(address indexed user);
     event TimersSet(uint256 cooldown, uint256 unstake);
 
     /**

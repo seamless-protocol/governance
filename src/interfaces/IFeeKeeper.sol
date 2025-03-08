@@ -12,11 +12,10 @@ import {IFeeSource} from "./IFeeSource.sol";
 interface IFeeKeeper {
     event SetRewardsController(address controller);
     event SetPeriod(uint256 period);
-    event SetTransferStrategy(address reward, address strategy);
-    event WithdrawTokens(address token, address receiver, uint256 amount);
-    event AllowedManualTokenUpdated(address token, bool allowed);
-    event FeeSourceAdded(IFeeSource feeSource);
-    event FeeSourceRemoved(IFeeSource feeSource);
+    event WithdrawTokens(address indexed token, address receiver, uint256 amount);
+    event AllowedManualTokenUpdated(address indexed token, bool allowed);
+    event FeeSourceAdded(address feeSource);
+    event FeeSourceRemoved(address feeSource);
 
     error ZeroAddress(address target);
     error InsufficientTimeElapsed();
@@ -38,14 +37,7 @@ interface IFeeKeeper {
 
     /**
      * @notice Claims rewards from the underlying Aave pool, sets new emission rates, and updates state.
-     * @dev This operation:
-     *  1) Verifies enough time has elapsed since the last claim to avoid `InsufficientTimeElapsed`.
-     *  2) Calls `mintToTreasury` on the Aave Pool to collect rewards.
-     *  3) Withdraws all available tokens.
-     *  4) Calculates the new emission rate per second for each reward token.
-     *  5) Updates emission distribution parameters and sets next distribution end.
-     *  6) Emits a `ClaimedAndSetRate` event.
-     * @notice Reverts if the cooldown period is not met (`InsufficientTimeElapsed`) or if the contract is paused.
+     * Reverts if the cooldown period is not met (InsufficientTimeElapsed) or if the contract is paused.
      */
     function claimAndSetRate() external;
 
@@ -54,9 +46,9 @@ interface IFeeKeeper {
      * @dev Caller must have the `MANAGER_ROLE`.
      * @param token The address of the reward token to withdraw.
      * @param to The recipient address for the withdrawn tokens.
-     * @param amt The amount of tokens to withdraw.
+     * @param amount The amount of tokens to withdraw.
      */
-    function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amt) external;
+    function emergencyWithdrawalFromTransferStrategy(address token, address to, uint256 amount) external;
 
     /**
      * @notice Sets a transfer strategy for a given reward token.
@@ -67,7 +59,7 @@ interface IFeeKeeper {
     function setTransferStrategy(address rewardToken, address transferStrategy) external;
 
     /**
-     * @notice Adds a fee source to the reward keeper.
+     * @notice Adds a fee source to the reward keeper. Fee sources must have a unique token, i.e. you cannot have 2 fee sources for the same underlyingtoken.
      * @param feeSource address of the fee source
      */
     function addFeeSource(IFeeSource feeSource) external;
@@ -125,6 +117,14 @@ interface IFeeKeeper {
      * @param deadline the amount of time for the rewards to emit
      */
     function setManualDistributionEnd(address rewardToken, uint32 deadline) external;
+
+    /**
+     * @notice Sets a claimer for a user
+     * @dev Caller must have the `MANAGER_ROLE`.
+     * @param user The address of the user to set the claimer for.
+     * @param caller The address of the caller to set the claimer for.
+     */
+    function setClaimer(address user, address caller) external;
 
     /**
      * @notice Performs a manual token withdrawal
