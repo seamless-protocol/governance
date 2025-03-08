@@ -142,14 +142,15 @@ contract SeamStakingTest is Test, SeamStakingScript {
         deal(address(SEAM), user2, amount2);
 
         _performDeposits(user1, user2, amount1, amount2);
-        
+
         // Warp forward 1 day to accrue fees on vaults
         vm.warp(block.timestamp + timeWarp);
 
         _forceInterestAccrual();
 
         // Get splitter balances
-        (uint256 usdcSplitterBalance, uint256 cbbtcSplitterBalance, uint256 wethSplitterBalance) = _getSplitterBalances();
+        (uint256 usdcSplitterBalance, uint256 cbbtcSplitterBalance, uint256 wethSplitterBalance) =
+            _getSplitterBalances();
 
         // Store the curator's balances before force accrual
         (
@@ -180,19 +181,13 @@ contract SeamStakingTest is Test, SeamStakingScript {
 
         // Check that RewardsController emission rates and distribution end are set correctly
         _verifyRewardsDistribution(
-            SEAMLESS_USDC_VAULT, 
-            curatorUsdcVaultBalanceAfter - curatorUsdcVaultBalanceBefore, 
-            usdcSplitterBalance
+            SEAMLESS_USDC_VAULT, curatorUsdcVaultBalanceAfter - curatorUsdcVaultBalanceBefore, usdcSplitterBalance
         );
         _verifyRewardsDistribution(
-            SEAMLESS_CBBTC_VAULT, 
-            curatorCbbtcVaultBalanceAfter - curatorCbbtcVaultBalanceBefore, 
-            cbbtcSplitterBalance
+            SEAMLESS_CBBTC_VAULT, curatorCbbtcVaultBalanceAfter - curatorCbbtcVaultBalanceBefore, cbbtcSplitterBalance
         );
         _verifyRewardsDistribution(
-            SEAMLESS_WETH_VAULT, 
-            curatorWethVaultBalanceAfter - curatorWethVaultBalanceBefore, 
-            wethSplitterBalance
+            SEAMLESS_WETH_VAULT, curatorWethVaultBalanceAfter - curatorWethVaultBalanceBefore, wethSplitterBalance
         );
 
         vm.warp(block.timestamp + 2 days);
@@ -200,8 +195,8 @@ contract SeamStakingTest is Test, SeamStakingScript {
         _claimRewards(user1, user2);
 
         _verifyUserRewards(
-            user1, 
-            user2, 
+            user1,
+            user2,
             usdcSplitterBalance,
             cbbtcSplitterBalance,
             wethSplitterBalance,
@@ -210,7 +205,7 @@ contract SeamStakingTest is Test, SeamStakingScript {
             curatorWethVaultBalanceAfter - curatorWethVaultBalanceBefore
         );
     }
-    
+
     function _performDeposits(address user1, address user2, uint256 amount1, uint256 amount2) internal {
         // User 1 deposits
         vm.startPrank(user1);
@@ -228,20 +223,20 @@ contract SeamStakingTest is Test, SeamStakingScript {
         assertEq(stkToken.balanceOf(user1), amount1);
         assertEq(stkToken.balanceOf(user2), amount2);
     }
-    
+
     function _getSplitterBalances() internal view returns (uint256, uint256, uint256) {
         uint256 usdcSplitterBalance = SEAMLESS_USDC_VAULT.balanceOf(address(usdcSplitter));
         uint256 cbbtcSplitterBalance = SEAMLESS_CBBTC_VAULT.balanceOf(address(cbbtcSplitter));
         uint256 wethSplitterBalance = SEAMLESS_WETH_VAULT.balanceOf(address(wethSplitter));
-        
+
         // Check that fee splitters have non-zero balances
         assertTrue(usdcSplitterBalance > 0);
         assertTrue(cbbtcSplitterBalance > 0);
         assertTrue(wethSplitterBalance > 0);
-        
+
         return (usdcSplitterBalance, cbbtcSplitterBalance, wethSplitterBalance);
     }
-    
+
     function _getCuratorBalances() internal view returns (uint256, uint256, uint256) {
         return (
             SEAMLESS_USDC_VAULT.balanceOf(Constants.CURATOR_FEE_RECIPIENT),
@@ -249,7 +244,7 @@ contract SeamStakingTest is Test, SeamStakingScript {
             SEAMLESS_WETH_VAULT.balanceOf(Constants.CURATOR_FEE_RECIPIENT)
         );
     }
-    
+
     function _verifyCuratorFees(
         uint256 curatorUsdcBefore,
         uint256 curatorCbbtcBefore,
@@ -263,7 +258,7 @@ contract SeamStakingTest is Test, SeamStakingScript {
         assertTrue(curatorCbbtcAfter > curatorCbbtcBefore);
         assertTrue(curatorWethAfter > curatorWethBefore);
     }
-    
+
     function _claimRewards(address user1, address user2) internal {
         address[] memory assets = new address[](1);
         assets[0] = address(stkToken);
@@ -274,7 +269,7 @@ contract SeamStakingTest is Test, SeamStakingScript {
         vm.prank(user2);
         rewardsController.claimAllRewardsToSelf(assets);
     }
-    
+
     function _verifyUserRewards(
         address user1,
         address user2,
@@ -284,40 +279,22 @@ contract SeamStakingTest is Test, SeamStakingScript {
         uint256 curatorUsdcFee,
         uint256 curatorCbbtcFee,
         uint256 curatorWethFee
-    ) internal view {        
+    ) internal view {
         // Verify users received rewards proportional to their staked SEAM
-        _verifyUserRewardsForToken(
-            user1, 
-            user2, 
-            usdcSplitterBalance, 
-            curatorUsdcFee, 
-            SEAMLESS_USDC_VAULT
-        );
-        
-        _verifyUserRewardsForToken(
-            user1, 
-            user2, 
-            cbbtcSplitterBalance, 
-            curatorCbbtcFee, 
-            SEAMLESS_CBBTC_VAULT
-        );
-        
-        _verifyUserRewardsForToken(
-            user1, 
-            user2,
-            wethSplitterBalance, 
-            curatorWethFee, 
-            SEAMLESS_WETH_VAULT
-        );
+        _verifyUserRewardsForToken(user1, user2, usdcSplitterBalance, curatorUsdcFee, SEAMLESS_USDC_VAULT);
+
+        _verifyUserRewardsForToken(user1, user2, cbbtcSplitterBalance, curatorCbbtcFee, SEAMLESS_CBBTC_VAULT);
+
+        _verifyUserRewardsForToken(user1, user2, wethSplitterBalance, curatorWethFee, SEAMLESS_WETH_VAULT);
     }
-    
+
     function _verifyUserRewardsForToken(
         address user1,
         address user2,
         uint256 splitterBalance,
         uint256 curatorFee,
         IMetaMorphoV1_1 vault
-    ) internal view {        
+    ) internal view {
         // Calculate total rewards (splitter balance minus curator fee)
         uint256 period = feeKeeper.getPreviousPeriod();
         uint256 totalRewards = (splitterBalance - curatorFee) / period;

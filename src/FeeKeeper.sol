@@ -113,14 +113,20 @@ contract FeeKeeper is
             if (transferStrategy == address(0)) {
                 transferStrategy = address(new ERC20TransferStrategy(token, address(controller), address(this)));
                 _configureAssets(
-                    address(token), transferStrategy, oracle, asset, controller, emissionRates[0], uint32(block.timestamp + period)
+                    address(token),
+                    transferStrategy,
+                    oracle,
+                    asset,
+                    controller,
+                    emissionRates[0],
+                    uint32(block.timestamp + period)
                 );
             } else {
                 rewardTokens[0] = address(token);
                 controller.setEmissionPerSecond(asset, rewardTokens, emissionRates);
                 controller.setDistributionEnd(asset, address(token), uint32(block.timestamp + period));
             }
-            
+
             SafeERC20.safeTransfer(IERC20(token), address(transferStrategy), emissionRates[0] * period);
         }
     }
