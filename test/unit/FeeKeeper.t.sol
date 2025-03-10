@@ -297,7 +297,10 @@ contract FeeKeeperTest is Test {
         feeKeeper.addFeeSource(feeSource1);
 
         // Create a new fee source with the same token address
-        MockFeeSource duplicateFeeSource = new MockFeeSource(address(rewardToken1));
+        MockFeeSource duplicateFeeSource = new MockFeeSource(rewardToken1);
+
+        console.log("duplicateFeeSource token address:", address(duplicateFeeSource.token()));
+        console.log("feeSource1 token address:", address(feeSource1.token()));
 
         // Attempt to add a fee source with the same token address
         vm.expectRevert(IFeeKeeper.FeeSourceTokenAlreadyExists.selector);

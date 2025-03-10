@@ -101,19 +101,19 @@ contract SeamStakingTest is Test, SeamStakingScript {
         // Check USDC splitter
         assertEq(usdcSplitter.payeeA(), address(feeKeeper));
         assertEq(usdcSplitter.payeeB(), Constants.CURATOR_FEE_RECIPIENT);
-        assertEq(usdcSplitter.shareA(), 6500);
+        assertEq(usdcSplitter.shareA(), 6000);
         assertEq(address(usdcSplitter.token()), Constants.SEAMLESS_USDC_VAULT);
 
         // Check cbBTC splitter
         assertEq(cbbtcSplitter.payeeA(), address(feeKeeper));
         assertEq(cbbtcSplitter.payeeB(), Constants.CURATOR_FEE_RECIPIENT);
-        assertEq(cbbtcSplitter.shareA(), 6500);
+        assertEq(cbbtcSplitter.shareA(), 6000);
         assertEq(address(cbbtcSplitter.token()), Constants.SEAMLESS_CBBTC_VAULT);
 
         // Check WETH splitter
         assertEq(wethSplitter.payeeA(), address(feeKeeper));
         assertEq(wethSplitter.payeeB(), Constants.CURATOR_FEE_RECIPIENT);
-        assertEq(wethSplitter.shareA(), 6500);
+        assertEq(wethSplitter.shareA(), 6000);
         assertEq(address(wethSplitter.token()), Constants.SEAMLESS_WETH_VAULT);
 
         // Validate fee sources are registered in FeeKeeper using getFeeSources()
@@ -170,14 +170,10 @@ contract SeamStakingTest is Test, SeamStakingScript {
         ) = _getCuratorBalances();
 
         // Verify curator received fees
-        _verifyCuratorFees(
-            curatorUsdcVaultBalanceBefore,
-            curatorCbbtcVaultBalanceBefore,
-            curatorWethVaultBalanceBefore,
-            curatorUsdcVaultBalanceAfter,
-            curatorCbbtcVaultBalanceAfter,
-            curatorWethVaultBalanceAfter
-        );
+        // Verify curator received exactly 40% of total fees (60/40 split with 6000 basis points to FeeKeeper)
+        assertEq(curatorUsdcVaultBalanceAfter - curatorUsdcVaultBalanceBefore, usdcSplitterBalance * 4000 / 10000);
+        assertEq(curatorCbbtcVaultBalanceAfter - curatorCbbtcVaultBalanceBefore, cbbtcSplitterBalance * 4000 / 10000);
+        assertEq(curatorWethVaultBalanceAfter - curatorWethVaultBalanceBefore, wethSplitterBalance * 4000 / 10000);
 
         // Check that RewardsController emission rates and distribution end are set correctly
         _verifyRewardsDistribution(
@@ -243,20 +239,6 @@ contract SeamStakingTest is Test, SeamStakingScript {
             SEAMLESS_CBBTC_VAULT.balanceOf(Constants.CURATOR_FEE_RECIPIENT),
             SEAMLESS_WETH_VAULT.balanceOf(Constants.CURATOR_FEE_RECIPIENT)
         );
-    }
-
-    function _verifyCuratorFees(
-        uint256 curatorUsdcBefore,
-        uint256 curatorCbbtcBefore,
-        uint256 curatorWethBefore,
-        uint256 curatorUsdcAfter,
-        uint256 curatorCbbtcAfter,
-        uint256 curatorWethAfter
-    ) internal pure {
-        // Verify curator received fees directly from the vaults
-        assertTrue(curatorUsdcAfter > curatorUsdcBefore);
-        assertTrue(curatorCbbtcAfter > curatorCbbtcBefore);
-        assertTrue(curatorWethAfter > curatorWethBefore);
     }
 
     function _claimRewards(address user1, address user2) internal {

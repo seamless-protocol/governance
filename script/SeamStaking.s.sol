@@ -107,24 +107,15 @@ contract SeamStakingScript is Script {
         )
     {
         usdcSplitter = new ERC20BalanceSplitterTwoPayee(
-            address(feeKeeper),
-            Constants.CURATOR_FEE_RECIPIENT,
-            IERC20(Constants.SEAMLESS_USDC_VAULT),
-            6500 // TODO: double check this
+            address(feeKeeper), Constants.CURATOR_FEE_RECIPIENT, IERC20(Constants.SEAMLESS_USDC_VAULT), 6000
         );
 
         cbbtcSplitter = new ERC20BalanceSplitterTwoPayee(
-            address(feeKeeper),
-            Constants.CURATOR_FEE_RECIPIENT,
-            IERC20(Constants.SEAMLESS_CBBTC_VAULT),
-            6500 // TODO: double check this
+            address(feeKeeper), Constants.CURATOR_FEE_RECIPIENT, IERC20(Constants.SEAMLESS_CBBTC_VAULT), 6000
         );
 
         wethSplitter = new ERC20BalanceSplitterTwoPayee(
-            address(feeKeeper),
-            Constants.CURATOR_FEE_RECIPIENT,
-            IERC20(Constants.SEAMLESS_WETH_VAULT),
-            6500 // TODO: double check this
+            address(feeKeeper), Constants.CURATOR_FEE_RECIPIENT, IERC20(Constants.SEAMLESS_WETH_VAULT), 6000
         );
 
         // Add fee sources to FeeKeeper

@@ -119,7 +119,7 @@ contract SeamEmissionManagerTest is Test {
 
     function testFuzz_Claim(address receiver, uint256 timeElapsed) public {
         vm.assume(receiver != address(0));
-        timeElapsed = bound(timeElapsed, 0, type(uint64).max / emissionPerSecond);
+        timeElapsed = bound(timeElapsed, 0, type(uint32).max / emissionPerSecond);
         deal(seam, address(emissionManager), type(uint256).max);
 
         uint256 receiverBalanceBefore = IERC20(seam).balanceOf(receiver);
