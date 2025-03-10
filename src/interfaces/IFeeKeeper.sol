@@ -76,6 +76,11 @@ interface IFeeKeeper {
     error SetManualRateNotAuthorized();
 
     /**
+     * @notice Error thrown when a fee source token is not unique. To distribute the same token from multiple fee sources, use a fee source that aggregates the fees from both sources
+     */
+    error FeeSourceTokenAlreadyExists();
+
+    /**
      * @notice Pauses the contract, disabling state-changing operations.
      * @dev Caller must have the `PAUSER_ROLE`.
      */

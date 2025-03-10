@@ -9,7 +9,6 @@ import {IRewardsController} from "aave-v3-periphery/contracts/rewards/interfaces
  * @notice used for the Seamless Safety Module for users to generate additional yields
  */
 interface IStakedToken {
-
     /**
      * @notice Error thrown when a zero address is provided where a valid address is required
      */

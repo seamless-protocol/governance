@@ -138,7 +138,10 @@ contract FeeKeeper is
         onlyRole(MANAGER_ROLE)
         isNotZeroAddress(address(feeSource))
     {
+        _checkFeeSourceTokenIsUnique(address(feeSource));
+
         storageLayout().feeSources.add(address(feeSource));
+
         emit FeeSourceAdded(address(feeSource));
     }
 
@@ -314,6 +317,16 @@ contract FeeKeeper is
     function _checkIsManualRateAuthorized(address rewardToken) internal view {
         if (!getIsAllowedForManualRate(rewardToken)) {
             revert SetManualRateNotAuthorized();
+        }
+    }
+
+    function _checkFeeSourceTokenIsUnique(address token) internal view {
+        address[] memory feeSources = getFeeSources();
+
+        for (uint256 i; i < feeSources.length; i++) {
+            if (IFeeSource(feeSources[i]).token() == token) {
+                revert FeeSourceTokenAlreadyExists();
+            }
         }
     }
 

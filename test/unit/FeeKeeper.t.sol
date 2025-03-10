@@ -290,6 +290,27 @@ contract FeeKeeperTest is Test {
         vm.stopPrank();
     }
 
+    function test_RevertWhen_AddingDuplicateFeeSourceToken() public {
+        vm.startPrank(admin);
+
+        // Add first fee source
+        feeKeeper.addFeeSource(feeSource1);
+
+        // Create a new fee source with the same token address
+        MockFeeSource duplicateFeeSource = new MockFeeSource(address(rewardToken1));
+
+        // Attempt to add a fee source with the same token address
+        vm.expectRevert(IFeeKeeper.FeeSourceTokenAlreadyExists.selector);
+        feeKeeper.addFeeSource(duplicateFeeSource);
+
+        vm.stopPrank();
+
+        // Verify only the original fee source was added
+        address[] memory sources = feeKeeper.getFeeSources();
+        assertEq(sources.length, 1);
+        assertEq(sources[0], address(feeSource1));
+    }
+
     function test_RemoveFeeSource() public {
         vm.startPrank(admin);
 
