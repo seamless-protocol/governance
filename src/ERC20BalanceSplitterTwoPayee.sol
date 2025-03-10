@@ -8,6 +8,7 @@ import {IFeeSource} from "./interfaces/IFeeSource.sol";
 /// @title ERC20BalanceSplitterTwoPayee
 /// @notice A contract that splits ERC20 token balances between two payees according to predefined shares
 /// @dev Uses basis points (1/10000) for share calculations
+/// @author Seamless Protocol
 contract ERC20BalanceSplitterTwoPayee is IFeeSource {
     /// @dev Basis points scale used for share calculations (10000 = 100%)
     uint256 public constant _BASIS_POINT_SCALE = 1e4;

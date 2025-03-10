@@ -7,6 +7,7 @@ import {IFeeSource} from "./IFeeSource.sol";
 
 /**
  * @title Reward Keeper
+ * @author Seamless Protocol
  * @dev A contract used to manage and accumulate reward tokens for the Seamless safety module staking system
  */
 interface IFeeKeeper {

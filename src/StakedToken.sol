@@ -19,6 +19,18 @@ import {ERC20PermitUpgradeable} from
     "openzeppelin-contracts-upgradeable/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/PausableUpgradeable.sol";
 
+/**
+ * @title StakedToken
+ * @author Seamless Protocol
+ * @notice Implementation of a staked token with cooldown period, governance capabilities, and rewards
+ * @dev This contract implements ERC4626 for tokenized vault standard, ERC20Permit for gasless approvals,
+ *      ERC20Votes for governance functionality, and includes cooldown/unstake mechanics for withdrawals.
+ *      The contract is upgradeable, access-controlled, and pausable.
+ *      
+ *      Users can stake tokens to receive shares, which represent ownership in the vault.
+ *      Before withdrawing, users must initiate a cooldown period and withdraw within the unstake window.
+ *      The contract supports delegation of voting power for governance purposes.
+ */
 contract StakedToken is
     IStakedToken,
     UUPSUpgradeable,

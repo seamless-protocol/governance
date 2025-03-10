@@ -5,6 +5,7 @@ import {IRewardsController} from "aave-v3-periphery/contracts/rewards/interfaces
 
 /**
  * @title StakedToken
+ * @author Seamless Protocol
  * @dev A custom ERC4626 vault token with cooldown on withdrawal
  * @notice used for the Seamless Safety Module for users to generate additional yields
  */

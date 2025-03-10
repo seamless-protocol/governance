@@ -18,6 +18,15 @@ import {ERC20TransferStrategy} from "./transfer-strategies/ERC20TransferStrategy
 import {IFeeSource} from "./interfaces/IFeeSource.sol";
 import {EnumerableSet} from "openzeppelin-contracts/utils/structs/EnumerableSet.sol";
 
+/**
+ * @title FeeKeeper
+ * @author Seamless Protocol
+ * @notice Contract that manages fee collection and distribution to stakers
+ * @dev This contract collects fees from various sources and distributes them as rewards
+ *      to stakers through the Rewards Controller. It supports multiple fee sources
+ *      and reward tokens, and allows for manual rate setting for authorized tokens.
+ *      The contract is upgradeable, access-controlled, and pausable.
+ */
 contract FeeKeeper is
     IFeeKeeper,
     UUPSUpgradeable,
