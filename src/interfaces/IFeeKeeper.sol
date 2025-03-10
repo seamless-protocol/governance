@@ -10,17 +10,69 @@ import {IFeeSource} from "./IFeeSource.sol";
  * @dev A contract used to manage and accumulate reward tokens for the Seamless safety module staking system
  */
 interface IFeeKeeper {
+    /**
+     * @notice Emitted when the rewards controller is updated
+     * @param controller The address of the new rewards controller
+     */
     event SetRewardsController(address controller);
+
+    /**
+     * @notice Emitted when the claim period is updated
+     * @param period The new period duration in seconds
+     */
     event SetPeriod(uint256 period);
+
+    /**
+     * @notice Emitted when tokens are withdrawn from the contract
+     * @param token The address of the token being withdrawn
+     * @param receiver The address receiving the tokens
+     * @param amount The amount of tokens withdrawn
+     */
     event WithdrawTokens(address indexed token, address receiver, uint256 amount);
+
+    /**
+     * @notice Emitted when a token's manual rate setting permission is updated
+     * @param token The address of the token
+     * @param allowed Whether manual rate setting is allowed for this token
+     */
     event AllowedManualTokenUpdated(address indexed token, bool allowed);
+
+    /**
+     * @notice Emitted when a new fee source is added
+     * @param feeSource The address of the fee source being added
+     */
     event FeeSourceAdded(address feeSource);
+
+    /**
+     * @notice Emitted when a fee source is removed
+     * @param feeSource The address of the fee source being removed
+     */
     event FeeSourceRemoved(address feeSource);
 
+    /**
+     * @notice Error thrown when a zero address is provided where a valid address is required
+     * @param target The zero address that was provided
+     */
     error ZeroAddress(address target);
+
+    /**
+     * @notice Error thrown when attempting to claim rewards before the cooldown period has elapsed
+     */
     error InsufficientTimeElapsed();
+
+    /**
+     * @notice Error thrown when an invalid period value is provided
+     */
     error InvalidPeriod();
+
+    /**
+     * @notice Error thrown when a transfer strategy is not set for a token
+     */
     error TransferStrategyNotSet();
+
+    /**
+     * @notice Error thrown when an unauthorized attempt is made to set a manual rate
+     */
     error SetManualRateNotAuthorized();
 
     /**

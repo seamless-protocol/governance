@@ -25,9 +25,10 @@ contract SeamGovernorV2Upgrade is Test {
         seam.upgradeToAndCall(address(seamHarness), "");
     }
 
-    function test_Upgrade(uint256 seamAmount, uint256 stakeAmount) public {
-        seamAmount = bound(seamAmount, 0, type(uint208).max - seam.totalSupply());
-        stakeAmount = bound(stakeAmount, 0, seamAmount);
+    function test_Upgrade(uint256 seamAmount, uint256 stakeAmount, uint256 unstakeAmount) public {
+        seamAmount = bound(seamAmount, 2, (type(uint208).max - seam.totalSupply()) - 2);
+        stakeAmount = bound(stakeAmount, 1, seamAmount - 1);
+        unstakeAmount = bound(unstakeAmount, 1, stakeAmount);
 
         StakedToken stkSEAM = _deployStakedSEAM();
 
@@ -83,6 +84,29 @@ contract SeamGovernorV2Upgrade is Test {
         assertEq(address(longTokens[0]), address(Constants.SEAM_ADDRESS));
         assertEq(address(longTokens[1]), address(Constants.ESCROW_SEAM_ADDRESS));
         assertEq(address(longTokens[2]), address(stkSEAM));
+
+        address user2 = makeAddr("user2");
+
+        vm.startPrank(user1);
+
+        stkSEAM.cooldown();
+
+        vm.warp(block.timestamp + 7 days + 1);
+
+        stkSEAM.redeem(unstakeAmount, user2, user1);
+
+        vm.stopPrank();
+
+        vm.prank(user2);
+        seam.delegate(user2);
+
+        vm.warp(block.timestamp + 1);
+
+        assertEq(governorShortProxy.getVotes(user1, block.timestamp - 1), seamAmount - unstakeAmount);
+        assertEq(governorLongProxy.getVotes(user1, block.timestamp - 1), seamAmount - unstakeAmount);
+
+        assertEq(governorShortProxy.getVotes(user2, block.timestamp - 1), unstakeAmount);
+        assertEq(governorLongProxy.getVotes(user2, block.timestamp - 1), unstakeAmount);
     }
 
     function _deployStakedSEAM() internal returns (StakedToken) {

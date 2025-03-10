@@ -9,19 +9,56 @@ import {IRewardsController} from "aave-v3-periphery/contracts/rewards/interfaces
  * @notice used for the Seamless Safety Module for users to generate additional yields
  */
 interface IStakedToken {
-    // errors
-    error SendFailed();
-    error ZeroAddress();
-    error InsufficientStake();
-    error CooldownStillActive();
-    error UnstakeWindowExpired();
-    error CooldownNotInitiated();
-    error NotInEmergency();
 
-    // events
+    /**
+     * @notice Error thrown when a zero address is provided where a valid address is required
+     */
+    error ZeroAddress();
+
+    /**
+     * @notice Error thrown when a user attempts an operation requiring a minimum stake amount
+     */
+    error InsufficientStake();
+
+    /**
+     * @notice Error thrown when attempting to unstake while the cooldown period is still active
+     */
+    error CooldownStillActive();
+
+    /**
+     * @notice Error thrown when the unstake window has expired and the user must initiate a new cooldown
+     */
+    error UnstakeWindowExpired();
+
+    /**
+     * @notice Error thrown when attempting to unstake without initiating cooldown first
+     */
+    error CooldownNotInitiated();
+
+    /**
+     * @notice Emitted when an emergency withdrawal is executed
+     * @param into The address receiving the withdrawn assets
+     * @param amt The amount of assets withdrawn
+     */
     event EmergencyWithdraw(address indexed into, uint256 amt);
+
+    /**
+     * @notice Emitted when a new rewards controller is set
+     * @param RewardsController The address of the new rewards controller
+     */
     event RewardsControllerSet(address RewardsController);
+
+    /**
+     * @notice Emitted when a user initiates the cooldown period
+     * @param user The address of the user who initiated cooldown
+     */
     event Cooldown(address indexed user);
+
+    /**
+     * @notice Emitted when cooldown and unstake window durations are updated
+     * @param cooldown The new cooldown period duration in seconds
+     * @param unstake The new unstake window duration in seconds
+     */
     event TimersSet(uint256 cooldown, uint256 unstake);
 
     /**

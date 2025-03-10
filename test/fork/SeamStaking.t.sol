@@ -302,6 +302,7 @@ contract SeamStakingTest is Test, SeamStakingScript {
 
         // Each user may lose up to 1 wei due to rounding on the RewardsController, so when add them together that makes a max difference of 2 wei
         assertApproxEqAbs(vault.balanceOf(user1) + vault.balanceOf(user2), totalRewards, 2);
+        assertLe(vault.balanceOf(user1) + vault.balanceOf(user2), totalRewards + 2);
     }
 
     function _verifyRewardsDistribution(IMetaMorphoV1_1 token, uint256 curatorFeeBalance, uint256 feeSplitterBalance)
