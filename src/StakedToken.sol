@@ -26,7 +26,7 @@ import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/utils/Paus
  * @dev This contract implements ERC4626 for tokenized vault standard, ERC20Permit for gasless approvals,
  *      ERC20Votes for governance functionality, and includes cooldown/unstake mechanics for withdrawals.
  *      The contract is upgradeable, access-controlled, and pausable.
- *      
+ *
  *      Users can stake tokens to receive shares, which represent ownership in the vault.
  *      Before withdrawing, users must initiate a cooldown period and withdraw within the unstake window.
  *      The contract supports delegation of voting power for governance purposes.
