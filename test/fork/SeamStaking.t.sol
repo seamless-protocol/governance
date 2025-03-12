@@ -7,13 +7,13 @@ import {Seam} from "../../src/Seam.sol";
 import {Constants} from "../../src/library/Constants.sol";
 import {IMetaMorphoV1_1} from "../../src/interfaces/IMetaMorphoV1_1.sol";
 import {ERC20BalanceSplitterTwoPayee} from "../../src/ERC20BalanceSplitterTwoPayee.sol";
-import {SeamStakingScript} from "../../script/SeamStaking.s.sol";
+import {SeamStaking} from "../../script/SeamStaking.s.sol";
 import {FeeKeeper} from "../../src/FeeKeeper.sol";
 import {RewardsController} from "aave-v3-periphery/contracts/rewards/RewardsController.sol";
 import {StakedToken} from "../../src/StakedToken.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 
-contract SeamStakingTest is Test, SeamStakingScript {
+contract SeamStakingTest is Test, SeamStaking {
     Seam constant SEAM = Seam(Constants.SEAM_ADDRESS);
 
     IMetaMorphoV1_1 constant SEAMLESS_USDC_VAULT = IMetaMorphoV1_1(Constants.SEAMLESS_USDC_VAULT);
@@ -37,11 +37,11 @@ contract SeamStakingTest is Test, SeamStakingScript {
 
         vm.startPrank(deployer);
 
-        (feeKeeper, stkToken, rewardsController) = SeamStakingScript._deployStakedTokenAndDependencies(deployer);
+        (feeKeeper, stkToken, rewardsController) = SeamStaking._deployStakedTokenAndDependencies(deployer);
 
-        (usdcSplitter, cbbtcSplitter, wethSplitter) = SeamStakingScript._deployFeeSplitters(feeKeeper);
+        (usdcSplitter, cbbtcSplitter, wethSplitter) = SeamStaking._deployFeeSplitters(feeKeeper);
 
-        SeamStakingScript._assignRolesToGovernance(stkToken, feeKeeper, deployer);
+        SeamStaking._assignRolesToGovernance(stkToken, feeKeeper, deployer);
 
         vm.stopPrank();
 
