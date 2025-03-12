@@ -13,7 +13,7 @@ import {Constants} from "../src/library/Constants.sol";
 import {IFeeSource} from "../src/interfaces/IFeeSource.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 
-contract SeamStakingScript is Script {
+contract SeamStaking is Script {
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployerAddress = vm.addr(deployerPrivateKey);

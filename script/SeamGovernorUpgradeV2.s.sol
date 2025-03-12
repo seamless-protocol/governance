@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 import {SeamGovernorV2} from "../src/SeamGovernorV2.sol";
 import {Constants} from "../src/library/Constants.sol";
 
-contract SeamGovernorV2Upgrade is Script {
+contract SeamGovernorUpgradeV2 is Script {
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployerAddress = vm.addr(deployerPrivateKey);

@@ -49,7 +49,8 @@ deploy-erc20-transfer-strategy-tenderly		:; forge script script/ERC20TransferStr
 deploy-escrow-seam-implementation-base-mainnet	:; forge script script/EscrowSeamImplementationDeploy.s.sol:EscrowSeamImplementationDeploy --force --rpc-url base --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
 deploy-escrow-seam-implementation-tenderly		:; forge script script/EscrowSeamImplementationDeploy.s.sol:EscrowSeamImplementationDeploy --force --rpc-url tenderly --slow --broadcast -vvvv
 
-deploy-safety-module-tenderly					:; forge script script/SafetyModule.s.sol --tc SafetyModule --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}
+deploy-safety-module-base-mainnet				:; forge script script/SeamStaking.s.sol:SeamStaking --force --rpc-url base --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
+deploy-safety-module-tenderly					:; forge script script/SeamStaking.s.sol:SeamStaking --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}
 
-deploy-governorv2-implementation-base-mainnet	:; forge script script/SeamGovernorV2UpgradeScript.s.sol:SeamGovernorV2UpgradeScript --force --rpc-url base --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
-deploy-governorv2-implementation-tenderly		:; forge script script/SeamGovernorV2UpgradeScript.s.sol:SeamGovernorV2UpgradeScript --force --rpc-url tenderly --slow --broadcast -vvvv
+deploy-governorv2-implementation-base-mainnet	:; forge script script/SeamGovernorUpgradeV2.s.sol:SeamGovernorUpgradeV2 --force --rpc-url base --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
+deploy-governorv2-implementation-tenderly		:; forge script script/SeamGovernorUpgradeV2.s.sol:SeamGovernorUpgradeV2 --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}
