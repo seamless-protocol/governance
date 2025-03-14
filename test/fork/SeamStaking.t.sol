@@ -176,15 +176,9 @@ contract SeamStakingTest is Test, SeamStaking {
         assertEq(curatorWethVaultBalanceAfter - curatorWethVaultBalanceBefore, wethSplitterBalance * 4000 / 10000);
 
         // Check that RewardsController emission rates and distribution end are set correctly
-        _verifyRewardsDistribution(
-            SEAMLESS_USDC_VAULT, usdcSplitterBalance * 6000 / 10000
-        );
-        _verifyRewardsDistribution(
-            SEAMLESS_CBBTC_VAULT, cbbtcSplitterBalance * 6000 / 10000
-        );
-        _verifyRewardsDistribution(
-            SEAMLESS_WETH_VAULT, wethSplitterBalance * 6000 / 10000
-        );
+        _verifyRewardsDistribution(SEAMLESS_USDC_VAULT, usdcSplitterBalance * 6000 / 10000);
+        _verifyRewardsDistribution(SEAMLESS_CBBTC_VAULT, cbbtcSplitterBalance * 6000 / 10000);
+        _verifyRewardsDistribution(SEAMLESS_WETH_VAULT, wethSplitterBalance * 6000 / 10000);
 
         vm.warp(block.timestamp + 2 days);
 
@@ -264,12 +258,10 @@ contract SeamStakingTest is Test, SeamStaking {
         _verifyUserRewardsForToken(user1, user2, expectedWETHFees, SEAMLESS_WETH_VAULT);
     }
 
-    function _verifyUserRewardsForToken(
-        address user1,
-        address user2,
-        uint256 expectedFees,
-        IMetaMorphoV1_1 vault
-    ) internal view {
+    function _verifyUserRewardsForToken(address user1, address user2, uint256 expectedFees, IMetaMorphoV1_1 vault)
+        internal
+        view
+    {
         // Calculate total rewards (splitter balance minus curator fee)
         uint256 period = feeKeeper.getPreviousPeriod();
         uint256 totalRewards = expectedFees / period;
@@ -280,10 +272,7 @@ contract SeamStakingTest is Test, SeamStaking {
         assertLe(vault.balanceOf(user1) + vault.balanceOf(user2), totalRewards);
     }
 
-    function _verifyRewardsDistribution(IMetaMorphoV1_1 token, uint256 expectedFees)
-        internal
-        view
-    {
+    function _verifyRewardsDistribution(IMetaMorphoV1_1 token, uint256 expectedFees) internal view {
         // Get emission data from RewardsController
         (, uint256 emissionPerSecond,, uint256 distributionEnd) =
             rewardsController.getRewardsData(address(stkToken), address(token));
