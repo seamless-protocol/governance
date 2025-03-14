@@ -1101,7 +1101,7 @@ contract StakedTokenTest is Test {
         // Bound amount to reasonable values, using maxMint as upper bound
         amount = bound(amount, 1, stkToken.maxMint(address(0)) - 1);
         donationAmount = bound(donationAmount, 1, stkToken.maxMint(address(0)) - amount);
-        
+
         vm.startPrank(user);
 
         // First mint and delegate
@@ -1133,7 +1133,7 @@ contract StakedTokenTest is Test {
         // Bound amount to reasonable values, using maxMint as upper bound
         amount = bound(amount, 1, stkToken.maxMint(address(0)) - 1);
         withdrawAmount = bound(withdrawAmount, 1, amount);
-        
+
         vm.startPrank(user);
 
         // First mint and delegate
@@ -1154,11 +1154,13 @@ contract StakedTokenTest is Test {
         assertEq(stkToken.getVotes(user), amount - withdrawAmount);
     }
 
-    function test_PastVotingPowerWithAssetBalanceChanges(uint256 amount, uint256 donationAmount, uint256 withdrawAmount) public {
+    function test_PastVotingPowerWithAssetBalanceChanges(uint256 amount, uint256 donationAmount, uint256 withdrawAmount)
+        public
+    {
         amount = bound(amount, 1, stkToken.maxMint(address(0)) - 1);
         donationAmount = bound(donationAmount, 1, stkToken.maxMint(address(0)) - amount);
         withdrawAmount = bound(withdrawAmount, 1, amount + donationAmount);
-        
+
         vm.startPrank(user);
 
         // Initial mint and delegate
@@ -1190,7 +1192,7 @@ contract StakedTokenTest is Test {
         // Voting power should increase
         assertEq(stkToken.getVotes(user), amount + donationAmount);
         assertEq(stkToken.getPastVotes(user, block.timestamp - 1), amount);
-        
+
         vm.warp(block.timestamp + 1);
 
         assertEq(stkToken.getVotes(user), amount + donationAmount);
@@ -1199,7 +1201,7 @@ contract StakedTokenTest is Test {
         // Emergency withdrawal
         vm.prank(admin);
         stkToken.emergencyWithdrawal(admin, withdrawAmount);
-        
+
         assertEq(stkToken.getVotes(user), amount + donationAmount - withdrawAmount);
         assertEq(stkToken.getPastVotes(user, block.timestamp - 1), amount + donationAmount);
 
@@ -1252,7 +1254,9 @@ contract StakedTokenTest is Test {
     }
 
     function test_GetPastAssetBalance_RevertsFutureLookup() public {
-        vm.expectRevert(abi.encodeWithSelector(VotesUpgradeable.ERC5805FutureLookup.selector, block.timestamp, block.timestamp));
+        vm.expectRevert(
+            abi.encodeWithSelector(VotesUpgradeable.ERC5805FutureLookup.selector, block.timestamp, block.timestamp)
+        );
         stkToken.getPastAssetBalance(block.timestamp);
     }
 

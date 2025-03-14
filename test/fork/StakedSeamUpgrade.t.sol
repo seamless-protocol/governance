@@ -24,8 +24,9 @@ contract StakedSeamUpgrade is Test {
     }
 
     function test_Upgrade() public {
-        address implementationBefore = address(uint160(uint256(vm.load(address(stkToken), ERC1967_IMPLEMENTATION_SLOT))));
-        
+        address implementationBefore =
+            address(uint160(uint256(vm.load(address(stkToken), ERC1967_IMPLEMENTATION_SLOT))));
+
         assertNotEq(implementationBefore, address(newImplementation));
 
         _upgradeStakedToken();
@@ -52,7 +53,7 @@ contract StakedSeamUpgrade is Test {
         vm.stopPrank();
 
         uint256 stkTokenBalance = stkToken.balanceOf(user);
-        
+
         assertNotEq(stkToken.getVotes(user), amount);
         assertEq(stkToken.getVotes(user), stkTokenBalance);
 
@@ -63,7 +64,10 @@ contract StakedSeamUpgrade is Test {
         vm.prank(user);
         stkToken.deposit(0, user);
 
-        assertEq(stkToken.getVotes(user), stkTokenBalance * (assetBalanceBefore + amount * 2) / (totalSupplyBefore + stkTokenBalance));
+        assertEq(
+            stkToken.getVotes(user),
+            stkTokenBalance * (assetBalanceBefore + amount * 2) / (totalSupplyBefore + stkTokenBalance)
+        );
     }
 
     function _upgradeStakedToken() internal {

@@ -288,7 +288,8 @@ contract SeamStakingTest is Test, SeamStaking {
     }
 
     function _verifyRewardsDistribution(IMetaMorphoV1_1 token, uint256 curatorFeeBalance, uint256 feeSplitterBalance)
-        internal view
+        internal
+        view
     {
         // Get emission data from RewardsController
         (, uint256 emissionPerSecond,, uint256 distributionEnd) =

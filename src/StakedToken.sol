@@ -399,7 +399,7 @@ contract StakedToken is
 
     /**
      * @dev Returns the asset balance at a given timepoint.
-     * Assets that were not transfered through ERC4626 methods or emergencyWithdrawal 
+     * Assets that were not transfered through ERC4626 methods or emergencyWithdrawal
      * are not checkpointed until the next time one of those operations is performed.
      */
     function getPastAssetBalance(uint256 timepoint) public view returns (uint256) {
