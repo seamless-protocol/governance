@@ -177,13 +177,13 @@ contract SeamStakingTest is Test, SeamStaking {
 
         // Check that RewardsController emission rates and distribution end are set correctly
         _verifyRewardsDistribution(
-            SEAMLESS_USDC_VAULT, curatorUsdcVaultBalanceAfter - curatorUsdcVaultBalanceBefore, usdcSplitterBalance
+            SEAMLESS_USDC_VAULT, usdcSplitterBalance * 6000 / 10000
         );
         _verifyRewardsDistribution(
-            SEAMLESS_CBBTC_VAULT, curatorCbbtcVaultBalanceAfter - curatorCbbtcVaultBalanceBefore, cbbtcSplitterBalance
+            SEAMLESS_CBBTC_VAULT, cbbtcSplitterBalance * 6000 / 10000
         );
         _verifyRewardsDistribution(
-            SEAMLESS_WETH_VAULT, curatorWethVaultBalanceAfter - curatorWethVaultBalanceBefore, wethSplitterBalance
+            SEAMLESS_WETH_VAULT, wethSplitterBalance * 6000 / 10000
         );
 
         vm.warp(block.timestamp + 2 days);
@@ -193,12 +193,9 @@ contract SeamStakingTest is Test, SeamStaking {
         _verifyUserRewards(
             user1,
             user2,
-            usdcSplitterBalance,
-            cbbtcSplitterBalance,
-            wethSplitterBalance,
-            curatorUsdcVaultBalanceAfter - curatorUsdcVaultBalanceBefore,
-            curatorCbbtcVaultBalanceAfter - curatorCbbtcVaultBalanceBefore,
-            curatorWethVaultBalanceAfter - curatorWethVaultBalanceBefore
+            usdcSplitterBalance * 6000 / 10000,
+            cbbtcSplitterBalance * 6000 / 10000,
+            wethSplitterBalance * 6000 / 10000
         );
     }
 
@@ -255,31 +252,27 @@ contract SeamStakingTest is Test, SeamStaking {
     function _verifyUserRewards(
         address user1,
         address user2,
-        uint256 usdcSplitterBalance,
-        uint256 cbbtcSplitterBalance,
-        uint256 wethSplitterBalance,
-        uint256 curatorUsdcFee,
-        uint256 curatorCbbtcFee,
-        uint256 curatorWethFee
+        uint256 expectedUSDCFees,
+        uint256 expectedCBTCFees,
+        uint256 expectedWETHFees
     ) internal view {
         // Verify users received rewards proportional to their staked SEAM
-        _verifyUserRewardsForToken(user1, user2, usdcSplitterBalance, curatorUsdcFee, SEAMLESS_USDC_VAULT);
+        _verifyUserRewardsForToken(user1, user2, expectedUSDCFees, SEAMLESS_USDC_VAULT);
 
-        _verifyUserRewardsForToken(user1, user2, cbbtcSplitterBalance, curatorCbbtcFee, SEAMLESS_CBBTC_VAULT);
+        _verifyUserRewardsForToken(user1, user2, expectedCBTCFees, SEAMLESS_CBBTC_VAULT);
 
-        _verifyUserRewardsForToken(user1, user2, wethSplitterBalance, curatorWethFee, SEAMLESS_WETH_VAULT);
+        _verifyUserRewardsForToken(user1, user2, expectedWETHFees, SEAMLESS_WETH_VAULT);
     }
 
     function _verifyUserRewardsForToken(
         address user1,
         address user2,
-        uint256 splitterBalance,
-        uint256 curatorFee,
+        uint256 expectedFees,
         IMetaMorphoV1_1 vault
     ) internal view {
         // Calculate total rewards (splitter balance minus curator fee)
         uint256 period = feeKeeper.getPreviousPeriod();
-        uint256 totalRewards = (splitterBalance - curatorFee) / period;
+        uint256 totalRewards = expectedFees / period;
         totalRewards = totalRewards * period;
 
         // Each user may lose up to 1 wei due to rounding on the RewardsController, so when add them together that makes a max difference of 2 wei
@@ -287,7 +280,7 @@ contract SeamStakingTest is Test, SeamStaking {
         assertLe(vault.balanceOf(user1) + vault.balanceOf(user2), totalRewards);
     }
 
-    function _verifyRewardsDistribution(IMetaMorphoV1_1 token, uint256 curatorFeeBalance, uint256 feeSplitterBalance)
+    function _verifyRewardsDistribution(IMetaMorphoV1_1 token, uint256 expectedFees)
         internal
         view
     {
@@ -304,7 +297,7 @@ contract SeamStakingTest is Test, SeamStaking {
         uint256 period = feeKeeper.getPreviousPeriod();
 
         // Calculate expected emission rate (tokens per second)
-        uint256 expectedEmissionRate = (feeSplitterBalance - curatorFeeBalance) / period;
+        uint256 expectedEmissionRate = expectedFees / period;
 
         // Verify exact emission rate
         assertEq(emissionPerSecond, expectedEmissionRate);
