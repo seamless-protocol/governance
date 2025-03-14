@@ -94,7 +94,7 @@ contract FeeKeeperTest is Test {
 
     // ============ Initialization Tests ============
 
-    function test_Initialize() public {
+    function test_Initialize() public view {
         assertEq(feeKeeper.getAsset(), address(stkToken));
         assertEq(address(feeKeeper.getOracle()), address(oracle));
         assertEq(feeKeeper.getPeriod(), 1 days);
@@ -392,7 +392,6 @@ contract FeeKeeperTest is Test {
 
         vm.stopPrank();
 
-        uint32 start = uint32(block.timestamp);
         uint256 period = 1 days;
 
         // Move time forward to when period starts exactly
@@ -509,9 +508,6 @@ contract FeeKeeperTest is Test {
         feeSource1.setClaimableAmount(amount);
 
         vm.stopPrank();
-
-        // Record the initial lastClaim timestamp
-        uint256 initialLastClaim = feeKeeper.getLastClaim();
 
         // Skip more than one period (2 days)
         vm.warp(block.timestamp + 2 days - 1);

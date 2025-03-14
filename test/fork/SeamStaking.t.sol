@@ -55,7 +55,7 @@ contract SeamStakingTest is Test, SeamStaking {
         SEAMLESS_WETH_VAULT.setFeeRecipient(address(wethSplitter));
     }
 
-    function test_SetupValidation() public {
+    function test_SetupValidation() public view {
         // Validate StakedToken setup
         assertEq(stkToken.name(), "Staked SEAM");
         assertEq(stkToken.symbol(), "stkSEAM");
@@ -288,7 +288,7 @@ contract SeamStakingTest is Test, SeamStaking {
     }
 
     function _verifyRewardsDistribution(IMetaMorphoV1_1 token, uint256 curatorFeeBalance, uint256 feeSplitterBalance)
-        internal
+        internal view
     {
         // Get emission data from RewardsController
         (, uint256 emissionPerSecond,, uint256 distributionEnd) =

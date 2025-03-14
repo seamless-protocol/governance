@@ -7,15 +7,13 @@
 # Build & test
 build                   :; forge build
 coverage                :; forge coverage
+coverage-export         :; forge coverage --report lcov && genhtml lcov.info -o report --rc derive_function_end_line=0
 gas                     :; forge test --gas-report
 gas-check               :; forge snapshot --check --tolerance 1
 snapshot                :; forge snapshot
 clean                   :; forge clean
 fmt                     :; forge fmt
 test                    :; forge test -vvvv --gas-report
-
-coverage-export: coverage
-	genhtml lcov.info -o report --rc derive_function_end_line=0
 
 # Deploy
 deploy-seam-base-testnet		:; forge script script/SeamDeploy.s.sol:SeamDeployScript --force --rpc-url base-testnet --slow --broadcast --verify --delay 5 --verifier-url ${BASE_TESTNET_VERIFIER_URL} -vvvv
@@ -54,3 +52,6 @@ deploy-safety-module-tenderly					:; forge script script/SeamStaking.s.sol:SeamS
 
 deploy-governorv2-implementation-base-mainnet	:; forge script script/SeamGovernorUpgradeV2.s.sol:SeamGovernorUpgradeV2 --force --rpc-url base --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
 deploy-governorv2-implementation-tenderly		:; forge script script/SeamGovernorUpgradeV2.s.sol:SeamGovernorUpgradeV2 --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}
+
+deploy-staked-token-implementation-base-mainnet	:; forge script script/StakedTokenImplementation.s.sol:StakedTokenImplementation --force --rpc-url base --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
+deploy-staked-token-implementation-tenderly		:; forge script script/StakedTokenImplementation.s.sol:StakedTokenImplementation --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}

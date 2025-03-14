@@ -8,7 +8,8 @@ import {
     IStakedToken,
     PausableUpgradeable,
     ERC4626Upgradeable,
-    ERC20PermitUpgradeable
+    ERC20PermitUpgradeable,
+    VotesUpgradeable
 } from "../../src/StakedToken.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {IRewardsController} from "aave-v3-periphery/contracts/rewards/interfaces/IRewardsController.sol";
@@ -69,7 +70,7 @@ contract StakedTokenTest is Test {
 
     // ============ Initialization Tests ============
 
-    function test_Initialize() public {
+    function test_Initialize() public view {
         assertEq(stkToken.name(), "Staked SEAM");
         assertEq(stkToken.symbol(), "stkSEAM");
         assertEq(stkToken.decimals(), 18);
@@ -249,11 +250,11 @@ contract StakedTokenTest is Test {
 
     // ============ Clock Tests ============
 
-    function test_Clock() public {
+    function test_Clock() public view {
         assertEq(stkToken.clock(), uint48(block.timestamp));
     }
 
-    function test_ClockMode() public {
+    function test_ClockMode() public view {
         assertEq(stkToken.CLOCK_MODE(), "mode=timestamp");
     }
 
@@ -535,7 +536,8 @@ contract StakedTokenTest is Test {
         vm.startPrank(user);
         asset.mint(user, amount);
         asset.approve(address(stkToken), amount);
-        uint256 shares = stkToken.deposit(amount, user);
+
+        stkToken.deposit(amount, user);
 
         assertEq(stkToken.balanceOf(user), amount);
         assertEq(asset.balanceOf(address(stkToken)), amount);
@@ -762,13 +764,13 @@ contract StakedTokenTest is Test {
 
     // ============ Max Deposit/Supply Tests ============
 
-    function test_MaxDeposit() public {
+    function test_MaxDeposit() public view {
         // MaxDeposit should return the max supply
         assertEq(stkToken.maxDeposit(address(0)), type(uint208).max);
         assertEq(stkToken.maxDeposit(user), type(uint208).max);
     }
 
-    function test_MaxMint() public {
+    function test_MaxMint() public view {
         // MaxMint should also return the max supply
         assertEq(stkToken.maxMint(address(0)), type(uint208).max);
         assertEq(stkToken.maxMint(user), type(uint208).max);
@@ -893,7 +895,7 @@ contract StakedTokenTest is Test {
         amount = bound(amount, 1, stkToken.maxMint(address(0)));
 
         // Generate random owner address with private key
-        (address owner, uint256 privateKey) = makeAddrAndKey("owner");
+        (address owner,) = makeAddrAndKey("owner");
         address spender = makeAddr("spender");
 
         // Generate a different key for invalid signature
@@ -1087,6 +1089,171 @@ contract StakedTokenTest is Test {
         assertEq(stkToken.getVotes(recipient), 0);
 
         vm.stopPrank();
+    }
+
+    function test_VotingPowerWithZeroTotalSupply() public {
+        // Voting power should be 0 when total supply is 0
+        assertEq(stkToken.getVotes(user), 0);
+        assertEq(stkToken.getPastVotes(user, block.timestamp - 1), 0);
+    }
+
+    function test_VotingPowerWithAssetDonation(uint256 amount, uint256 donationAmount) public {
+        // Bound amount to reasonable values, using maxMint as upper bound
+        amount = bound(amount, 1, stkToken.maxMint(address(0)) - 1);
+        donationAmount = bound(donationAmount, 1, stkToken.maxMint(address(0)) - amount);
+        
+        vm.startPrank(user);
+
+        // First mint and delegate
+        asset.mint(user, amount);
+        asset.approve(address(stkToken), amount);
+        stkToken.mint(amount, user);
+        stkToken.delegate(user);
+
+        uint256 initialVotingPower = stkToken.getVotes(user);
+
+        // Someone donates assets directly to vault
+        vm.stopPrank();
+        asset.mint(address(stkToken), donationAmount);
+
+        // Voting power should remain unchanged until next checkpoint
+        assertEq(stkToken.getVotes(user), initialVotingPower);
+
+        // Trigger checkpoint via 0 deposit
+        vm.startPrank(user);
+        stkToken.deposit(0, user);
+
+        // Voting power should now reflect increased asset balance
+        assertEq(stkToken.getVotes(user), amount + donationAmount);
+
+        vm.stopPrank();
+    }
+
+    function test_VotingPowerWithEmergencyWithdrawal(uint256 amount, uint256 withdrawAmount) public {
+        // Bound amount to reasonable values, using maxMint as upper bound
+        amount = bound(amount, 1, stkToken.maxMint(address(0)) - 1);
+        withdrawAmount = bound(withdrawAmount, 1, amount);
+        
+        vm.startPrank(user);
+
+        // First mint and delegate
+        asset.mint(user, amount);
+        asset.approve(address(stkToken), amount);
+        stkToken.mint(amount, user);
+        stkToken.delegate(user);
+
+        assertEq(stkToken.getVotes(user), amount);
+
+        vm.stopPrank();
+
+        // Emergency withdraw half the assets
+        vm.prank(admin);
+        stkToken.emergencyWithdrawal(admin, withdrawAmount);
+
+        // Voting power should be reduced proportionally
+        assertEq(stkToken.getVotes(user), amount - withdrawAmount);
+    }
+
+    function test_PastVotingPowerWithAssetBalanceChanges(uint256 amount, uint256 donationAmount, uint256 withdrawAmount) public {
+        amount = bound(amount, 1, stkToken.maxMint(address(0)) - 1);
+        donationAmount = bound(donationAmount, 1, stkToken.maxMint(address(0)) - amount);
+        withdrawAmount = bound(withdrawAmount, 1, amount + donationAmount);
+        
+        vm.startPrank(user);
+
+        // Initial mint and delegate
+        asset.mint(user, amount);
+        asset.approve(address(stkToken), amount);
+        stkToken.mint(amount, user);
+        stkToken.delegate(user);
+
+        assertEq(stkToken.getVotes(user), amount);
+        assertEq(stkToken.getPastVotes(user, block.timestamp - 1), 0);
+
+        vm.warp(block.timestamp + 1);
+
+        assertEq(stkToken.getVotes(user), amount);
+        assertEq(stkToken.getPastVotes(user, block.timestamp - 1), amount);
+
+        // Direct asset donation
+        vm.stopPrank();
+        asset.mint(address(stkToken), donationAmount);
+
+        // Voting power should not change until checkpoint
+        assertEq(stkToken.getVotes(user), amount);
+        assertEq(stkToken.getPastVotes(user, block.timestamp - 1), amount);
+
+        // Trigger checkpoint with 0 deposit
+        vm.prank(user);
+        stkToken.deposit(0, user);
+
+        // Voting power should increase
+        assertEq(stkToken.getVotes(user), amount + donationAmount);
+        assertEq(stkToken.getPastVotes(user, block.timestamp - 1), amount);
+        
+        vm.warp(block.timestamp + 1);
+
+        assertEq(stkToken.getVotes(user), amount + donationAmount);
+        assertEq(stkToken.getPastVotes(user, block.timestamp - 1), amount + donationAmount);
+
+        // Emergency withdrawal
+        vm.prank(admin);
+        stkToken.emergencyWithdrawal(admin, withdrawAmount);
+        
+        assertEq(stkToken.getVotes(user), amount + donationAmount - withdrawAmount);
+        assertEq(stkToken.getPastVotes(user, block.timestamp - 1), amount + donationAmount);
+
+        vm.warp(block.timestamp + 1);
+
+        assertEq(stkToken.getVotes(user), amount + donationAmount - withdrawAmount);
+        assertEq(stkToken.getPastVotes(user, block.timestamp - 1), amount + donationAmount - withdrawAmount);
+    }
+
+    function test_GetPastAssetBalance(uint256 amount, uint256 donationAmount, uint256 withdrawAmount) public {
+        amount = bound(amount, 1, stkToken.maxMint(address(0)) - 1);
+        donationAmount = bound(donationAmount, 1, stkToken.maxMint(address(0)) - amount);
+        withdrawAmount = bound(withdrawAmount, 1, amount + donationAmount);
+
+        vm.startPrank(user);
+
+        // Initial mint
+        asset.mint(user, amount);
+        asset.approve(address(stkToken), amount);
+        stkToken.mint(amount, user);
+
+        assertEq(stkToken.getPastAssetBalance(block.timestamp - 1), 0);
+
+        vm.warp(block.timestamp + 1);
+
+        assertEq(stkToken.getPastAssetBalance(block.timestamp - 1), amount);
+
+        // Direct asset donation
+        vm.stopPrank();
+        asset.mint(address(stkToken), donationAmount);
+
+        // Asset balance should not change until checkpoint
+        assertEq(stkToken.getPastAssetBalance(block.timestamp - 1), amount);
+
+        // Trigger checkpoint with 0 deposit
+        vm.prank(user);
+        stkToken.deposit(0, user);
+
+        vm.warp(block.timestamp + 1);
+
+        assertEq(stkToken.getPastAssetBalance(block.timestamp - 1), amount + donationAmount);
+
+        // Emergency withdrawal
+        vm.prank(admin);
+        stkToken.emergencyWithdrawal(admin, withdrawAmount);
+
+        vm.warp(block.timestamp + 1);
+
+        assertEq(stkToken.getPastAssetBalance(block.timestamp - 1), amount + donationAmount - withdrawAmount);
+    }
+
+    function test_GetPastAssetBalance_RevertsFutureLookup() public {
+        vm.expectRevert(abi.encodeWithSelector(VotesUpgradeable.ERC5805FutureLookup.selector, block.timestamp, block.timestamp));
+        stkToken.getPastAssetBalance(block.timestamp);
     }
 
     // ============ Transfer Tests ============

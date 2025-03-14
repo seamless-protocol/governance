@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {IRewardsController} from "aave-v3-periphery/contracts/rewards/interfaces/IRewardsController.sol";
+import {Checkpoints} from "openzeppelin-contracts/utils/structs/Checkpoints.sol";
 
 abstract contract StakedTokenStorage {
     /// @custom:storage-location erc7201:seamless.contracts.storage.StakedToken
@@ -22,6 +23,10 @@ abstract contract StakedTokenStorage {
          * @notice Maps user => timestamp they initiated a cooldown
          */
         mapping(address => uint256) stakersCooldowns;
+        /**
+         * @notice Checkpoints for asset balance
+         */
+        Checkpoints.Trace208 assetBalanceCheckpoints;
     }
 
     // keccak256(abi.encode(uint256(keccak256("seamless.contracts.storage.StakedToken")) - 1)) & ~bytes32(uint256(0xff));
