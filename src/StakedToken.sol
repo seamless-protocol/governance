@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {console} from "forge-std/console.sol";
 import {Initializable} from "openzeppelin-contracts-upgradeable/proxy/utils/Initializable.sol";
 import {AccessControlUpgradeable} from "openzeppelin-contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -371,10 +370,6 @@ contract StakedToken is
         if (totalSupply == 0) {
             return 0;
         }
-
-        console.log("votingUnits", votingUnits);
-        console.log("assetBalance", assetBalance);
-        console.log("totalSupply", totalSupply);
 
         // Virtual shares not needed for voting power
         return Math.mulDiv(votingUnits, assetBalance, totalSupply, Math.Rounding.Floor);
