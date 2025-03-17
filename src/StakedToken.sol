@@ -379,14 +379,11 @@ contract StakedToken is
     function getPastVotes(address account, uint256 timepoint) public view override returns (uint256) {
         uint256 votingUnits = super.getPastVotes(account, timepoint);
         uint256 totalSupply = getPastTotalSupply(timepoint);
+        uint256 assetBalance = getPastAssetBalance(timepoint);
 
         if (totalSupply == 0) {
             return 0;
         }
-
-        // We don't need to that the timepoint is not in future since it is checked in getPastTotalSupply and super.getPastVotes
-        uint256 assetBalance =
-            Checkpoints.upperLookupRecent(storageLayout().assetBalanceCheckpoints, SafeCast.toUint48(timepoint));
 
         // Virtual shares not needed for voting power
         return Math.mulDiv(votingUnits, assetBalance, totalSupply, Math.Rounding.Floor);
