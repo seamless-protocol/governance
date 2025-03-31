@@ -38,6 +38,10 @@ interface ISeamVestingWalletV2 {
     /// @param newBeneficiary New beneficiary address
     event BeneficiaryChanged(address indexed oldBeneficiary, address indexed newBeneficiary);
 
+    /// @notice Emitted when vesting start is set
+    /// @param startTimestamp New vesting start timestamp
+    event VestingStartSet(uint64 startTimestamp);
+
     /// @notice Emitted when cliff duration is set
     /// @param cliff New cliff duration
     event VestingCliffSet(uint64 cliff);
@@ -45,6 +49,11 @@ interface ISeamVestingWalletV2 {
     /// @notice Emitted when vesting duration is set
     /// @param duration New vesting duration
     event VestingDurationSet(uint64 duration);
+
+    /// @notice Emitted when lockup period is set
+    /// @param startTimestamp Start of lockup period
+    /// @param endTimestamp End of lockup period
+    event LockupPeriodSet(uint64 startTimestamp, uint64 endTimestamp);
 
     /// @notice Getter for the beneficiary address
     function beneficiary() external view returns (address);
