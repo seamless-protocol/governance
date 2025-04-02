@@ -17,7 +17,6 @@ contract SeamVestingWalletV2DeployScript is Script {
         uint64 durationSeconds = uint64(vm.envUint("DURATION_SECONDS"));
         uint64 cliffSeconds = uint64(vm.envUint("CLIFF_SECONDS"));
         uint64 startTimestamp = uint64(vm.envUint("START_TIMESTAMP"));
-        uint64 lockupStartTimestamp = uint64(vm.envUint("LOCKUP_START_TIMESTAMP"));
         uint64 lockupEndTimestamp = uint64(vm.envUint("LOCKUP_END_TIMESTAMP"));
 
         console.log("Deployer address: ", deployerAddress);
@@ -54,9 +53,9 @@ contract SeamVestingWalletV2DeployScript is Script {
         SeamVestingWalletV2 vestingWallet = SeamVestingWalletV2(address(proxy));
 
         if (initialOwner == deployerAddress) {
-            if (lockupStartTimestamp != 0 || lockupEndTimestamp != 0) {
-                vestingWallet.setLockupPeriod(lockupStartTimestamp, lockupEndTimestamp);
-                console.log("Lockup period set from ", lockupStartTimestamp, " to ", lockupEndTimestamp);
+            if (lockupEndTimestamp != 0) {
+                vestingWallet.setLockupEnd(lockupEndTimestamp);
+                console.log("Lockup end set to ", lockupEndTimestamp);
             }
 
             vestingWallet.transferOwnership(finalOwner);

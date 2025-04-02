@@ -65,7 +65,6 @@ contract SeamVestingWalletV2Test is Test {
         assertEq(seamVestingWallet.vestedAmount(uint64(block.timestamp)), 0);
         assertEq(seamVestingWallet.owner(), owner);
         assertEq(seamVestingWallet.beneficiary(), beneficiary);
-        assertEq(seamVestingWallet.lockupStart(), 0);
         assertEq(seamVestingWallet.lockupEnd(), 0);
     }
 
@@ -101,7 +100,6 @@ contract SeamVestingWalletV2Test is Test {
         assertEq(proxy.vestedAmount(uint64(block.timestamp)), 0);
         assertEq(proxy.owner(), owner);
         assertEq(proxy.beneficiary(), beneficiary);
-        assertEq(proxy.lockupStart(), 0);
         assertEq(proxy.lockupEnd(), 0);
     }
 
@@ -166,13 +164,13 @@ contract SeamVestingWalletV2Test is Test {
         vm.stopPrank();
     }
 
-    function testFuzz_SetVestingDuration_RevertIf_InvalidCliff(uint64 newDuration) public {
+    function testFuzz_SetVestingDuration_RevertIf_InvalidDuration(uint64 newDuration) public {
         newDuration = uint64(bound(newDuration, 0, DEFAULT_VESTING_CLIFF - 1));
 
         vm.startPrank(owner);
 
         // Can't set duration less than cliff
-        vm.expectRevert(ISeamVestingWalletV2.InvalidCliff.selector);
+        vm.expectRevert(ISeamVestingWalletV2.InvalidDuration.selector);
         seamVestingWallet.setVestingDuration(newDuration);
 
         vm.stopPrank();
@@ -213,37 +211,24 @@ contract SeamVestingWalletV2Test is Test {
         vm.stopPrank();
     }
 
-    function testFuzz_SetLockupPeriod(uint64 start, uint64 end) public {
-        start = uint64(bound(start, 0, type(uint64).max - 1));
-        end = uint64(bound(end, start + 1, type(uint64).max));
+    function testFuzz_SetLockupEnd(uint64 end) public {
+        end = uint64(bound(end, 0, type(uint64).max - 1));
 
         vm.startPrank(owner);
 
-        seamVestingWallet.setLockupPeriod(start, end);
-        assertEq(seamVestingWallet.lockupStart(), start);
+        vm.expectEmit();
+        emit ISeamVestingWalletV2.LockupEndSet(end);
+        seamVestingWallet.setLockupEnd(end);
         assertEq(seamVestingWallet.lockupEnd(), end);
 
         vm.stopPrank();
     }
 
-    function test_SetLockupPeriod_RevertIf_NotOwner() public {
+    function test_SetLockupEnd_RevertIf_NotOwner() public {
         vm.startPrank(beneficiary);
 
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, beneficiary));
-        seamVestingWallet.setLockupPeriod(1000, 2000);
-
-        vm.stopPrank();
-    }
-
-    function testFuzz_SetLockupPeriod_RevertIf_InvalidLockupPeriod(uint64 start, uint64 end) public {
-        end = uint64(bound(end, 0, type(uint64).max - 1));
-        start = uint64(bound(start, end, type(uint64).max));
-
-        vm.startPrank(owner);
-
-        // End must be after start
-        vm.expectRevert(ISeamVestingWalletV2.InvalidLockupPeriod.selector);
-        seamVestingWallet.setLockupPeriod(start, end);
+        seamVestingWallet.setLockupEnd(1000);
 
         vm.stopPrank();
     }
@@ -349,21 +334,22 @@ contract SeamVestingWalletV2Test is Test {
     }
 
     function testFuzz_VestDuringLockup(uint64 timestamp) public {
-        timestamp = uint64(bound(timestamp, block.timestamp, block.timestamp + DEFAULT_VESTING_DURATION));
+        timestamp = uint64(
+            bound(timestamp, block.timestamp + DEFAULT_VESTING_CLIFF, block.timestamp + DEFAULT_VESTING_DURATION)
+        );
 
         deal(address(token), address(seamVestingWallet), 1000 ether);
 
         // Set lockup period to current time with fuzzed duration
         vm.startPrank(owner);
-        seamVestingWallet.setLockupPeriod(
-            uint64(seamVestingWallet.vestingStart()), uint64(seamVestingWallet.vestingEnd())
-        );
+        seamVestingWallet.setLockupEnd(uint64(seamVestingWallet.vestingEnd()));
         vm.stopPrank();
 
         vm.warp(timestamp);
 
         // During lockup, nothing should be releasable
         assertEq(seamVestingWallet.releasable(), 0);
+        assertGt(seamVestingWallet.vestedAmount(timestamp), 0);
     }
 
     function testFuzz_Vest(uint256 totalAllocation, uint64 percentVested) public {
@@ -530,6 +516,40 @@ contract SeamVestingWalletV2Test is Test {
             abi.encodeWithSelector(ISeamVestingWalletV2.InsufficientVestedTokens.selector, stakeAmount, vestedAmount)
         );
         seamVestingWallet.stake(stakeAmount);
+
+        vm.stopPrank();
+    }
+
+    function testFuzz_Stake_MultipleTimesAsMoreTokensVest(uint64 timestamp1, uint64 timestamp2, uint256 totalAllocation)
+        public
+    {
+        // Ensure timestamps are within valid range and timestamp2 > timestamp1
+        timestamp1 = uint64(bound(timestamp1, block.timestamp + DEFAULT_VESTING_CLIFF, DEFAULT_VESTING_DURATION - 1));
+        timestamp2 = uint64(bound(timestamp2, timestamp1 + 1, DEFAULT_VESTING_DURATION));
+        totalAllocation = bound(totalAllocation, 2, type(uint256).max);
+
+        deal(address(token), address(seamVestingWallet), totalAllocation);
+
+        // First staking at timestamp1
+        vm.warp(timestamp1);
+        uint256 vestedAmount = seamVestingWallet.vestedAmount(timestamp1);
+
+        vm.startPrank(beneficiary);
+        seamVestingWallet.stake(type(uint256).max);
+
+        assertEq(seamVestingWallet.stakedAmount(), vestedAmount);
+        assertEq(stakedTokenMock.balanceOf(address(seamVestingWallet)), vestedAmount);
+
+        // Second staking at timestamp2 when more tokens have vested
+        vm.warp(timestamp2);
+        vestedAmount = seamVestingWallet.vestedAmount(timestamp2);
+
+        // Stake the additional vested amount
+        seamVestingWallet.stake(type(uint256).max);
+
+        // Verify total staked amount equals total vested amount at timestamp2
+        assertEq(seamVestingWallet.stakedAmount(), vestedAmount);
+        assertEq(stakedTokenMock.balanceOf(address(seamVestingWallet)), vestedAmount);
 
         vm.stopPrank();
     }

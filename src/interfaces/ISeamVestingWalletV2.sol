@@ -10,9 +10,6 @@ interface ISeamVestingWalletV2 {
     /// @notice LockupActive: tokens cannot be claimed during lockup period
     error LockupActive();
 
-    /// @notice InvalidLockupPeriod: lockup end must be after lockup start
-    error InvalidLockupPeriod();
-
     /// @notice NoStakedTokens: no tokens are currently staked
     error NoStakedTokens();
 
@@ -28,10 +25,24 @@ interface ISeamVestingWalletV2 {
     /// @notice InvalidToken: token is not SEAM or stkSEAM
     error InvalidToken();
 
-    /// @notice Emitted when token are released and claimed
-    /// @param token Address of the token released
-    /// @param amount Amount of tokens released
-    event ERC20Released(address indexed token, uint256 amount);
+    /// @notice InvalidDuration: duration must be greater than or equal to cliff
+    error InvalidDuration();
+
+    /// @notice VestingWalletInitialized: vesting wallet initialized
+    /// @param token ERC20 token that is being vested
+    /// @param beneficiary Address that will receive the vested tokens
+    /// @param stakedToken Address of the staked token (stkSEAM)
+    /// @param vestingStart Timestamp when vesting starts
+    /// @param vestingDuration Duration of the vesting period in seconds
+    /// @param vestingCliff Cliff period in seconds before vesting begins
+    event VestingWalletInitialized(
+        address indexed token,
+        address indexed beneficiary,
+        address stakedToken,
+        uint64 vestingStart,
+        uint64 vestingDuration,
+        uint64 vestingCliff
+    );
 
     /// @notice Emitted when beneficiary is changed
     /// @param oldBeneficiary Previous beneficiary address
@@ -51,9 +62,8 @@ interface ISeamVestingWalletV2 {
     event VestingDurationSet(uint64 duration);
 
     /// @notice Emitted when lockup period is set
-    /// @param startTimestamp Start of lockup period
     /// @param endTimestamp End of lockup period
-    event LockupPeriodSet(uint64 startTimestamp, uint64 endTimestamp);
+    event LockupEndSet(uint64 endTimestamp);
 
     /// @notice Getter for the beneficiary address
     function beneficiary() external view returns (address);
@@ -107,16 +117,12 @@ interface ISeamVestingWalletV2 {
     /// @param amount amount of tokens to transfer
     function transfer(address token, address to, uint256 amount) external;
 
-    /// @notice Get the lockup start timestamp
-    function lockupStart() external view returns (uint256);
-
     /// @notice Get the lockup end timestamp
     function lockupEnd() external view returns (uint256);
 
     /// @notice Set the lockup period. Only callable by owner
-    /// @param startTimestamp start of lockup period
     /// @param endTimestamp end of lockup period
-    function setLockupPeriod(uint64 startTimestamp, uint64 endTimestamp) external;
+    function setLockupEnd(uint64 endTimestamp) external;
 
     /// @notice Stake vested tokens. Only callable by beneficiary
     /// @param amount amount of tokens to stake, use type(uint256).max to stake all available

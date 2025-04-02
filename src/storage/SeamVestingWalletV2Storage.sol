@@ -7,18 +7,23 @@ import {StakedToken} from "../StakedToken.sol";
 abstract contract SeamVestingWalletV2Storage {
     /// @custom:storage-location erc7201:seamless.contracts.storage.SeamVestingWalletV2
     struct Layout {
-        // Core vesting data
+        // Address that receives the vested tokens
         address beneficiary;
+        // ERC20 token that is being vested (SEAM)
         IERC20 token;
-        uint256 released;
-        uint64 vestingStart;
-        uint64 vestingDuration;
-        uint64 vestingCliff;
-        // Lockup period data
-        uint64 lockupStart;
-        uint64 lockupEnd;
-        // Staking data
+        // Reference to the staked token contract (stkSEAM)
         StakedToken stakedToken;
+        // Amount of tokens already released to the beneficiary
+        uint256 released;
+        // Timestamp when vesting starts
+        uint64 vestingStart;
+        // Duration of the vesting period in seconds
+        uint64 vestingDuration;
+        // Cliff period in seconds before vesting begins
+        uint64 vestingCliff;
+        // Timestamp when the lockup period ends
+        uint64 lockupEnd;
+        // Amount of tokens currently staked
         uint256 stakedAmount;
     }
 

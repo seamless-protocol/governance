@@ -65,6 +65,10 @@ contract SeamVestingWalletV2 is
         $.vestingStart = _vestingStart;
         $.vestingDuration = _vestingDuration;
         $.vestingCliff = _vestingCliff;
+
+        emit VestingWalletInitialized(
+            address(_token), _beneficiary, address(_stakedToken), _vestingStart, _vestingDuration, _vestingCliff
+        );
     }
 
     /// @inheritdoc UUPSUpgradeable
@@ -81,35 +85,13 @@ contract SeamVestingWalletV2 is
     }
 
     /// @inheritdoc ISeamVestingWalletV2
-    function setVestingStart(uint64 startTimestamp) external onlyOwner {
-        _getStorage().vestingStart = startTimestamp;
-        emit VestingStartSet(startTimestamp);
-    }
-
-    /// @inheritdoc ISeamVestingWalletV2
     function vestingDuration() public view returns (uint256) {
         return _getStorage().vestingDuration;
     }
 
     /// @inheritdoc ISeamVestingWalletV2
-    function setVestingDuration(uint64 durationSeconds) external onlyOwner {
-        Layout storage $ = _getStorage();
-        if ($.vestingCliff > durationSeconds) revert InvalidCliff();
-        $.vestingDuration = durationSeconds;
-        emit VestingDurationSet(durationSeconds);
-    }
-
-    /// @inheritdoc ISeamVestingWalletV2
     function vestingCliff() public view returns (uint256) {
         return _getStorage().vestingCliff;
-    }
-
-    /// @inheritdoc ISeamVestingWalletV2
-    function setVestingCliff(uint64 cliffSeconds) external onlyOwner {
-        Layout storage $ = _getStorage();
-        if (cliffSeconds > $.vestingDuration) revert InvalidCliff();
-        $.vestingCliff = cliffSeconds;
-        emit VestingCliffSet(cliffSeconds);
     }
 
     /// @inheritdoc ISeamVestingWalletV2
@@ -132,7 +114,7 @@ contract SeamVestingWalletV2 is
         Layout storage $ = _getStorage();
 
         // Return 0 during lockup window
-        if (block.timestamp >= $.lockupStart && block.timestamp <= $.lockupEnd) {
+        if (block.timestamp <= $.lockupEnd) {
             return 0;
         }
 
@@ -142,20 +124,6 @@ contract SeamVestingWalletV2 is
         if (currentVestedAmount < currentReleased) return 0;
 
         return currentVestedAmount - currentReleased;
-    }
-
-    /// @inheritdoc ISeamVestingWalletV2
-    function release() public {
-        uint256 amount = releasable();
-
-        // Return if no amount to release
-        if (amount == 0) return;
-
-        Layout storage $ = _getStorage();
-
-        $.released += amount;
-        emit ERC20Released(address($.token), amount);
-        SafeERC20.safeTransfer($.token, $.beneficiary, amount);
     }
 
     /// @inheritdoc ISeamVestingWalletV2
@@ -176,6 +144,63 @@ contract SeamVestingWalletV2 is
     }
 
     /// @inheritdoc ISeamVestingWalletV2
+    function lockupEnd() public view returns (uint256) {
+        return _getStorage().lockupEnd;
+    }
+
+    /// @inheritdoc ISeamVestingWalletV2
+    function stakedAmount() public view returns (uint256) {
+        return _getStorage().stakedAmount;
+    }
+
+    /// @inheritdoc ISeamVestingWalletV2
+    function setVestingStart(uint64 startTimestamp) external onlyOwner {
+        _getStorage().vestingStart = startTimestamp;
+        emit VestingStartSet(startTimestamp);
+    }
+
+    /// @inheritdoc ISeamVestingWalletV2
+    function setVestingDuration(uint64 durationSeconds) external onlyOwner {
+        Layout storage $ = _getStorage();
+        if ($.vestingCliff > durationSeconds) revert InvalidDuration();
+        $.vestingDuration = durationSeconds;
+        emit VestingDurationSet(durationSeconds);
+    }
+
+    /// @inheritdoc ISeamVestingWalletV2
+    function setVestingCliff(uint64 cliffSeconds) external onlyOwner {
+        Layout storage $ = _getStorage();
+        if (cliffSeconds > $.vestingDuration) revert InvalidCliff();
+        $.vestingCliff = cliffSeconds;
+        emit VestingCliffSet(cliffSeconds);
+    }
+
+    /// @inheritdoc ISeamVestingWalletV2
+    function setLockupEnd(uint64 endTimestamp) external onlyOwner {
+        Layout storage $ = _getStorage();
+        $.lockupEnd = endTimestamp;
+        emit LockupEndSet(endTimestamp);
+    }
+
+    /// @inheritdoc ISeamVestingWalletV2
+    function setBeneficiary(address newBeneficiary) external onlyOwner {
+        Layout storage $ = _getStorage();
+        address oldBeneficiary = $.beneficiary;
+        $.beneficiary = newBeneficiary;
+        emit BeneficiaryChanged(oldBeneficiary, newBeneficiary);
+    }
+
+    /// @inheritdoc ISeamVestingWalletV2
+    function release() public {
+        uint256 amount = releasable();
+
+        Layout storage $ = _getStorage();
+
+        $.released += amount;
+        SafeERC20.safeTransfer($.token, $.beneficiary, amount);
+    }
+
+    /// @inheritdoc ISeamVestingWalletV2
     function delegate(address token, address delegatee) external onlyBeneficiary {
         Layout storage $ = _getStorage();
         if (token != address($.token) && token != address($.stakedToken)) {
@@ -185,43 +210,12 @@ contract SeamVestingWalletV2 is
     }
 
     /// @inheritdoc ISeamVestingWalletV2
-    function transfer(address token, address to, uint256 amount) external onlyOwner {
-        SafeERC20.safeTransfer(IERC20(token), to, amount);
-    }
-
-    /// @inheritdoc ISeamVestingWalletV2
-    function lockupStart() public view returns (uint256) {
-        return _getStorage().lockupStart;
-    }
-
-    /// @inheritdoc ISeamVestingWalletV2
-    function lockupEnd() public view returns (uint256) {
-        return _getStorage().lockupEnd;
-    }
-
-    /// @inheritdoc ISeamVestingWalletV2
-    function setLockupPeriod(uint64 startTimestamp, uint64 endTimestamp) external onlyOwner {
-        if (endTimestamp <= startTimestamp) {
-            revert InvalidLockupPeriod();
-        }
-        Layout storage $ = _getStorage();
-        $.lockupStart = startTimestamp;
-        $.lockupEnd = endTimestamp;
-        emit LockupPeriodSet(startTimestamp, endTimestamp);
-    }
-
-    /// @inheritdoc ISeamVestingWalletV2
-    function stakedAmount() public view returns (uint256) {
-        return _getStorage().stakedAmount;
-    }
-
-    /// @inheritdoc ISeamVestingWalletV2
     function stake(uint256 amount) external onlyBeneficiary {
         Layout storage $ = _getStorage();
 
         // Check if we have enough vested tokens
         uint256 currentVestedAmount = vestedAmount(uint64(block.timestamp));
-        uint256 availableToStake = currentVestedAmount - $.released;
+        uint256 availableToStake = currentVestedAmount - $.released - $.stakedAmount;
 
         // If amount is max, stake all available tokens
         if (amount == type(uint256).max) {
@@ -270,10 +264,7 @@ contract SeamVestingWalletV2 is
     }
 
     /// @inheritdoc ISeamVestingWalletV2
-    function setBeneficiary(address newBeneficiary) external onlyOwner {
-        Layout storage $ = _getStorage();
-        address oldBeneficiary = $.beneficiary;
-        $.beneficiary = newBeneficiary;
-        emit BeneficiaryChanged(oldBeneficiary, newBeneficiary);
+    function transfer(address token, address to, uint256 amount) external onlyOwner {
+        SafeERC20.safeTransfer(IERC20(token), to, amount);
     }
 }
