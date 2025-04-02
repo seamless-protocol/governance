@@ -98,8 +98,7 @@ interface ISeamVestingWalletV2 {
     /// @notice Getter for the amount of releasable tokens
     function releasable() external view returns (uint256);
 
-    /// @notice Release the tokens to the beneficiary that have already vested
-    /// @dev Emits a {ERC20Released} event
+    /// @notice Release the tokens to the beneficiary that have already vested. Staked tokens must be unstake before releasing.
     function release() external;
 
     /// @notice Calculates the amount of tokens that has already vested
@@ -138,7 +137,7 @@ interface ISeamVestingWalletV2 {
      * @notice Unstake tokens. Only callable by beneficiary
      * @param amount amount of tokens to unstake
      * @dev Call redeem() on staked token to unstake. If redeem results in less token returned than initially staked,
-     * those tokens are effectively considered vested andreleased. If redeem results in more tokens returned than initially staked,
+     * those tokens are effectively considered vested and released. If redeem results in more tokens returned than initially staked,
      * the excess is added to total allocation and will vest accordingly.
      */
     function unstake(uint256 amount) external;

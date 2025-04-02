@@ -119,11 +119,14 @@ contract SeamVestingWalletV2 is
         }
 
         uint256 currentVestedAmount = vestedAmount(uint64(block.timestamp));
-        uint256 currentReleased = released();
+        uint256 currentReleased = $.released;
+        uint256 currentStakedAmount = $.stakedAmount;
 
-        if (currentVestedAmount < currentReleased) return 0;
+        if (currentVestedAmount < (currentReleased + currentStakedAmount)) {
+            return 0;
+        }
 
-        return currentVestedAmount - currentReleased;
+        return currentVestedAmount - (currentReleased + currentStakedAmount);
     }
 
     /// @inheritdoc ISeamVestingWalletV2
@@ -215,7 +218,10 @@ contract SeamVestingWalletV2 is
 
         // Check if we have enough vested tokens
         uint256 currentVestedAmount = vestedAmount(uint64(block.timestamp));
-        uint256 availableToStake = currentVestedAmount - $.released - $.stakedAmount;
+        uint256 availableToStake = 0;
+        if (currentVestedAmount > ($.released + $.stakedAmount)) {
+            availableToStake = currentVestedAmount - ($.released + $.stakedAmount);
+        }
 
         // If amount is max, stake all available tokens
         if (amount == type(uint256).max) {

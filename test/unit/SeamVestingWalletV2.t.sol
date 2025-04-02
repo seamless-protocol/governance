@@ -460,11 +460,14 @@ contract SeamVestingWalletV2Test is Test {
 
         vm.warp(timestamp);
 
+        uint256 releaseableBefore = seamVestingWallet.releasable();
+
         vm.prank(beneficiary);
         seamVestingWallet.stake(stakeAmount);
 
         assertEq(seamVestingWallet.stakedAmount(), stakeAmount);
         assertEq(stakedTokenMock.balanceOf(address(seamVestingWallet)), stakeAmount);
+        assertEq(seamVestingWallet.releasable(), releaseableBefore - stakeAmount);
     }
 
     function testFuzz_Stake_Max(uint64 timestamp, uint256 totalAllocation) public {
@@ -482,6 +485,7 @@ contract SeamVestingWalletV2Test is Test {
 
         assertEq(seamVestingWallet.stakedAmount(), vestedAmount);
         assertEq(stakedTokenMock.balanceOf(address(seamVestingWallet)), vestedAmount);
+        assertEq(seamVestingWallet.releasable(), 0);
     }
 
     function test_Stake_RevertIf_NotBeneficiary() public {
@@ -539,6 +543,7 @@ contract SeamVestingWalletV2Test is Test {
 
         assertEq(seamVestingWallet.stakedAmount(), vestedAmount);
         assertEq(stakedTokenMock.balanceOf(address(seamVestingWallet)), vestedAmount);
+        assertEq(seamVestingWallet.releasable(), 0);
 
         // Second staking at timestamp2 when more tokens have vested
         vm.warp(timestamp2);
@@ -550,6 +555,7 @@ contract SeamVestingWalletV2Test is Test {
         // Verify total staked amount equals total vested amount at timestamp2
         assertEq(seamVestingWallet.stakedAmount(), vestedAmount);
         assertEq(stakedTokenMock.balanceOf(address(seamVestingWallet)), vestedAmount);
+        assertEq(seamVestingWallet.releasable(), 0);
 
         vm.stopPrank();
     }
@@ -601,6 +607,7 @@ contract SeamVestingWalletV2Test is Test {
         // Verify the unstake was successful
         assertEq(stakedTokenMock.balanceOf(address(seamVestingWallet)), stakedAmountBefore - unstakeAmount);
         assertEq(seamVestingWallet.stakedAmount(), stakedAmountBefore - unstakeAmount);
+        assertEq(seamVestingWallet.releasable(), unstakeAmount);
 
         vm.stopPrank();
     }

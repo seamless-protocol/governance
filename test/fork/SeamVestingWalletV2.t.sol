@@ -7,7 +7,7 @@ import {ISeamVestingWalletV2} from "../../src/interfaces/ISeamVestingWalletV2.so
 import {ERC1967Proxy} from "openzeppelin-contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
-import {StakedToken} from "../../src/StakedToken.sol";
+import {IStakedToken, StakedToken} from "../../src/StakedToken.sol";
 import {FeeKeeper} from "../../src/FeeKeeper.sol";
 import {ERC20TransferStrategy} from "../../src/transfer-strategies/ERC20TransferStrategy.sol";
 import {Constants} from "../../src/library/Constants.sol";
@@ -89,11 +89,32 @@ contract SeamVestingWalletV2ForkTest is Test {
         // Delegate to self to activate voting power
         proxy.delegate(address(stkSeam), address(beneficiary));
 
-        vm.stopPrank();
-
         // Verify increased voting power
         assertEq(stkSeam.getVotes(address(beneficiary)), stakeAmount);
         assertEq(stkSeam.balanceOf(address(proxy)), stakeAmount);
+
+        // Unstake tokens
+        proxy.cooldown();
+
+        vm.expectRevert(IStakedToken.CooldownStillActive.selector);
+        proxy.unstake(stakeAmount);
+
+        vm.warp(block.timestamp + 7 days + 1);
+
+        proxy.unstake(stakeAmount);
+
+        // Verify tokens are unstaked
+        assertEq(stkSeam.balanceOf(address(proxy)), 0);
+        assertEq(stkSeam.getVotes(address(beneficiary)), 0);
+        assertEq(seam.balanceOf(address(proxy)), vestingAmount);
+
+        // Release vested tokens
+        vestedAmount = proxy.vestedAmount(uint64(block.timestamp));
+        proxy.release();
+
+        // Verify tokens are released to beneficiary
+        assertEq(seam.balanceOf(beneficiary), vestedAmount);
+        assertEq(proxy.releasable(), 0);
     }
 
     function testFuzz_Fork_ClaimRewards(
