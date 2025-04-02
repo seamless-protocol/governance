@@ -137,8 +137,8 @@ interface ISeamVestingWalletV2 {
     /**
      * @notice Unstake tokens. Only callable by beneficiary
      * @param amount amount of tokens to unstake
-     * @dev Call redeem() on staked token to unstake. If redeem results in less token returned than initially staked, 
-     * those tokens are effectively considered vested andreleased. If redeem results in more tokens returned than initially staked, 
+     * @dev Call redeem() on staked token to unstake. If redeem results in less token returned than initially staked,
+     * those tokens are effectively considered vested andreleased. If redeem results in more tokens returned than initially staked,
      * the excess is added to total allocation and will vest accordingly.
      */
     function unstake(uint256 amount) external;

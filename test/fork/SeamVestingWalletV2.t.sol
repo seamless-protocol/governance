@@ -61,6 +61,7 @@ contract SeamVestingWalletV2ForkTest is Test {
         vm.prank(beneficiary);
         proxy.release();
         assertEq(seam.balanceOf(beneficiary) - balanceBefore, expectedVested);
+        assertEq(proxy.releasable(), 0);
     }
 
     function testFuzz_Fork_StakeWithVotingPower(uint64 vestingDuration, uint256 vestingAmount, uint256 stakePercent)
@@ -92,6 +93,7 @@ contract SeamVestingWalletV2ForkTest is Test {
 
         // Verify increased voting power
         assertEq(stkSeam.getVotes(address(beneficiary)), stakeAmount);
+        assertEq(stkSeam.balanceOf(address(proxy)), stakeAmount);
     }
 
     function testFuzz_Fork_ClaimRewards(
