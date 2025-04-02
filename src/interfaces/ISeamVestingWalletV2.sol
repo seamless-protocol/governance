@@ -134,9 +134,13 @@ interface ISeamVestingWalletV2 {
     /// @notice Getter for the amount of staked tokens
     function stakedAmount() external view returns (uint256);
 
-    /// @notice Unstake tokens. Only callable by beneficiary
-    /// @param amount amount of tokens to unstake
-    /// @dev During lockup period, tokens are returned to the vesting contract
+    /**
+     * @notice Unstake tokens. Only callable by beneficiary
+     * @param amount amount of tokens to unstake
+     * @dev Call redeem() on staked token to unstake. If redeem results in less token returned than initially staked, 
+     * those tokens are effectively considered vested andreleased. If redeem results in more tokens returned than initially staked, 
+     * the excess is added to total allocation and will vest accordingly.
+     */
     function unstake(uint256 amount) external;
 
     /// @notice Claim specific rewards from staking. Only callable by beneficiary

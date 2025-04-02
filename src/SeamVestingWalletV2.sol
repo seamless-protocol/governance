@@ -245,7 +245,12 @@ contract SeamVestingWalletV2 is
 
         // Perform unstake
         uint256 assets = $.stakedToken.redeem(amount, address(this), address(this));
-        $.stakedAmount -= assets;
+
+        if (assets > $.stakedAmount) {
+            $.stakedAmount = 0;
+        } else {
+            $.stakedAmount -= assets;
+        }
     }
 
     /// @inheritdoc ISeamVestingWalletV2

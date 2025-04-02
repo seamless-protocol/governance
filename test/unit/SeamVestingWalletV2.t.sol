@@ -605,6 +605,42 @@ contract SeamVestingWalletV2Test is Test {
         vm.stopPrank();
     }
 
+    function testFuzz_Unstake_WhenRedeemReturnsMoreAssets(uint64 timestamp, uint256 totalAllocation) public {
+        totalAllocation = bound(totalAllocation, 1, type(uint256).max - 101e18);
+
+        deal(address(token), address(seamVestingWallet), totalAllocation);
+
+        timestamp = uint64(bound(timestamp, block.timestamp + DEFAULT_VESTING_CLIFF, type(uint64).max));
+
+        vm.warp(timestamp);
+
+        vm.startPrank(beneficiary);
+
+        seamVestingWallet.stake(type(uint256).max);
+
+        uint256 stakedAmountBefore = seamVestingWallet.stakedAmount();
+
+        vm.stopPrank();
+
+        // Donate 1e18 token to the stakedToken contract
+        address tempAddress = makeAddr("tempAddress");
+        deal(address(token), address(tempAddress), 100e18);
+
+        vm.prank(tempAddress);
+        token.transfer(address(stakedTokenMock), 100e18);
+
+        vm.startPrank(beneficiary);
+
+        // Now unstake
+        seamVestingWallet.unstake(stakedAmountBefore);
+
+        // Verify the unstake was successful
+        assertEq(stakedTokenMock.balanceOf(address(seamVestingWallet)), 0);
+        assertEq(seamVestingWallet.stakedAmount(), 0);
+
+        vm.stopPrank();
+    }
+
     function test_Unstake_RevertIf_NotBeneficiary() public {
         address notBeneficiary = makeAddr("notBeneficiary");
 
