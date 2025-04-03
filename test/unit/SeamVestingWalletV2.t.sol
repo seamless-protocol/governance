@@ -758,7 +758,7 @@ contract SeamVestingWalletV2Test is Test {
         vm.startPrank(owner);
 
         uint256 oldReleased = seamVestingWallet.released();
-        
+
         vm.expectEmit();
         emit ISeamVestingWalletV2.ReleasedSet(oldReleased, amount);
         seamVestingWallet.setReleased(amount);
