@@ -753,4 +753,27 @@ contract SeamVestingWalletV2Test is Test {
 
         vm.stopPrank();
     }
+
+    function testFuzz_SetReleased(uint256 amount) public {
+        vm.startPrank(owner);
+
+        uint256 oldReleased = seamVestingWallet.released();
+        
+        vm.expectEmit();
+        emit ISeamVestingWalletV2.ReleasedSet(oldReleased, amount);
+        seamVestingWallet.setReleased(amount);
+
+        assertEq(seamVestingWallet.released(), amount);
+
+        vm.stopPrank();
+    }
+
+    function test_SetReleased_RevertIf_NotOwner() public {
+        vm.startPrank(beneficiary);
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, beneficiary));
+        seamVestingWallet.setReleased(100);
+
+        vm.stopPrank();
+    }
 }

@@ -7,7 +7,7 @@ out/
 /broadcast/*/31337/
 /broadcast/**/dry-run/
 /broadcast/SeamVestingWallet.s.sol/
-
+/broadcast/SeamVestingWalletV2.s.sol/
 # Docs
 docs/
 

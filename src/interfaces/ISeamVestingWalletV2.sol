@@ -65,6 +65,11 @@ interface ISeamVestingWalletV2 {
     /// @param endTimestamp End of lockup period
     event LockupEndSet(uint64 endTimestamp);
 
+    /// @notice Emitted when released amount is set
+    /// @param oldReleased Previous released amount
+    /// @param newReleased New released amount
+    event ReleasedSet(uint256 oldReleased, uint256 newReleased);
+
     /// @notice Getter for the beneficiary address
     function beneficiary() external view returns (address);
 
@@ -97,6 +102,10 @@ interface ISeamVestingWalletV2 {
 
     /// @notice Getter for the amount of releasable tokens
     function releasable() external view returns (uint256);
+
+    /// @notice Change the released amount. Only callable by owner
+    /// @param amount the new released amount
+    function setReleased(uint256 amount) external;
 
     /// @notice Release the tokens to the beneficiary that have already vested. Staked tokens must be unstake before releasing.
     function release() external;
