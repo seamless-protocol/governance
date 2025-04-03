@@ -8,9 +8,9 @@ import {SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol"
 import {Math} from "openzeppelin-contracts/utils/math/Math.sol";
 import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {IVotes} from "openzeppelin-contracts/governance/utils/IVotes.sol";
-import {ISeamVestingWalletV2} from "src/interfaces/ISeamVestingWalletV2.sol";
-import {SeamVestingWalletV2Storage} from "src/storage/SeamVestingWalletV2Storage.sol";
-import {StakedToken} from "src/StakedToken.sol";
+import {ISeamVestingWalletV2} from "./interfaces/ISeamVestingWalletV2.sol";
+import {SeamVestingWalletV2Storage} from "./storage/SeamVestingWalletV2Storage.sol";
+import {StakedToken} from "./StakedToken.sol";
 import {IRewardsController} from "aave-v3-periphery/contracts/rewards/interfaces/IRewardsController.sol";
 
 /// @title SeamVestingWalletV2
@@ -191,6 +191,14 @@ contract SeamVestingWalletV2 is
         address oldBeneficiary = $.beneficiary;
         $.beneficiary = newBeneficiary;
         emit BeneficiaryChanged(oldBeneficiary, newBeneficiary);
+    }
+
+    /// @inheritdoc ISeamVestingWalletV2
+    function setReleased(uint256 amount) external onlyOwner {
+        StorageLayout storage $ = _getStorage();
+        uint256 oldReleased = $.released;
+        $.released = amount;
+        emit ReleasedSet(oldReleased, amount);
     }
 
     /// @inheritdoc ISeamVestingWalletV2

@@ -26,6 +26,9 @@ upgrade-seam-base-mainnet		:; forge script script/SeamUpgrade.s.sol:SeamUpgradeS
 deploy-vesting-wallet-base-mainnet :; forge script script/SeamVestingWallet.s.sol:SeamVestingWalletDeployScript --rpc-url base --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
 deploy-vesting-wallet-base-tenderly :; forge script script/SeamVestingWallet.s.sol:SeamVestingWalletDeployScript --rpc-url tenderly --slow --broadcast -vvvv
 
+deploy-vesting-walletv2-base-mainnet :; forge script script/SeamVestingWalletV2.s.sol:SeamVestingWalletV2DeployScript --rpc-url base --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
+deploy-vesting-walletv2-base-tenderly :; forge script script/SeamVestingWalletV2.s.sol:SeamVestingWalletV2DeployScript --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}
+
 deploy-full-gov-base-testnet	:; forge script script/SeamFullGovernanceDeploy.s.sol:SeamFullGovernanceDeploy --force --rpc-url base-testnet --slow --broadcast --verify --delay 5 --verifier-url ${BASE_TESTNET_VERIFIER_URL} -vvvv
 deploy-full-gov-base-mainnet	:; forge script script/SeamFullGovernanceDeploy.s.sol:SeamFullGovernanceDeploy --force --rpc-url base --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
 
