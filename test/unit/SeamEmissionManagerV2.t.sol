@@ -121,7 +121,7 @@ contract SeamEmissionManagerV2Test is Test {
     function test_Claim_InsufficientBalance() public {
         uint256 timeElapsed = 5000;
         uint256 partialAmount = emissionPerSecond * timeElapsed / 2; // Only half of the needed amount
-        
+
         // Set a specific token balance that's less than what would be required
         deal(seam, address(emissionManager), partialAmount);
 
@@ -158,11 +158,11 @@ contract SeamEmissionManagerV2Test is Test {
         uint32 timeElapsed = uint32(type(uint32).max);
         uint256 requiredAmount = emissionPerSecond * timeElapsed;
         availableBalance = bound(availableBalance, 1, requiredAmount - 1);
-        
+
         deal(seam, address(emissionManager), availableBalance);
 
         uint256 receiverBalanceBefore = IERC20(seam).balanceOf(receiver);
-        
+
         vm.warp(block.timestamp + timeElapsed);
         emissionManager.claim(receiver);
 
