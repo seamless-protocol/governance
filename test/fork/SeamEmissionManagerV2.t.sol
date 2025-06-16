@@ -32,10 +32,32 @@ contract SeamEmissionManagerV2ForkTest is Test {
 
         vm.stopPrank();
 
+        // Store values before upgrade
+        address seamBefore1 = emissionManager1.getSeam();
+        uint64 emissionStartTimestampBefore1 = emissionManager1.getEmissionStartTimestamp();
+        uint64 lastClaimedTimestampBefore1 = emissionManager1.getLastClaimedTimestamp();
+        uint256 emissionPerSecondBefore1 = emissionManager1.getEmissionPerSecond();
+
+        address seamBefore2 = emissionManager2.getSeam();
+        uint64 emissionStartTimestampBefore2 = emissionManager2.getEmissionStartTimestamp();
+        uint64 lastClaimedTimestampBefore2 = emissionManager2.getLastClaimedTimestamp();
+        uint256 emissionPerSecondBefore2 = emissionManager2.getEmissionPerSecond();
+
         vm.startPrank(Constants.LONG_TIMELOCK_ADDRESS);
         emissionManager1.upgradeToAndCall(address(newImplementation), "");
         emissionManager2.upgradeToAndCall(address(newImplementation), "");
         vm.stopPrank();
+
+        // Validate values after upgrade match values before upgrade
+        assertEq(emissionManager1.getSeam(), seamBefore1);
+        assertEq(emissionManager1.getEmissionStartTimestamp(), emissionStartTimestampBefore1);
+        assertEq(emissionManager1.getLastClaimedTimestamp(), lastClaimedTimestampBefore1);
+        assertEq(emissionManager1.getEmissionPerSecond(), emissionPerSecondBefore1);
+
+        assertEq(emissionManager2.getSeam(), seamBefore2);
+        assertEq(emissionManager2.getEmissionStartTimestamp(), emissionStartTimestampBefore2);
+        assertEq(emissionManager2.getLastClaimedTimestamp(), lastClaimedTimestampBefore2);
+        assertEq(emissionManager2.getEmissionPerSecond(), emissionPerSecondBefore2);
 
         vm.startPrank(Constants.SHORT_TIMELOCK_ADDRESS);
         emissionManager1.claim(address(this));
