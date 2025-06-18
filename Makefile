@@ -58,3 +58,6 @@ deploy-governorv2-implementation-tenderly		:; forge script script/SeamGovernorUp
 
 deploy-staked-token-implementation-base-mainnet	:; forge script script/StakedTokenImplementation.s.sol:StakedTokenImplementation --force --rpc-url base --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
 deploy-staked-token-implementation-tenderly		:; forge script script/StakedTokenImplementation.s.sol:StakedTokenImplementation --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}
+
+deploy-emission-manager-v2-base-mainnet	:; forge script script/SeamEmissionManagerV2Deploy.s.sol:SeamEmissionManagerV2Deploy --force --rpc-url base --slow --broadcast --verify --delay 5 --verifier-url ${VERIFIER_URL} -vvvv
+deploy-emission-manager-v2-tenderly		:; forge script script/SeamEmissionManagerV2Deploy.s.sol:SeamEmissionManagerV2Deploy --force --rpc-url tenderly --slow --broadcast -vvvv --verify --verifier-url ${TENDERLY_FORK_VERIFIER_URL} --etherscan-api-key ${TENDERLY_ACCESS_KEY}

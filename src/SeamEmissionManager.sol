@@ -83,7 +83,7 @@ contract SeamEmissionManager is ISeamEmissionManager, Initializable, AccessContr
     }
 
     /// @inheritdoc ISeamEmissionManager
-    function claim(address receiver) external onlyRole(CLAIMER_ROLE) {
+    function claim(address receiver) external virtual onlyRole(CLAIMER_ROLE) {
         Storage.Layout storage $ = Storage.layout();
 
         uint64 emissionStartTimestamp = $.emissionStartTimestamp;
